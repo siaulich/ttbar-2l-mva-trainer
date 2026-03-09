@@ -30,14 +30,9 @@ class MLP(keras.layers.Layer):
         num_layers=3,
         layer_norm=False,
         activation="linear",
-        hidden_activation="relu",
+        hidden_activation="gelu",
         dropout_rate=0.0,
         use_bias=True,
-        kernel_regularizer=None,
-        bias_regularizer=None,
-        activity_regularizer=None,
-        apply_final_norm=False,
-        apply_final_dropout=False,
         name="mlp",
         **kwargs,
     ):
@@ -50,11 +45,6 @@ class MLP(keras.layers.Layer):
         self.hidden_activation = hidden_activation
         self.dropout_rate = dropout_rate
         self.use_bias = use_bias
-        self.kernel_regularizer = regularizers.get(kernel_regularizer)
-        self.bias_regularizer = regularizers.get(bias_regularizer)
-        self.activity_regularizer = regularizers.get(activity_regularizer)
-        self.apply_final_norm = apply_final_norm
-        self.apply_final_dropout = apply_final_dropout
         self.layers_list = []
         self._built_hidden_dims = None
 
@@ -91,9 +81,6 @@ class MLP(keras.layers.Layer):
                 width,
                 activation=self.hidden_activation,
                 use_bias=self.use_bias,
-                kernel_regularizer=self.kernel_regularizer,
-                bias_regularizer=self.bias_regularizer,
-                activity_regularizer=self.activity_regularizer,
                 name=f"dense_{i}",
             )
             self.layers_list.append(dense_layer)
@@ -113,23 +100,9 @@ class MLP(keras.layers.Layer):
             self.output_dim,
             activation=self.activation,
             use_bias=self.use_bias,
-            kernel_regularizer=self.kernel_regularizer,
-            bias_regularizer=self.bias_regularizer,
-            activity_regularizer=self.activity_regularizer,
             name="output",
         )
         self.layers_list.append(output_layer)
-
-        # Optional post-output normalization and dropout
-        if self.apply_final_norm and self.layer_norm:
-            final_ln = keras.layers.LayerNormalization(name="ln_output")
-            self.layers_list.append(final_ln)
-
-        if self.apply_final_dropout and self.dropout_rate > 0:
-            final_dropout = keras.layers.Dropout(
-                self.dropout_rate, name="dropout_output"
-            )
-            self.layers_list.append(final_dropout)
 
         # Build all sublayers with the input shape
         x_shape = input_shape
@@ -164,38 +137,65 @@ class MLP(keras.layers.Layer):
                 "hidden_activation": self.hidden_activation,
                 "dropout_rate": self.dropout_rate,
                 "use_bias": self.use_bias,
-                "kernel_regularizer": regularizers.serialize(self.kernel_regularizer),
-                "bias_regularizer": regularizers.serialize(self.bias_regularizer),
-                "activity_regularizer": regularizers.serialize(
-                    self.activity_regularizer
-                ),
-                "apply_final_norm": self.apply_final_norm,
-                "apply_final_dropout": self.apply_final_dropout,
             }
         )
         return config
 
-    def get_build_config(self):
-        """Return the build config for proper serialization."""
-        return {
-            "input_shape": self._build_input_shape,
-            "built_hidden_dims": self._built_hidden_dims,
-        }
-
-    def build_from_config(self, config):
-        """Rebuild the layer from build config during deserialization."""
-        input_shape = config["input_shape"]
-        self.build(input_shape)
 
     @classmethod
     def from_config(cls, config):
-        # Deserialize regularizers
-        kernel_reg = config.pop("kernel_regularizer", None)
-        bias_reg = config.pop("bias_regularizer", None)
-        activity_reg = config.pop("activity_regularizer", None)
-
-        config["kernel_regularizer"] = regularizers.deserialize(kernel_reg)
-        config["bias_regularizer"] = regularizers.deserialize(bias_reg)
-        config["activity_regularizer"] = regularizers.deserialize(activity_reg)
 
         return cls(**config)
+
+class EmbeddingMLP(keras.layers.Layer):
+    """
+    MLP layer that includes an embedding layer for categorical features.
+
+    Args:
+        output_dim: Output dimensionality
+        hidden_dims: List of hidden layer dimensions, or 'auto' for geometric interpolation
+        num_layers: Number of layers (only used if hidden_dims='auto')
+        layer_norm: Whether to apply layer normalization after each layer
+        activation: Activation function for output layer
+        hidden_activation: Activation function for hidden layers
+        dropout_rate: Dropout rate (0 to disable)
+        use_bias: Whether to use bias in dense layers
+        kernel_regularizer: Regularizer for kernel weights
+        bias_regularizer: Regularizer for bias weights
+        activity_regularizer: Regularizer for layer activations
+        apply_final_norm: Whether to apply layer norm after output layer
+        apply_final_dropout: Whether to apply dropout after output layer
+    """
+
+    def __init__(
+        self,
+        output_dim,
+        hidden_dims="auto",
+        dropout_rate=0.0,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+        self.output_dim = output_dim
+        self.hidden_dims = hidden_dims
+        self.dropout_rate = dropout_rate
+
+    def build(self, input_shape):
+        self.ff_dense_1 = keras.layers.Dense(
+            2*self.output_dim,
+            activation="gelu",
+            name="ff_dense_1",
+        )
+        self.ff_dense_2 = keras.layers.Dense(
+            self.output_dim,
+            activation="linear",
+            name="ff_dense_2",
+        )
+        self.ff_dropout = keras.layers.Dropout(self.dropout_rate, name="ff_dropout")
+        super().build(input_shape)
+
+    def call(self, inputs, training=None):
+        x = inputs
+        x = self.ff_dense_1(x)
+        x = self.ff_dense_2(x)
+        x = self.ff_dropout(x, training=training)
+        return x

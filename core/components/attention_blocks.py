@@ -28,7 +28,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         ff_dim=None,
         dropout_rate=0,
         self_attention=False,
-        pre_ln=True,
+        pre_ln=False,
         regularizer=None,
         **kwargs,
     ):
@@ -64,7 +64,7 @@ class MultiHeadAttentionBlock(layers.Layer):
 
         # Feedforward network
         self.ffn_dense_1 = layers.Dense(
-            self.ff_dim, activation="relu", name="ffn_dense_1"
+            self.ff_dim, activation="gelu", name="ffn_dense_1"
         )
         self.ffn_dense_2 = layers.Dense(key_dim, name="ffn_dense_2")
         self.ffn_dropout = layers.Dropout(dropout_rate, name="ffn_dropout_1")
@@ -145,8 +145,9 @@ class MultiHeadAttentionBlock(layers.Layer):
             ffn_in = x
 
         ffn_out = self.ffn_dense_1(ffn_in)
-        ffn_out = self.ffn_dropout(ffn_out, training=training)
         ffn_out = self.ffn_dense_2(ffn_out)
+        ffn_out = self.ffn_dropout(ffn_out, training=training)
+
         return x + ffn_out
 
     def _call_post_ln(
@@ -183,8 +184,8 @@ class MultiHeadAttentionBlock(layers.Layer):
 
         # FFN
         ffn_out = self.ffn_dense_1(x)
-        ffn_out = self.ffn_dropout(ffn_out, training=training)
         ffn_out = self.ffn_dense_2(ffn_out)
+        ffn_out = self.ffn_dropout(ffn_out, training=training)
 
         if self.ln_ffn is not None:
             return self.ln_ffn(x + ffn_out)
@@ -814,7 +815,7 @@ class PoolingAttentionBlock(layers.Layer):
         # Pre-processing feed-forward for inputs (rFF(Z) in equation 11)
         self.input_ff_1 = layers.Dense(
             self.ff_dim,
-            activation="relu",
+            activation="gelu",
             name="input_ff_1",
             kernel_initializer="glorot_uniform",
             bias_initializer="zeros",

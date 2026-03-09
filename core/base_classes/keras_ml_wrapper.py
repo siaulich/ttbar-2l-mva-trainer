@@ -117,7 +117,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
 
         if self.config.has_global_event_inputs:
             global_event_inputs = keras.Input(
-                shape=(self.n_global,),
+                shape=(1, self.n_global,),
                 name="global_event_inputs",
             )
 
@@ -326,7 +326,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         met_data = data["met_inputs"][:num_events, :, :]
         global_event_data = None
         if "global_event_inputs" in data:
-            global_event_data = data["global_event_inputs"][:num_events, :]
+            global_event_data = data["global_event_inputs"][:num_events, :, :]
 
         # --- Helper: build a submodel up to (but not including) a target layer ---
         def get_pre_norm_submodel(model, target_layer_name):

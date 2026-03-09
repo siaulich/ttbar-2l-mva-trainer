@@ -162,10 +162,10 @@ class DataPreprocessor:
         """
         arrays = [loaded[key] for key in feature_keys]
         result = np.array(arrays).transpose(1, 2, 0) if len(arrays[0].shape) > 1 else np.array(arrays).transpose(1, 0)
-        
+
         if max_objects is not None and len(result.shape) > 2:
             result = result[:, :max_objects, :]
-        
+
         if target_shape is not None:
             result = result.reshape(target_shape)
             
@@ -452,7 +452,7 @@ class DataPreprocessor:
         # Get feature index from DataConfig
         feature_idx = self.data_config.get_feature_index(data_type, feature_name)
 
-        if data_type in ["jet_inputs", "lep_inputs", "met_inputs"]:
+        if data_type in ["jet_inputs", "lep_inputs", "met_inputs", "global_event_inputs"]:
             return self.feature_data[data_type][:, :, feature_idx].copy()
         elif data_type in ["non_training", "custom"]:
             return self.feature_data[data_type][:, feature_idx].copy()
