@@ -1009,7 +1009,7 @@ class ReconstructionPlotter:
         # Plot all deviations together
         DistributionPlotter.plot_feature_distributions(
             all_deviations,
-            "Relative " if use_relative_deviation else "" + f"Deviation in {variable_label}",
+            ("Relative " if use_relative_deviation else "") + f"Deviation in {variable_label}",
             event_weights=event_weights_plot,
             labels=labels,
             ax=axes,
@@ -1468,6 +1468,127 @@ class ReconstructionPlotter:
             f.write(latex_str)
         return latex_str
 
+    def save_reconstruction_variable_latex_table(
+        self,
+        variable_key: str,
+        n_bootstrap: int = 10,
+        confidence: float = 0.95,
+        save_dir: Optional[str] = None,
+        use_signed_deviation: bool = True,
+        use_relative_deviation: bool = False,
+        deviation_function: Optional[Callable] = None,
+    ) -> str:
+        """
+        Generate LaTeX table with binned reconstruction variable metrics for all reconstructors.
+
+        Args:
+            variable_key: Key identifying the variable (e.g., 'top_mass', 'c_han')
+            metric_type: Either 'resolution' or 'deviation'
+            feature_data_type: Type of feature data for binning
+            feature_name: Name of feature for binning
+            n_bootstrap: Number of bootstrap samples for confidence intervals
+            confidence: Confidence level for intervals
+            save_dir: Optional directory to save the LaTeX file 
+        Returns:
+            LaTeX table string
+        """
+
+
+        # Collect results
+        results = []
+        for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
+            if isinstance(reconstructor, GroundTruthReconstructor):
+                continue
+            # Compute reconstructed and truth values
+            reconstructed = self.variable_handler.compute_reconstructed_variable(
+                i, variable_key
+            )
+            truth = self.variable_handler.compute_true_variable(variable_key)
+            
+
+            deviation = ResolutionCalculator.compute_deviation(
+                reconstructed,
+                truth,
+                use_signed_deviation=use_signed_deviation,
+                use_relative_deviation=use_relative_deviation,
+                deviation_function=deviation_function,
+            )
+            square_deviation = deviation ** 2
+
+            # Compute binned metric with CI
+            dev_mean, dev_lower, dev_upper = (
+                BootstrapCalculator.compute_bootstrap_ci(
+                    data=deviation,
+                    n_bootstrap=n_bootstrap,
+                    confidence=confidence,
+                )
+            )
+            square_dev_mean, square_dev_lower, square_dev_upper = (
+                BootstrapCalculator.compute_bootstrap_ci(
+                    data=square_deviation,
+                    n_bootstrap=n_bootstrap,
+                    confidence=confidence,
+                )
+            )
+            results.append(
+                {
+                    "name": reconstructor.get_full_reco_name(),
+                    "mean_dev_metric": dev_mean,
+                    "dev_lower": dev_lower,
+                    "dev_upper": dev_upper,
+                    "mean_square_metric": square_dev_mean,
+                    "lower_square": square_dev_lower,
+                    "upper_square": square_dev_upper,
+                }
+            )
+
+        # Generate LaTeX table
+        latex = []
+        latex.append(r"    \begin{tabular}{lcc}")
+        latex.append(r"        \toprule")
+        latex.append(r"        Method & Mean Deviation & Mean Squared Deviation \\")
+        latex.append(r"        \midrule")
+        for res in results:
+            name = res["name"]
+            dev_mean = res["mean_dev_metric"]
+            dev_lower = res["dev_lower"]
+            dev_upper = res["dev_upper"]
+
+            square_mean = res["mean_square_metric"]
+            square_lower = res["lower_square"]
+            square_upper = res["upper_square"]
+
+            dev_str = (
+                f"${dev_mean:.4f}"
+                + "_{-"
+                + f"{dev_mean - dev_lower:.4f}"
+                + "}"
+                + "^{+"
+                + f"{dev_upper - dev_mean:.4f}"
+                + "}$"
+            )
+            square_str = (
+                f"${square_mean:.4f}"
+                + "_{-"
+                + f"{square_mean - square_lower:.4f}"
+                + "}"
+                + "^{+"
+                + f"{square_upper - square_mean:.4f}"
+                + "}$"
+            )
+
+            latex.append(f"        {name} & {dev_str} & {square_str} \\\\")
+        latex.append(r"        \bottomrule")
+        latex.append(r"    \end{tabular}")
+        latex_str = "\n".join(latex)
+        file_name = f"{variable_key}_reconstruction_metrics_table.tex"
+        if save_dir is not None:
+            file_name = os.path.join(save_dir, file_name)
+        with open(file_name, "w") as f:
+            f.write(latex_str)
+        return latex_str
+
+
     def plot_binned_accuracy_quotients(
         self,
         feature_data_type: str,
@@ -1797,6 +1918,17 @@ class ReconstructionPlotter:
                 file_path = os.path.join(save_dir, file_name)
                 fig.savefig(file_path)
             plt.close(fig)
+            self.save_reconstruction_variable_latex_table(
+                variable_key=variable_key,
+                n_bootstrap=10,
+                confidence=0.95,
+                save_dir=save_dir,
+                use_signed_deviation=deviation_config.get("use_signed_deviation", True),
+                use_relative_deviation=use_relative_deviation,
+                deviation_function=deviation_function,
+            )
+
+        
 
     def plot_all_confusion_matrices(self, save_dir: Optional[str] = None, **kwargs):
         """

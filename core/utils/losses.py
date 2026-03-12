@@ -42,84 +42,19 @@ class AssignmentLoss(keras.losses.Loss):
         cfg.update({"lambda_excl": self.lambda_excl, "epsilon": self.epsilon})
         return cfg
 
-
 @keras.utils.register_keras_serializable()
-class FocalAssignmentLoss(keras.losses.Loss):
-    def __init__(
-        self,
-        lambda_excl=0.0,
-        focal_gamma=0.0,
-        epsilon=1e-7,
-        name="assignment_loss",
-        **kwargs,
-    ):
+class RegressionHuber(keras.losses.Loss):
+    def __init__(self, delta=1.0, name="regression_huber_loss", **kwargs):
         super().__init__(name=name, **kwargs)
-        self.lambda_excl = lambda_excl
-        self.focal_gamma = focal_gamma
-        self.epsilon = epsilon
+        self.delta = delta
 
-    def call(self, y_true, y_pred):
-        """
-        y_true: (batch, n_jets, 2) OR (batch, n_jets, 3) with mask in channel 2
-        y_pred: (batch, n_jets, 2)
-        """
-
-        # ---------------------------
-        # Extract or create mask
-        # ---------------------------
-
-        # ---------------------------
-        # Numerical safety
-        # ---------------------------
-        y_pred = tf.clip_by_value(y_pred, self.epsilon, 1.0)
-
-        # ---------------------------
-        # Cross entropy
-        # ---------------------------
-        # base CE
-        ce = -y_true * tf.math.log(y_pred)  # (batch, jets, 2)
-
-        # focal weighting only for true classes
-        if self.focal_gamma > 0.0:
-            p_t = tf.reduce_sum(
-                y_true * y_pred, axis=-1, keepdims=True
-            )  # (batch, jets, 1)
-            focal_factor = tf.pow(1.0 - p_t, self.focal_gamma)
-            ce = ce * focal_factor  # (batch, jets, 2)
-
-        # sum over jets + leptons, normalize by #valid jets
-        ce_loss = tf.reduce_mean(ce, axis=[1, 2])
-
-        # ---------------------------
-        # Exclusivity penalty
-        # ---------------------------
-        if self.lambda_excl > 0.0:
-            p1 = y_pred[:, :, 0]
-            p2 = y_pred[:, :, 1]
-            overlap = p1 * p2  # (batch, jets)
-
-            # sum jets, mean over batch
-            excl = tf.reduce_sum(overlap, axis=1)
-            excl_loss = self.lambda_excl * excl
-        else:
-            excl_loss = 0.0
-
-        # ---------------------------
-        # Total loss
-        # ---------------------------
-        return ce_loss + excl_loss
-
-    def get_config(self):
-        cfg = super().get_config()
-        cfg.update(
-            {
-                "lambda_excl": self.lambda_excl,
-                "focal_gamma": self.focal_gamma,
-                "epsilon": self.epsilon,
-            }
-        )
-        return cfg
-
+    def call(self, y_true, y_pred, sample_weight=None):
+        huber = keras.losses.huber(y_true, y_pred, delta=self.delta)
+        huber = tf.reduce_mean(huber, axis=[-1])  # mean over items and vars -> (batch,)
+        if sample_weight is not None:
+            sample_weight = tf.reshape(tf.cast(sample_weight, huber.dtype), [-1])
+            huber = huber * sample_weight
+        return huber
 
 @keras.utils.register_keras_serializable()
 class RegressionMSE(keras.losses.Loss):

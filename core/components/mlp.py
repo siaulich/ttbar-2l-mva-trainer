@@ -30,7 +30,7 @@ class MLP(keras.layers.Layer):
         num_layers=3,
         layer_norm=False,
         activation="linear",
-        hidden_activation="gelu",
+        hidden_activation="relu",
         dropout_rate=0.0,
         use_bias=True,
         name="mlp",
@@ -144,9 +144,18 @@ class MLP(keras.layers.Layer):
 
     @classmethod
     def from_config(cls, config):
+        # Deserialize regularizers
+        kernel_reg = config.pop("kernel_regularizer", None)
+        bias_reg = config.pop("bias_regularizer", None)
+        activity_reg = config.pop("activity_regularizer", None)
+        config.pop("apply_final_norm", None)
+        config.pop("apply_final_dropout", None)
+
 
         return cls(**config)
 
+
+@keras.utils.register_keras_serializable()
 class EmbeddingMLP(keras.layers.Layer):
     """
     MLP layer that includes an embedding layer for categorical features.
@@ -182,7 +191,7 @@ class EmbeddingMLP(keras.layers.Layer):
     def build(self, input_shape):
         self.ff_dense_1 = keras.layers.Dense(
             2*self.output_dim,
-            activation="gelu",
+            activation="relu",
             name="ff_dense_1",
         )
         self.ff_dense_2 = keras.layers.Dense(

@@ -223,9 +223,9 @@ class ChiSquareAssigner(BaselineAssigner):
     def __init__(
         self,
         config: DataConfig,
-        use_nu_flows=True,
         use_nu_flows_for_assignment=True,
         top_mass=173.15e3,
+        **kwargs
     ):
         super().__init__(
             config,
@@ -239,7 +239,7 @@ class ChiSquareAssigner(BaselineAssigner):
                     )
                 )
             ),
-            use_nu_flows=use_nu_flows,
+            **kwargs
         )
         """Initializes the ChiSquareAssigner class.
         Args:
@@ -249,10 +249,6 @@ class ChiSquareAssigner(BaselineAssigner):
         self.feature_index_dict = config.feature_indices
         self.max_jets = config.max_jets
         self.top_mass = top_mass
-        if use_nu_flows and config.nu_flows_neutrino_momentum_features is None:
-            raise ValueError(
-                "Neutrino flows momentum features must be specified in the config when use_nu_flows is True."
-            )
         self.use_nu_flows_for_assignment = use_nu_flows_for_assignment
 
     def get_neutrino_momenta(self, data_dict):

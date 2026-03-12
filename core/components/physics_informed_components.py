@@ -77,7 +77,7 @@ def reco_W_mass_deviation(
 
     return mass_loss
 
-
+@keras.utils.register_keras_serializable()
 class PhysicsInformedLoss(keras.layers.Layer):
     def __init__(self, name="reco_mass_deviation", **kwargs):
         super().__init__(name=name, **kwargs)

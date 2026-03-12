@@ -278,9 +278,10 @@ class DataPreprocessor:
     def _load_optional_features(self, loaded: Dict) -> None:
         """Load optional features (MET, global, non-training, weights)."""
         if self.load_config.global_event_inputs:
-            self.feature_data["global_event_inputs"] = self._load_feature_array(
+            global_event_data = self._load_feature_array(
                 loaded, self.load_config.global_event_inputs
             )
+            self.feature_data["global_event_inputs"] = global_event_data[:, np.newaxis, :]
 
         if self.load_config.met_features:
             met_data = self._load_feature_array(loaded, self.load_config.met_features)
