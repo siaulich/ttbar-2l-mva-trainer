@@ -1,6 +1,9 @@
 from .DataLoader import DataPreprocessor, DataConfig
 import numpy as np
 import matplotlib.pyplot as plt
+import atlas_mpl_style as ampl
+
+ampl.use_atlas_style()
 import os
 
 
@@ -15,9 +18,7 @@ class DataPlotter:
         self.event_cuts = np.ones(data_processor.data_length, dtype=bool)
         os.makedirs(self.plots_dir, exist_ok=True)
 
-    def plot_feature_distribution(
-        self, feature_type: str, feature_name: str, bins = 50
-    ):
+    def plot_feature_distribution(self, feature_type: str, feature_name: str, bins=50):
         """
         Plots the distribution of a specified feature.
 
@@ -37,8 +38,12 @@ class DataPlotter:
             density=True,
         )
         ax.set_title(f"Distribution of {feature_name} ({feature_type})")
-        ax.set_xlabel(feature_name)
-        ax.set_ylabel("Frequency")
+        ampl.draw_atlas_label(
+            x=0.02, y=0.98, status="Simulation Work in Progress", ax=ax
+        )
+        ampl.set_xlabel(feature_name, ax=ax)
+        ampl.set_ylabel("Arbitrary Units", ax=ax)
+
         ax.grid(True)
         return fig, ax
 
@@ -95,7 +100,7 @@ class DataPlotter:
         ax.set_xticklabels(feature_names, rotation=90)
         ax.set_yticklabels(feature_names)
         ax.set_title("Feature Correlation Matrix", pad=20)
-        
+
         fig.savefig(os.path.join(self.plots_dir, "feature_correlation_matrix.pdf"))
         return fig, ax
 
@@ -108,7 +113,7 @@ class DataPlotter:
             feature_name (str): The name of the feature to apply the cut on.
             cut_function (function): A function that takes feature data and returns a boolean mask for valid events.
         """
-        feature_data = self.get_feature_data(feature_type, feature_name, uncut = True)
+        feature_data = self.get_feature_data(feature_type, feature_name, uncut=True)
         cut_mask = cut_function(feature_data)
         self.event_cuts = self.event_cuts & cut_mask
 
@@ -156,20 +161,24 @@ class DataPlotter:
         Args:
             feature_function (function): A function that takes jet and lepton feature arrays and computes a relational feature.
         """
+        region_tag = kwargs.pop("region_tag", None)
         jet_features = self.get_all_feature_data("jet_inputs")
         lepton_features = self.get_all_feature_data("lep_inputs")
         labels = self.get_all_feature_data("assignment")
 
-
         lepton_extended = np.repeat(
             lepton_features[:, np.newaxis, :, :], self.max_jets, axis=1
-        ) 
+        )
         jet_extended = np.repeat(
             jet_features[:, :, np.newaxis, :], self.NUM_LEPTONS, axis=2
-        ) 
-        relational_feature = feature_function(jet_extended.transpose(-1,1,2,0), lepton_extended.transpose(-1,1,2,0)).transpose(2,0,1)
+        )
+        relational_feature = feature_function(
+            jet_extended.transpose(-1, 1, 2, 0), lepton_extended.transpose(-1, 1, 2, 0)
+        ).transpose(2, 0, 1)
 
-        jet_mask = (jet_features[:, :, :] != self.padding_value ).any(axis=-1, keepdims=True)
+        jet_mask = (jet_features[:, :, :] != self.padding_value).any(
+            axis=-1, keepdims=True
+        )
         matched_relational_features = relational_feature[
             labels == 1 & jet_mask
         ].flatten()
@@ -179,7 +188,10 @@ class DataPlotter:
 
         fig, ax = plt.subplots(figsize=(10, 6))
         _, bins = np.histogram(
-            np.concatenate((matched_relational_features, unmatched_relational_features)), **kwargs
+            np.concatenate(
+                (matched_relational_features, unmatched_relational_features)
+            ),
+            **kwargs,
         )
         ax.hist(
             matched_relational_features,
@@ -197,8 +209,11 @@ class DataPlotter:
             color="tab:red",
             density=True,
         )
-        ax.set_xlabel(f"{name}")
-        ax.set_ylabel("Normalized Frequency")
+        ampl.draw_atlas_label(
+            x=0.02, y=0.98, status="Simulation Work in Progress", ax=ax, desc=region_tag
+        )
+        ampl.set_xlabel(name, ax=ax)
+        ampl.set_ylabel("Arbitrary Units", ax=ax)
         ax.legend()
         ax.grid(True)
         return fig, ax
@@ -269,13 +284,15 @@ class DataPlotter:
                 linestyle="-",
                 label=f"Average {feature_name_y}",
             )
-            ax.legend()
-        fig.colorbar(cax, ax=ax)
-        ax.set_xlabel(f"{feature_name_x}")
-        ax.set_ylabel(f"{feature_name_y} ")
-        ax.set_title(f"2D Distribution of {feature_name_x} and {feature_name_y}")
+            ax.legend(loc="upper right")
+        fig.colorbar(cax, ax=ax, label="Arbitrary Units")
+        ampl.draw_atlas_label(
+            x=0.02, y=0.98, status="Simulation Work in Progress", ax=ax
+        )
+        ampl.set_xlabel(feature_name_x, ax=ax)
+        ampl.set_ylabel(feature_name_y, ax=ax)
         return fig, ax
-    
+
     def plot_binned_feature_mean(
         self,
         binning_feature_type: str,
@@ -296,12 +313,20 @@ class DataPlotter:
             bins (int): Number of bins for the binning feature.
             xlims (tuple): Limits for the x-axis (min, max).
         """
-        binning_feature_data = self.get_feature_data(binning_feature_type, binning_feature_name)
-        target_feature_data = self.get_feature_data(target_feature_type, target_feature_name)
+        binning_feature_data = self.get_feature_data(
+            binning_feature_type, binning_feature_name
+        )
+        target_feature_data = self.get_feature_data(
+            target_feature_type, target_feature_name
+        )
 
         if xlims is None:
-            x_min = np.min(binning_feature_data[binning_feature_data != self.padding_value])
-            x_max = np.max(binning_feature_data[binning_feature_data != self.padding_value])
+            x_min = np.min(
+                binning_feature_data[binning_feature_data != self.padding_value]
+            )
+            x_max = np.max(
+                binning_feature_data[binning_feature_data != self.padding_value]
+            )
         else:
             x_min, x_max = xlims
 

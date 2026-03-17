@@ -2,6 +2,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import atlas_mpl_style as ampl
+ampl.use_atlas_style()
 from typing import Optional
 from copy import deepcopy
 

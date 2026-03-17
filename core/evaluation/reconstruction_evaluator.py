@@ -3,7 +3,11 @@
 import numpy as np
 from typing import Union, Optional, List, Tuple, Callable
 import matplotlib.pyplot as plt
+import atlas_mpl_style as ampl
+
+ampl.use_atlas_style()
 import matplotlib as mpl
+
 mpl.rcParams["figure.constrained_layout.use"] = True
 
 import os
@@ -25,12 +29,11 @@ from .evaluator_utils import (
     NeutrinoDeviationCalculator,
 )
 from .plotting_utils import (
-    AccuracyPlotter,
+    BarPlotter,
     ConfusionMatrixPlotter,
     ResolutionPlotter,
-    NeutrinoDeviationPlotter,
-    SelectionAccuracyPlotter,
     DistributionPlotter,
+    BinnedFeaturePlotter,
 )
 
 from .physics_calculations import (
@@ -183,7 +186,14 @@ class PredictionManager:
     def get_neutrino_predictions(self, index: int) -> np.ndarray:
         """Get neutrino predictions for a specific reconstructor."""
         return self.predictions[index]["regression"]
-
+    
+    def get_assignment_truth(self) -> np.ndarray:
+        """Get true assignment indices from y_test."""
+        return self.y_test["assignment"]
+    
+    def get_neutrino_truth(self) -> Optional[np.ndarray]:
+        """Get true neutrino regression targets from y_test, if available."""
+        return self.y_test.get("regression", None)
 
 class ReconstructionVariableHandler:
     """Handles configuration for reconstructed physics variables."""
@@ -416,7 +426,9 @@ class ReconstructionPlotter:
             accuracies.append((mean_acc, lower, upper))
             names.append(reconstructor.get_assignment_name())
 
-        return AccuracyPlotter.plot_overall_accuracies(names, accuracies, config)
+        return BarPlotter.plot_bar_chart(
+            names, accuracies, "Assignment Accuracy", config
+        )
 
     def plot_all_selection_accuracies(
         self,
@@ -441,8 +453,8 @@ class ReconstructionPlotter:
             selection_accuracies.append((mean_acc, lower, upper))
             names.append(reconstructor.get_assignment_name())
 
-        return SelectionAccuracyPlotter.plot_selection_accuracies(
-            names, selection_accuracies, config
+        return BarPlotter.plot_bar_chart(
+            names, selection_accuracies, "Selection Accuracy", config
         )
 
     # ==================== Neutrino Deviation Methods ====================
@@ -562,8 +574,11 @@ class ReconstructionPlotter:
                 "Cannot plot neutrino deviations."
             )
 
-        return NeutrinoDeviationPlotter.plot_overall_deviations(
-            names, deviations, config
+        return BarPlotter.plot_bar_chart(
+            names,
+            deviations,
+            f"Neutrino {deviation_type.capitalize()} Deviation",
+            config,
         )
 
     # ==================== Binned Accuracy Methods ====================
@@ -585,6 +600,8 @@ class ReconstructionPlotter:
             confidence=confidence,
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
+            ylims=(0, 1.1),
+            legend_loc="upper right"
         )
 
         # Extract feature data
@@ -643,17 +660,17 @@ class ReconstructionPlotter:
 
         feature_label = fancy_feature_label or feature_name
 
-        return AccuracyPlotter.plot_binned_accuracy(
+        fig, ax = BinnedFeaturePlotter.plot_binned_feature(
             bin_centers,
             binned_accuracies,
             names,
             bin_counts,
             bin_edges,
             feature_label,
+            "Assignment Accuracy",
             config,
-            show_combinatoric,
-            combinatoric_accuracy,
         )
+        return fig, ax
 
     def plot_binned_selection_accuracy(
         self,
@@ -672,6 +689,7 @@ class ReconstructionPlotter:
             confidence=confidence,
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
+            legend_loc="upper right"
         )
 
         feature_data = FeatureExtractor.extract_feature(
@@ -727,17 +745,114 @@ class ReconstructionPlotter:
 
         feature_label = fancy_feature_label or feature_name
 
-        return SelectionAccuracyPlotter.plot_binned_selection_accuracy(
+        fig, ax = BinnedFeaturePlotter.plot_binned_feature(
             bin_centers,
             binned_accuracies,
             names,
             bin_counts,
             bin_edges,
             feature_label,
+            "Selection Accuracy",
             config,
-            show_combinatoric,
-            combinatoric_accuracy,
         )
+        return fig, ax
+
+    def plot_binned_accuracy_quotients(
+        self,
+        feature_data_type: str,
+        feature_name: str,
+        fancy_feature_label: Optional[str] = None,
+        bins: int = 20,
+        xlims: Optional[Tuple[float, float]] = None,
+        n_bootstrap: int = 10,
+        confidence: float = 0.95,
+    ):
+        """
+        Plot binned quotient of assignment accuracy / selection accuracy vs. a feature.
+
+        The quotient indicates how well the assignment performs relative to just
+        selecting the correct jets (regardless of assignment to leptons).
+
+        Args:
+            feature_data_type: Type of feature data ('jet', 'lepton', 'met', etc.)
+            feature_name: Name of the feature to bin by
+            fancy_feature_label: Optional fancy label for the feature
+            bins: Number of bins
+            xlims: Optional x-axis limits
+            n_bootstrap: Number of bootstrap samples
+            confidence: Confidence level for intervals
+            show_errorbar: Whether to show error bars
+
+        Returns:
+            Tuple of (figure, axis)
+        """
+        config = PlotConfig(
+            confidence=confidence,
+            n_bootstrap=n_bootstrap,
+            show_errorbar=True,
+            legend_loc="upper right"
+        )
+
+        # Extract feature data
+        feature_data = FeatureExtractor.extract_feature(
+            self.X_test,
+            self.config.feature_indices,
+            feature_data_type,
+            feature_name,
+        )
+
+        # Create bins
+        bin_edges = BinningUtility.create_bins(feature_data, bins, xlims)
+        binning_mask = BinningUtility.create_binning_mask(feature_data, bin_edges)
+        bin_centers = BinningUtility.compute_bin_centers(bin_edges)
+
+        # Get event weights
+        event_weights = FeatureExtractor.get_event_weights(self.X_test)
+
+        # Compute binned quotients for each reconstructor
+        binned_quotients = []
+        names = []
+
+        for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
+            if isinstance(reconstructor, GroundTruthReconstructor):
+                continue
+
+            # Get per-event accuracies
+            assignment_acc = self.evaluate_accuracy(i, per_event=True)
+            selection_acc = self.evaluate_selection_accuracy(i, per_event=True)
+
+            mean_quotient, lower, upper = (
+                BootstrapCalculator.compute_binned_function_bootstrap(
+                    binning_mask,
+                    event_weights,
+                    (assignment_acc, selection_acc),
+                    lambda x, y: np.divide(x, y, out=np.zeros_like(x), where=y != 0),
+                    config.n_bootstrap,
+                    config.confidence,
+                    statistic="mean",
+                )
+            )
+            binned_quotients.append((mean_quotient, lower, upper))
+
+            names.append(reconstructor.get_assignment_name())
+
+        # Compute bin counts
+        bin_counts = np.sum(
+            event_weights.reshape(1, -1) * binning_mask, axis=1
+        ) / np.sum(event_weights)
+
+        feature_label = fancy_feature_label or feature_name
+        fig, ax = BinnedFeaturePlotter.plot_binned_feature(
+            bin_centers,
+            binned_quotients,
+            names,
+            bin_counts,
+            bin_edges,
+            feature_label,
+            "Accuracy Quotient (Assignment / Selection)",
+            config,
+        )
+        return fig, ax
 
     def plot_confusion_matrices(
         self,
@@ -935,6 +1050,7 @@ class ReconstructionPlotter:
         reconstructed = self.variable_handler.compute_reconstructed_variable(
             reconstructor_index, variable_name
         )
+        config = PlotConfig(xlims=xlims)
         truth = self.variable_handler.compute_true_variable(variable_name)
 
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
@@ -944,9 +1060,10 @@ class ReconstructionPlotter:
             variable_label,
             event_weights=event_weights,
             bins=bins,
-            xlims=xlims,
             labels=["reco", "truth"],
             ax=ax,
+            config=config,
+
         )
 
     def plot_deviations_distributions_all_reconstructors(
@@ -966,7 +1083,6 @@ class ReconstructionPlotter:
             variable_func: Function that computes the variable from (leptons, jets, neutrinos)
             truth_extractor: Function that extracts truth values from X_test
             variable_label: Label for the variable being plotted
-            xlims: Optional x-axis limits
             bins: Number of bins
             figsize: Figure size
         Returns:
@@ -1009,13 +1125,13 @@ class ReconstructionPlotter:
         # Plot all deviations together
         DistributionPlotter.plot_feature_distributions(
             all_deviations,
-            ("Relative " if use_relative_deviation else "") + f"Deviation in {variable_label}",
+            ("Relative " if use_relative_deviation else "")
+            + f"Deviation in {variable_label}",
             event_weights=event_weights_plot,
             labels=labels,
             ax=axes,
             **kwargs,
         )
-
 
         return fig, axes
 
@@ -1111,7 +1227,11 @@ class ReconstructionPlotter:
         config = self.variable_configs[variable_key]
         # Set defaults from config, allow kwargs to override
         defaults = {
-            "use_relative_deviation": kwargs["use_relative_deviation"] if "use_relative_deviation" in kwargs else config.get("use_relative_deviation", False),
+            "use_relative_deviation": (
+                kwargs["use_relative_deviation"]
+                if "use_relative_deviation" in kwargs
+                else config.get("use_relative_deviation", False)
+            ),
             "deviation_function": config.get("deviation_function", None),
         }
         if "deviation_label" in config:
@@ -1488,11 +1608,10 @@ class ReconstructionPlotter:
             feature_name: Name of feature for binning
             n_bootstrap: Number of bootstrap samples for confidence intervals
             confidence: Confidence level for intervals
-            save_dir: Optional directory to save the LaTeX file 
+            save_dir: Optional directory to save the LaTeX file
         Returns:
             LaTeX table string
         """
-
 
         # Collect results
         results = []
@@ -1504,7 +1623,6 @@ class ReconstructionPlotter:
                 i, variable_key
             )
             truth = self.variable_handler.compute_true_variable(variable_key)
-            
 
             deviation = ResolutionCalculator.compute_deviation(
                 reconstructed,
@@ -1513,15 +1631,13 @@ class ReconstructionPlotter:
                 use_relative_deviation=use_relative_deviation,
                 deviation_function=deviation_function,
             )
-            square_deviation = deviation ** 2
+            square_deviation = deviation**2
 
             # Compute binned metric with CI
-            dev_mean, dev_lower, dev_upper = (
-                BootstrapCalculator.compute_bootstrap_ci(
-                    data=deviation,
-                    n_bootstrap=n_bootstrap,
-                    confidence=confidence,
-                )
+            dev_mean, dev_lower, dev_upper = BootstrapCalculator.compute_bootstrap_ci(
+                data=deviation,
+                n_bootstrap=n_bootstrap,
+                confidence=confidence,
             )
             square_dev_mean, square_dev_lower, square_dev_upper = (
                 BootstrapCalculator.compute_bootstrap_ci(
@@ -1587,127 +1703,6 @@ class ReconstructionPlotter:
         with open(file_name, "w") as f:
             f.write(latex_str)
         return latex_str
-
-
-    def plot_binned_accuracy_quotients(
-        self,
-        feature_data_type: str,
-        feature_name: str,
-        fancy_feature_label: Optional[str] = None,
-        bins: int = 20,
-        xlims: Optional[Tuple[float, float]] = None,
-        n_bootstrap: int = 10,
-        confidence: float = 0.95,
-    ):
-        """
-        Plot binned quotient of assignment accuracy / selection accuracy vs. a feature.
-
-        The quotient indicates how well the assignment performs relative to just
-        selecting the correct jets (regardless of assignment to leptons).
-
-        Args:
-            feature_data_type: Type of feature data ('jet', 'lepton', 'met', etc.)
-            feature_name: Name of the feature to bin by
-            fancy_feature_label: Optional fancy label for the feature
-            bins: Number of bins
-            xlims: Optional x-axis limits
-            n_bootstrap: Number of bootstrap samples
-            confidence: Confidence level for intervals
-            show_errorbar: Whether to show error bars
-
-        Returns:
-            Tuple of (figure, axis)
-        """
-        config = PlotConfig(
-            confidence=confidence,
-            n_bootstrap=n_bootstrap,
-            show_errorbar=True,
-        )
-
-        # Extract feature data
-        feature_data = FeatureExtractor.extract_feature(
-            self.X_test,
-            self.config.feature_indices,
-            feature_data_type,
-            feature_name,
-        )
-
-        # Create bins
-        bin_edges = BinningUtility.create_bins(feature_data, bins, xlims)
-        binning_mask = BinningUtility.create_binning_mask(feature_data, bin_edges)
-        bin_centers = BinningUtility.compute_bin_centers(bin_edges)
-
-        # Get event weights
-        event_weights = FeatureExtractor.get_event_weights(self.X_test)
-
-        # Compute binned quotients for each reconstructor
-        binned_quotients = []
-        names = []
-
-        for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
-            if isinstance(reconstructor, GroundTruthReconstructor):
-                continue
-
-            # Get per-event accuracies
-            assignment_acc = self.evaluate_accuracy(i, per_event=True)
-            selection_acc = self.evaluate_selection_accuracy(i, per_event=True)
-
-            mean_quotient, lower, upper = (
-                BootstrapCalculator.compute_binned_function_bootstrap(
-                    binning_mask,
-                    event_weights,
-                    (assignment_acc, selection_acc),
-                    lambda x, y: np.divide(x, y, out=np.zeros_like(x), where=y != 0),
-                    config.n_bootstrap,
-                    config.confidence,
-                    statistic="mean",
-                )
-            )
-            binned_quotients.append((mean_quotient, lower, upper))
-
-            names.append(reconstructor.get_assignment_name())
-
-        # Compute bin counts
-        bin_counts = np.sum(
-            event_weights.reshape(1, -1) * binning_mask, axis=1
-        ) / np.sum(event_weights)
-
-        # Plot
-        feature_label = fancy_feature_label or feature_name
-        fig, ax = plt.subplots(figsize=(10, 6))
-        color_map = plt.get_cmap("tab10")
-        fmt_map = ["o", "s", "D", "^", "v", "P", "*", "X", "h", "8"]
-
-        for i, (name, (mean, lower, upper)) in enumerate(zip(names, binned_quotients)):
-            ax.errorbar(
-                bin_centers,
-                mean,
-                yerr=[mean - lower, upper - mean],
-                fmt=fmt_map[i % len(fmt_map)],
-                color=color_map(i % 10),
-                label=name,
-                linestyle="None",
-            )
-
-        ax.plot(
-            bin_centers,
-            0.5 * np.ones_like(bin_centers),
-            linestyle="--",
-            color="black",
-            label="Random Assignment",
-        )
-
-        ax.set_xlabel(feature_label)
-        ax.set_ylabel("Assignment Accuracy / Selection Accuracy")
-        ax.legend()
-        ax.grid(alpha=0.3)
-        ax.set_title(
-            f"Binned Accuracy Quotients vs {feature_label} ({config.confidence*100:.0f}% CI)"
-        )
-        AccuracyPlotter._add_count_histogram(ax, bin_centers, bin_counts, bin_edges)
-        
-
-        return fig, ax
 
     def plot_relative_neutrino_deviations(
         self, bins=20, xlims=None, coords="cartesian"
@@ -1850,7 +1845,7 @@ class ReconstructionPlotter:
             figsize=(6 * len(component_labels), 5 * self.config.NUM_LEPTONS),
             ncols=len(component_labels),
             nrows=self.config.NUM_LEPTONS,
-            constrained_layout=True
+            constrained_layout=True,
         )
 
         for lepton_idx in range(self.config.NUM_LEPTONS):
@@ -1865,7 +1860,7 @@ class ReconstructionPlotter:
                     event_weights=event_weights,
                     labels=names,
                     bins=bins,
-                    xlims=xlims[comp_idx] if xlims is not None else None,
+                    config = PlotConfig(xlims=xlims) if xlims is not None else PlotConfig(),
                     ax=ax_i,
                 )
 
@@ -1885,7 +1880,7 @@ class ReconstructionPlotter:
             handles,
             labels,
             loc="center",
-            #bbox_to_anchor=(0.5, 1.04),
+            # bbox_to_anchor=(0.5, 1.04),
             ncol=len(names),
         )
 
@@ -1901,7 +1896,9 @@ class ReconstructionPlotter:
         for variable_key in self.variable_configs.keys():
             config = self.variable_configs[variable_key]
             deviation_config = config.get("resolution", {})
-            use_relative_deviation = deviation_config.get("use_relative_deviation", False)
+            use_relative_deviation = deviation_config.get(
+                "use_relative_deviation", False
+            )
             deviation_function = deviation_config.get("deviation_function", None)
             variable_label = config["label"]
             if deviation_config.get("deviation_label"):
@@ -1928,8 +1925,6 @@ class ReconstructionPlotter:
                 deviation_function=deviation_function,
             )
 
-        
-
     def plot_all_confusion_matrices(self, save_dir: Optional[str] = None, **kwargs):
         """
         Plot confusion matrices for all variables and reconstructors.
@@ -1952,7 +1947,7 @@ class ReconstructionPlotter:
                 file_path = os.path.join(save_dir, file_name)
                 fig.savefig(file_path)
             plt.close(fig)
-    
+
     def plot_accuracy_evaluation(self, save_dir: Optional[str] = None, **kwargs):
         """
         Evaluate and print accuracy for all reconstructors.
@@ -1984,7 +1979,7 @@ class ReconstructionPlotter:
         fancy_feature_label: Optional[str] = None,
         rescale_factor: Optional[float] = None,
         center_bins: bool = False,
-        accuracy_only = False,
+        accuracy_only=False,
         **kwargs,
     ):
         """
@@ -2066,7 +2061,9 @@ class ReconstructionPlotter:
                 fig.savefig(file_path)
             plt.close(fig)
 
-    def plot_neutrino_deviation_evaluation(self, save_dir: Optional[str] = None, **kwargs):
+    def plot_neutrino_deviation_evaluation(
+        self, save_dir: Optional[str] = None, **kwargs
+    ):
         """
         Evaluate and plot neutrino deviation metrics for all reconstructors.
 
@@ -2082,7 +2079,9 @@ class ReconstructionPlotter:
                 file_path = os.path.join(save_dir, file_name)
                 fig.savefig(file_path)
             plt.close(fig)
-        self.save_regression_error_latex_table(save_dir=os.path.join(save_dir), **kwargs)
+        self.save_regression_error_latex_table(
+            save_dir=os.path.join(save_dir), **kwargs
+        )
 
     def plot_all_distributions(self, save_dir: Optional[str] = None, **kwargs):
         """

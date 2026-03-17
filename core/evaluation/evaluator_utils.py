@@ -14,6 +14,9 @@ class PlotConfig:
     n_bootstrap: int = 10
     show_errorbar: bool = True
     alpha: float = 0.3
+    xlims: Optional[Tuple[float, float]] = None
+    ylims: Optional[Tuple[float, float]] = None
+    legend_loc: str = "center right"
 
 
 class BootstrapCalculator:

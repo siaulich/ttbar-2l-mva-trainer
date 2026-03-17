@@ -231,12 +231,7 @@ class ChiSquareAssigner(BaselineAssigner):
             config,
             name=(
                 (
-                    r"$\chi^2$-Method("
-                    + (
-                        r"$\nu^2$-Flows)"
-                        if use_nu_flows_for_assignment
-                        else r"True $\nu$)"
-                    )
+                    r"$\chi^2$-Method"
                 )
             ),
             **kwargs

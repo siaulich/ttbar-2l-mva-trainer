@@ -34,6 +34,7 @@ class ModelConfig:
     model_options: Dict[str, any] = field(default_factory=dict)
     model_params: Dict[str, any] = field(default_factory=dict)
     compile_options: Dict[str, any] = field(default_factory=dict)
+    num_events: Optional[int] = None
 
 
 def parse_args():
@@ -100,11 +101,17 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir, exist_ok=True)
 
+    max_events = None
+    if model_config.num_events is not None:
+        max_events = model_config.num_events
+    if args.max_events is not None:
+        max_events = args.max_events
+
     data_preprocessor = DataPreprocessor(load_config)
     data_config = data_preprocessor.load_from_npz(
         load_config.data_path,
         event_numbers=args.event_numbers,
-        max_events=args.max_events,
+        max_events=max_events,
     )
     X, y = data_preprocessor.get_data()
     num_events = X["jet_inputs"].shape[0]
