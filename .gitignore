@@ -5,6 +5,7 @@
 **.onnx
 **.yaml
 **.npz
+**.log
 
 # Ignore directories for outputs, logs, and temporary files
 **logs/

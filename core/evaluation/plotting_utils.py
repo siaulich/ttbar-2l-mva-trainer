@@ -145,15 +145,55 @@ class BinnedFeaturePlotter:
 
         # Add event count histogram
         BinnedFeaturePlotter._add_count_histogram(ax, bin_centers, bin_counts, bins)
-
-        # Set title
-        title = f"{value_label} per Bin vs {feature_label}"
-        if config.show_errorbar:
-            title += f" ({config.confidence*100:.0f}% CI)"
-        #ax.set_title(title)
-
         return fig, ax
 
+    def plot_2d_binned_feature(
+        self,
+        binned_values: List[np.ndarray],
+        reconstructor_names: List[str],
+        bins_x: np.ndarray,
+        bins_y: np.ndarray,
+        feature_label_x: str,
+        feature_label_y: str,
+        value_label: str,
+        config: PlotConfig = PlotConfig(),
+    ):
+        """Plot 2D binned feature vs. two features."""
+        num_reconstructors = len(reconstructor_names)
+        num_cols = int(np.ceil(np.sqrt(num_reconstructors)))
+        num_rows = int(np.ceil(num_reconstructors / num_cols))
+        fig, axes = plt.subplots(
+            num_rows, num_cols, figsize=(config.figsize[0] * num_cols, config.figsize[1] * num_rows)
+        )
+        axes = axes.flatten() if num_reconstructors > 1 else [axes]
+
+        for index, (name, mean_val) in enumerate(
+            zip(reconstructor_names, binned_values)
+        ):
+            ax = axes[index]
+            im = ax.imshow(
+                mean_val.T,
+                origin="lower",
+                cmap="viridis",
+                extent=[
+                    bins_x[0],
+                    bins_x[-1],
+                    bins_y[0],
+                    bins_y[-1],
+                ],
+                aspect="auto",
+            )
+            ampl.set_xlabel(feature_label_x, ax=ax)
+            ampl.set_ylabel(feature_label_y, ax=ax)
+            ax.set_title(name)
+            fig.colorbar(im, ax=ax, label=value_label)
+            ampl.draw_atlas_label(
+                x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+            )
+        # Remove unused subplots
+        for j in range(index + 1, len(axes)):
+            fig.delaxes(axes[j])
+        return fig, axes[: index + 1]
 
 class ConfusionMatrixPlotter:
     """Handles plotting of confusion matrices."""

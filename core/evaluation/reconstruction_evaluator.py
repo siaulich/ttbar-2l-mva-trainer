@@ -23,6 +23,7 @@ from .evaluator_utils import (
     PlotConfig,
     BootstrapCalculator,
     BinningUtility,
+    Binning2DUtility,
     FeatureExtractor,
     AccuracyCalculator,
     SelectionAccuracyCalculator,
@@ -35,6 +36,7 @@ from .plotting_utils import (
     DistributionPlotter,
     BinnedFeaturePlotter,
 )
+from ..configs import DataConfig, BinningVariableConfig
 
 from .physics_calculations import (
     ResolutionCalculator,
@@ -620,16 +622,6 @@ class ReconstructionPlotter:
         # Get event weights
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
 
-        # Compute combinatoric baseline if requested
-        combinatoric_accuracy = None
-        if show_combinatoric:
-            combinatoric_per_event = AccuracyCalculator.compute_combinatoric_baseline(
-                self.X_test, self.config.padding_value
-            )
-            combinatoric_accuracy = BinningUtility.compute_weighted_binned_statistic(
-                binning_mask, combinatoric_per_event, event_weights
-            )
-
         # Compute binned accuracies for each reconstructor
         binned_accuracies = []
         names = []
@@ -667,6 +659,96 @@ class ReconstructionPlotter:
             bin_counts,
             bin_edges,
             feature_label,
+            "Assignment Accuracy",
+            config,
+        )
+        return fig, ax
+    
+    def plot_2d_binned_accuracy(
+        self,
+        feature1_binning_config: BinningVariableConfig,
+        feature2_binning_config: BinningVariableConfig,
+    ):
+        
+        """Plot 2D binned accuracy vs. two features."""
+        config = PlotConfig(
+            confidence=0.95,
+            n_bootstrap=10,
+            show_errorbar=False,
+            legend_loc="upper right"
+        )
+        feature1_data_type = feature1_binning_config.feature_type
+        feature1_name = feature1_binning_config.feature_name
+        fancy_feature1_label = feature1_binning_config.fancy_feature_label
+        bins_feature1 = feature1_binning_config.bins
+        xlims_feature1 = feature1_binning_config.xlims
+
+        feature2_data_type = feature2_binning_config.feature_type
+        feature2_name = feature2_binning_config.feature_name
+        fancy_feature2_label = feature2_binning_config.fancy_feature_label
+        bins_feature2 = feature2_binning_config.bins
+        xlims_feature2 = feature2_binning_config.xlims
+
+        # Extract feature data
+        feature1_data = FeatureExtractor.extract_feature(
+            self.X_test,
+            self.config.feature_indices,
+            feature1_data_type,
+            feature1_name,
+        )
+        feature2_data = FeatureExtractor.extract_feature(
+            self.X_test,
+            self.config.feature_indices,
+            feature2_data_type,
+            feature2_name,
+        )
+        if feature1_binning_config.rescale_factor is not None:
+            feature1_data *= feature1_binning_config.rescale_factor
+            if xlims_feature1 is not None:
+                xlims_feature1 = (
+                    xlims_feature1[0] * feature1_binning_config.rescale_factor,
+                    xlims_feature1[1] * feature1_binning_config.rescale_factor,
+                )
+        if feature2_binning_config.rescale_factor is not None:
+            feature2_data *= feature2_binning_config.rescale_factor
+            if xlims_feature2 is not None:
+                xlims_feature2 = (
+                    xlims_feature2[0] * feature2_binning_config.rescale_factor,
+                    xlims_feature2[1] * feature2_binning_config.rescale_factor,
+                )
+
+        # Create bins
+        bin_edges_feature1 = Binning2DUtility.create_bins(feature1_data, bins_feature1, xlims_feature1)
+        bin_edges_feature2 = Binning2DUtility.create_bins(feature2_data, bins_feature2, xlims_feature2)
+        binning_mask = Binning2DUtility.create_binning_mask(feature1_data, feature2_data, bin_edges_feature1, bin_edges_feature2)
+
+        # Get event weights
+        event_weights = FeatureExtractor.get_event_weights(self.X_test)
+
+        # Compute binned accuracies for each reconstructor
+        binned_accuracies = []
+        names = []
+        for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
+            if isinstance(reconstructor, GroundTruthReconstructor):
+                continue
+            accuracy_data = self.evaluate_accuracy(i, per_event=True)
+
+            binned_acc = BinningUtility.compute_weighted_binned_statistic(
+                binning_mask, accuracy_data, event_weights
+            )
+            binned_accuracies.append(binned_acc)
+            names.append(reconstructor.get_assignment_name())
+
+        feature1_label = fancy_feature1_label or feature1_name
+        feature2_label = fancy_feature2_label or feature2_name
+
+        fig, ax = BinnedFeaturePlotter.plot_2d_binned_feature(
+            binned_accuracies,
+            names,
+            bin_edges_feature1,
+            bin_edges_feature2,
+            feature1_label,
+            feature2_label,
             "Assignment Accuracy",
             config,
         )
@@ -2060,6 +2142,34 @@ class ReconstructionPlotter:
                 file_path = os.path.join(save_dir, file_name)
                 fig.savefig(file_path)
             plt.close(fig)
+
+    def plot_2d_binned_performance_evaluation(
+        self,
+        feature1_config: BinningVariableConfig,
+        feature2_config: BinningVariableConfig,
+        save_dir: Optional[str] = None,
+        **kwargs,
+    ):
+        """
+        Evaluate and plot 2D binned performance metrics for all reconstructors.
+
+        Args:
+            feature1_config: Configuration for the first feature (for x-axis)
+            feature2_config: Configuration for the second feature (for y-axis)
+            save_dir: Optional directory to save the results
+            **kwargs: Additional arguments for plotting
+        """
+        fig, ax = self.plot_2d_binned_accuracy(
+            feature1_binning_config=feature1_config,
+            feature2_binning_config=feature2_config,
+            **kwargs,
+        )
+        if save_dir is not None:
+            file_name = f"2d_binned_accuracies_{feature1_config.feature_name}_{feature2_config.feature_name}.pdf"
+            file_path = os.path.join(save_dir, file_name)
+            fig.savefig(file_path)
+        plt.close(fig)
+
 
     def plot_neutrino_deviation_evaluation(
         self, save_dir: Optional[str] = None, **kwargs

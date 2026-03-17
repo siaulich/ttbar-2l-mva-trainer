@@ -8,9 +8,33 @@ components like ML models.
 """
 
 from dataclasses import dataclass, field
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Any
 import numpy as np
 import keras
+
+@dataclass
+class RecontructorConfig:
+    type: str = "KerasFFRecoBase"
+    options: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class BinningVariableConfig:
+    feature_type: str
+    feature_name: str
+    fancy_feature_label: str
+    bins: Optional[int] = None
+    xlims: Optional[Tuple[float, float]] = None
+    rescale_factor: Optional[float] = None
+    center_bins: bool = False
+
+
+@dataclass
+class EvaluationConfig:
+    reconstructors: List[RecontructorConfig] = field(default_factory=list)
+    evaluation_event_numbers: str = "odd"
+    binning_variables: List[BinningVariableConfig] = field(default_factory=list)
+    binned_2d_binning_variables: List[Tuple[BinningVariableConfig, BinningVariableConfig]] = field(default_factory=list)
 
 
 @dataclass

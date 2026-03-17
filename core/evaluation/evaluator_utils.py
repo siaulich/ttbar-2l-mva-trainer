@@ -268,6 +268,89 @@ class BinningUtility:
 
         return result
 
+class Binning2DUtility:
+    """Utilities for 2D binning of data."""
+
+    @staticmethod
+    def create_bins(
+        data_x: np.ndarray,
+        data_y: np.ndarray,
+        n_bins_x: int = 20,
+        n_bins_y: int = 20,
+        xlims: Optional[Tuple[float, float]] = None,
+        ylims: Optional[Tuple[float, float]] = None,
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """Create 2D bin edges."""
+        bins_x = BinningUtility.create_bins(data_x, n_bins_x, xlims)
+        bins_y = BinningUtility.create_bins(data_y, n_bins_y, ylims)
+        return bins_x, bins_y
+
+    @staticmethod
+    def create_binning_mask(
+        data_x: np.ndarray,
+        data_y: np.ndarray,
+        bins_x: np.ndarray,
+        bins_y: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Create boolean mask for 2D binning.
+
+        Args:
+            data_x: Data for x-axis (n_events,)
+            data_y: Data for y-axis (n_events,)
+            bins_x: Bin edges for x-axis
+            bins_y: Bin edges for y-axis
+
+        Returns:
+            Boolean mask (n_bins_x, n_bins_y, n_events)
+        """
+        mask_x = BinningUtility.create_binning_mask(data_x, bins_x)
+        mask_y = BinningUtility.create_binning_mask(data_y, bins_y)
+        return mask_x[:, np.newaxis, :] & mask_y[np.newaxis, :, :]
+    
+    @staticmethod
+    def compute_binned_statistic(
+        binning_mask: np.ndarray,
+        data: np.ndarray,
+        weights: np.ndarray,
+        statistic: str = "mean",
+    ) -> np.ndarray:
+        """
+        Compute weighted statistic in 2D bins.
+
+        Args:
+            binning_mask: Boolean mask for 2D binning (n_bins_x, n_bins_y, n_events)
+            data: Data to bin (n_events,)
+            weights: Event weights (n_events,)
+            statistic: Type of statistic ('mean', 'std', 'sum')
+        Returns:
+            Array of statistics per 2D bin (n_bins_x, n_bins_y)
+        """
+        valid_mask = np.isfinite(data)
+        data_clean = np.where(valid_mask, data, 0)
+
+        # Apply valid mask to binning
+        binning_mask_valid = binning_mask & valid_mask.reshape(1,1, -1)
+
+        weighted_data = (
+            data_clean.reshape(1,1, -1) * weights.reshape(1,1, -1) * binning_mask_valid
+        )
+        bin_weights = np.sum(weights.reshape(1, 1, -1) * binning_mask_valid, axis=2)
+
+        if statistic == "mean":
+            bin_values = np.sum(weighted_data, axis=2)
+            result = np.divide(
+                bin_values,
+                bin_weights,
+                out=np.zeros_like(bin_values, dtype=float),
+                where=bin_weights != 0,
+            )
+        else:
+            raise ValueError(f"Unsupported statistic for 2D binning: {statistic}. Only 'mean' is implemented.")
+
+        return result
+
+
 
 class FeatureExtractor:
     """Utilities for extracting features from test data."""

@@ -16,29 +16,7 @@ from core import DataConfig, LoadConfig, load_yaml_config, get_load_config_from_
 from core.DataLoader import DataPreprocessor
 from core import evaluation, reconstruction, base_classes
 
-
-@dataclass
-class RecontructorConfig:
-    type: str = "KerasFFRecoBase"
-    options: Dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass
-class BinningVariableConfig:
-    feature_type: str
-    feature_name: str
-    fancy_feature_label: str
-    bins: Optional[int] = None
-    xlims: Optional[Tuple[float, float]] = None
-    rescale_factor: Optional[float] = None
-    center_bins: bool = False
-
-
-@dataclass
-class EvaluationConfig:
-    reconstructors: List[RecontructorConfig] = field(default_factory=list)
-    evaluation_event_numbers: str = "odd"
-    binning_variables: List[BinningVariableConfig] = field(default_factory=list)
+from core.configs import EvaluationConfig
 
 
 def load_evaluation_config(path: str) -> EvaluationConfig:
@@ -165,6 +143,9 @@ if __name__ == "__main__":
     os.makedirs(distributions_directory, exist_ok=True)
     binned_performance_directory = os.path.join(output_dir, "binned_performance")
     os.makedirs(binned_performance_directory, exist_ok=True)
+    if evaluation_config.binned_2d_binning_variables:
+        binned_2d_performance_directory = os.path.join(output_dir, "binned_2d_performance")
+        os.makedirs(binned_2d_performance_directory, exist_ok=True)
 
     if not args.accuracy:
         evaluator.plot_all_deviations(save_dir=deviation_directory)
@@ -189,5 +170,18 @@ if __name__ == "__main__":
         )
         print(
             f"Saved binned performance evaluation plots for {binning_cfg.feature_name} to {binned_variable_output_dir} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
+        )
+    for idx, (binning_cfg1, binning_cfg2) in enumerate(evaluation_config.binned_2d_binning_variables):
+        binned_2d_variable_output_dir = os.path.join(
+            binned_2d_performance_directory, f"{binning_cfg1.feature_name}_vs_{binning_cfg2.feature_name}"
+        )
+        os.makedirs(binned_2d_variable_output_dir, exist_ok=True)
+        evaluator.plot_2d_binned_performance_evaluation(
+            binning_cfg1.__dict__,
+            binning_cfg2.__dict__,
+            save_dir=binned_2d_variable_output_dir,
+        )
+        print(
+            f"Saved binned 2D performance evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} to {binned_2d_variable_output_dir} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
         )
     print(f"Saved all evaluation plots to {output_dir}")
