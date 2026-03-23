@@ -553,6 +553,12 @@ class DataPreprocessor:
         _, y_test = self._create_xy_dict(X_test)
 
         return X_train, y_train, X_test, y_test
+    
+    def get_num_events(self) -> int:
+        """Get the number of events in the loaded dataset."""
+        if self.data_length is None:
+            raise ValueError("Data not loaded. Call load_data() first.")
+        return self.data_length
 
     def get_data(self):
         return self._create_xy_dict(self.feature_data)

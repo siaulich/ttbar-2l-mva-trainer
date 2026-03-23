@@ -5,6 +5,7 @@ from .physics_calculations import (
     ResolutionCalculator,
     lorentz_vector_from_PtEtaPhiE_array,
     select_jets,
+    boost,
     c_hel,
     c_han,
 )
@@ -14,7 +15,8 @@ from core.utils import (
     compute_mass_from_lorentz_vector_array,
     project_vectors_onto_axis,
     angle_vectors,
-    cos_angle_between_vectors,
+
+    cos_angle_vectors,
 )
 
 # Function aliases
@@ -193,10 +195,10 @@ reconstruction_variable_configs = {
         },
     },
     "cos_angle_nu_lep": {
-        "compute_func": lambda l, j, n: cos_angle_between_vectors(
+        "compute_func": lambda l, j, n: cos_angle_vectors(
             n[:, 0, :], l[:, 0, :4]
         ),
-        "extract_func": lambda X: cos_angle_between_vectors(
+        "extract_func": lambda X: cos_angle_vectors(
             X["regression"][:, 0, :], X["lepton_truth"][:, 0, :4]
         ),
         "label": r"$\cos\theta(\nu, \ell)$",
@@ -208,10 +210,10 @@ reconstruction_variable_configs = {
         },
     },
     "cos_angle_nu_nubar": {
-        "compute_func": lambda l, j, n: cos_angle_between_vectors(
+        "compute_func": lambda l, j, n: cos_angle_vectors(
             n[:, 0, :], n[:, 1, :]
         ),
-        "extract_func": lambda X: cos_angle_between_vectors(
+        "extract_func": lambda X: cos_angle_vectors(
             X["regression"][:, 0, :], X["regression"][:, 1, :]
         ),
         "label": r"$\cos\theta(\nu, \bar{\nu})$",
@@ -223,10 +225,10 @@ reconstruction_variable_configs = {
         },
     },
     "cos_angle_nunubar_bbarll": {
-        "compute_func": lambda l, j, n: cos_angle_between_vectors(
+        "compute_func": lambda l, j, n: cos_angle_vectors(
             n[:, 0, :] + n[:, 1, :], l[:, 0, :4] + l[:, 1, :4] + j[:, 0, :4] + j[:, 1, :4]
         ),
-        "extract_func": lambda X: cos_angle_between_vectors(
+        "extract_func": lambda X: cos_angle_vectors(
             X["regression"][:, 0, :] + X["regression"][:, 1, :],
             X["lepton_truth"][:, 0, :4]
             + X["lepton_truth"][:, 1, :4]
@@ -370,6 +372,22 @@ reconstruction_variable_configs = {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $p_{T}(W)$ Resolution",
             "ylabel_deviation": r"Mean Relative $p_{T}(W)$ Deviation",
+        },
+    },
+    "top_emission_cos_angle": {
+        "compute_func": lambda l, j, n: cos_angle_vectors(
+            l[:, 0, :3] + j[:, 0, :3] + n[:, 0, :3], n[:, 0, :3])
+        ,
+        "extract_func": lambda X: cos_angle_vectors(
+            make_4vect(X["top_truth"][:, 0, :4])[..., :3],
+            make_nu_4vect(X["regression"][:, 0, :]),
+        ),
+        "label": r"Emission Angle of $\nu$ from $t$ [rad]",
+        "use_relative_deviation": False,
+        "resolution": {
+            "use_relative_deviation": False,
+            "ylabel_resolution": r"Emission Angle Resolution [rad]",
+            "ylabel_deviation": r"Mean Emission Angle Deviation [rad]",
         },
     },
 }

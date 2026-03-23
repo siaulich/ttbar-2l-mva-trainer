@@ -34,7 +34,7 @@ class EvaluationConfig:
     reconstructors: List[RecontructorConfig] = field(default_factory=list)
     evaluation_event_numbers: str = "odd"
     binning_variables: List[BinningVariableConfig] = field(default_factory=list)
-    binned_2d_binning_variables: List[Tuple[BinningVariableConfig, BinningVariableConfig]] = field(default_factory=list)
+    binned_2d_binning_variables: List[List[BinningVariableConfig]] = field(default_factory=list)
 
 
 @dataclass

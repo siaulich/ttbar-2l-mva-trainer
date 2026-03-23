@@ -718,9 +718,17 @@ class ReconstructionPlotter:
                 )
 
         # Create bins
-        bin_edges_feature1 = Binning2DUtility.create_bins(feature1_data, bins_feature1, xlims_feature1)
-        bin_edges_feature2 = Binning2DUtility.create_bins(feature2_data, bins_feature2, xlims_feature2)
+        bin_edges_feature1,bin_edges_feature2  = Binning2DUtility.create_bins(
+            feature1_data, feature2_data, bins_feature1, bins_feature2, xlims_feature1, xlims_feature2
+        )
         binning_mask = Binning2DUtility.create_binning_mask(feature1_data, feature2_data, bin_edges_feature1, bin_edges_feature2)
+
+        # Mask out bins with too few events
+        min_events_per_bin = 10
+        bin_counts = (binning_mask != 0).sum(axis=2)
+        low_stat_mask = bin_counts < min_events_per_bin
+        binning_mask[low_stat_mask, ...] = False
+
 
         # Get event weights
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
@@ -733,7 +741,7 @@ class ReconstructionPlotter:
                 continue
             accuracy_data = self.evaluate_accuracy(i, per_event=True)
 
-            binned_acc = BinningUtility.compute_weighted_binned_statistic(
+            binned_acc = Binning2DUtility.compute_weighted_binned_statistic(
                 binning_mask, accuracy_data, event_weights
             )
             binned_accuracies.append(binned_acc)
@@ -1698,8 +1706,6 @@ class ReconstructionPlotter:
         # Collect results
         results = []
         for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
-            if isinstance(reconstructor, GroundTruthReconstructor):
-                continue
             # Compute reconstructed and truth values
             reconstructed = self.variable_handler.compute_reconstructed_variable(
                 i, variable_key

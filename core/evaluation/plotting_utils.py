@@ -147,8 +147,8 @@ class BinnedFeaturePlotter:
         BinnedFeaturePlotter._add_count_histogram(ax, bin_centers, bin_counts, bins)
         return fig, ax
 
+    @staticmethod
     def plot_2d_binned_feature(
-        self,
         binned_values: List[np.ndarray],
         reconstructor_names: List[str],
         bins_x: np.ndarray,
@@ -167,29 +167,39 @@ class BinnedFeaturePlotter:
         )
         axes = axes.flatten() if num_reconstructors > 1 else [axes]
 
+        value_min = min(np.nanmin(val) for val in binned_values)
+        value_max = max(np.nanmax(val) for val in binned_values)
+
+        color_map = plt.get_cmap("viridis")
+
         for index, (name, mean_val) in enumerate(
             zip(reconstructor_names, binned_values)
         ):
             ax = axes[index]
             im = ax.imshow(
-                mean_val.T,
-                origin="lower",
-                cmap="viridis",
-                extent=[
-                    bins_x[0],
-                    bins_x[-1],
-                    bins_y[0],
-                    bins_y[-1],
-                ],
-                aspect="auto",
+            mean_val.T,
+            origin="lower",
+            cmap="viridis",
+            extent=[
+                bins_x[0],
+                bins_x[-1],
+                bins_y[0],
+                bins_y[-1],
+            ],
+            aspect="auto",
+            vmin=value_min,
+            vmax=value_max,
             )
             ampl.set_xlabel(feature_label_x, ax=ax)
             ampl.set_ylabel(feature_label_y, ax=ax)
             ax.set_title(name)
-            fig.colorbar(im, ax=ax, label=value_label)
             ampl.draw_atlas_label(
-                x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+            x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
             )
+        
+        # Add combined colorbar
+        fig.colorbar(im, ax=axes, label=value_label, shrink=0.6)
+        
         # Remove unused subplots
         for j in range(index + 1, len(axes)):
             fig.delaxes(axes[j])

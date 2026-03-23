@@ -244,6 +244,7 @@ class MLEvaluator:
                     if not reconstructor.perform_regression
                     else reconstructor.get_full_reco_name()
                 )
+                max_epochs = 0
                 if metric_name in history.history:
                     ax.plot(
                         history.history[metric_name],
@@ -251,6 +252,8 @@ class MLEvaluator:
                         color=color,
                         linestyle='-'
                     )
+                    if len(history.history[metric_name]) > max_epochs:
+                        max_epochs = len(history.history[metric_name])
                 if f"val_{metric_name}" in history.history:
                     ax.plot(
                         history.history[f"val_{metric_name}"],
@@ -259,8 +262,10 @@ class MLEvaluator:
                         linestyle='--'
                     )
             ax.set_title(f"{metric_name.replace('_', ' ').title()}")
-            ax.set_xlabel("Epoch")
-            ax.set_ylabel(metric_name.replace('_', ' ').title())
+            ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax, label="Simulation - Work in Progress", )
+            ampl.set_xlabel(ax=ax, label="Training Epoch")
+            ampl.set_ylabel(ax=ax, label=metric_name.replace('_', ' ').title())
+            ax.set_xlim(-int(max_epochs/10), max_epochs + int(max_epochs/10))
             ax.legend()
             ax.grid(True, alpha=0.3)
         # Remove any unused subplots
@@ -362,7 +367,9 @@ class MLEvaluator:
 
                 fig, ax = plt.subplots(figsize=(6, 6))
                 ax.barh(features, scores, color="skyblue")
-                ax.set_xlabel("Importance Score")
+                ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax1, label="Simulation - Work in Progress", )
+                ampl.set_xlabel(ax=ax, label="Importance Score")
+
                 #ax.set_title(f"Feature Importance - {model_name}")
                 ax.invert_yaxis()
                 ax.grid(True, alpha=0.3, axis="x")
@@ -392,7 +399,8 @@ class MLEvaluator:
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
                 ax1.barh(features, scores, color="skyblue")
-                ax1.set_xlabel("Importance Score")
+                ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax1, label="Simulation - Work in Progress", )
+                ampl.set_xlabel(ax=ax1,label= "Importance Score")
                 ax1.set_title(f"Assignment Feature Importance - {model_name}")
                 ax1.invert_yaxis()
                 ax1.grid(True, alpha=0.3, axis="x")
@@ -409,7 +417,8 @@ class MLEvaluator:
                 scores = [item[1] for item in sorted_items]
 
                 ax2.barh(features, scores, color="salmon")
-                ax2.set_xlabel("Importance Score")
+                ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax1, label="Simulation - Work in Progress", )
+                ampl.set_xlabel(ax=ax2, label="Importance Score")
                 ax2.set_title(f"Regression Feature Importance - {model_name}")
                 ax2.invert_yaxis()
                 ax2.grid(True, alpha=0.3, axis="x")
@@ -646,7 +655,8 @@ class MLEvaluator:
             color="lightcoral",
         )
 
-        ax.set_ylabel("Parameters (millions)")
+        ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax, label="Simulation - Work in Progress", )
+        ampl.set_ylabel(ax=ax, label="Number of Parameters (Millions)")
         ax.set_title("Model Parameters Comparison")
         ax.set_xticks(x)
         ax.set_xticklabels(model_names, rotation=45, ha="right")

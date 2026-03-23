@@ -89,9 +89,10 @@ if __name__ == "__main__":
         event_numbers=evaluation_config.evaluation_event_numbers,
     )
     X, y = data_processor.get_data()
+    num_events = data_processor.get_num_events()
     del data_processor
 
-    print("Successfully loaded data for evaluation:")
+    print(f"Successfully loaded data for evaluation. Number of events: {num_events}")
     # Initialize reconstructors based on the evaluation configuration
     reconstructors = []
     ml_reconstructors = []
@@ -131,6 +132,8 @@ if __name__ == "__main__":
     evaluator = evaluation.ReconstructionPlotter(prediction_manager)
     os.makedirs(output_dir, exist_ok=True)
 
+
+
     deviation_directory = os.path.join(output_dir, "deviations")
     os.makedirs(deviation_directory, exist_ok=True)
     confusion_matrix_directory = os.path.join(output_dir, "confusion_matrices")
@@ -147,6 +150,31 @@ if __name__ == "__main__":
         binned_2d_performance_directory = os.path.join(output_dir, "binned_2d_performance")
         os.makedirs(binned_2d_performance_directory, exist_ok=True)
 
+
+    for idx, (binning_cfgs) in enumerate(evaluation_config.binned_2d_binning_variables):
+        if len(binning_cfgs) != 2:
+            print(
+                f"Warning: Skipping invalid binned 2D variable configuration at index {idx} - expected exactly 2 binning variables, got {len(binning_cfgs)}"
+            )
+            continue
+        binning_cfg1, binning_cfg2 = binning_cfgs[0], binning_cfgs[1]
+        binned_2d_variable_output_dir = os.path.join(
+            binned_2d_performance_directory, f"{binning_cfg1.feature_name}_vs_{binning_cfg2.feature_name}"
+        )
+        os.makedirs(binned_2d_variable_output_dir, exist_ok=True)
+        evaluator.plot_2d_binned_performance_evaluation(
+            binning_cfg1,
+            binning_cfg2,
+            save_dir=binned_2d_variable_output_dir,
+        )
+        print(
+            f"Saved binned 2D evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} to {binned_2d_variable_output_dir} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
+        )
+
+
+
+    evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
+    print(f"Saved all accuracy evaluation plots to {accuracy_directory}")
     if not args.accuracy:
         evaluator.plot_all_deviations(save_dir=deviation_directory)
         print(f"Saved all deviation evaluation plots to {deviation_directory}")
@@ -158,8 +186,6 @@ if __name__ == "__main__":
         print(
             f"Saved all neutrino deviation evaluation plots to {neutrino_deviation_directory}"
         )
-    evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
-    print(f"Saved all accuracy evaluation plots to {accuracy_directory}")
     for idx, binning_cfg in enumerate(evaluation_config.binning_variables):
         binned_variable_output_dir = os.path.join(
             binned_performance_directory, f"{binning_cfg.feature_name}"
@@ -169,19 +195,7 @@ if __name__ == "__main__":
             **binning_cfg.__dict__, save_dir=binned_variable_output_dir, accuracy_only=args.accuracy
         )
         print(
-            f"Saved binned performance evaluation plots for {binning_cfg.feature_name} to {binned_variable_output_dir} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
+            f"Saved binned evaluation plots for {binning_cfg.feature_name} to {binned_variable_output_dir} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
         )
-    for idx, (binning_cfg1, binning_cfg2) in enumerate(evaluation_config.binned_2d_binning_variables):
-        binned_2d_variable_output_dir = os.path.join(
-            binned_2d_performance_directory, f"{binning_cfg1.feature_name}_vs_{binning_cfg2.feature_name}"
-        )
-        os.makedirs(binned_2d_variable_output_dir, exist_ok=True)
-        evaluator.plot_2d_binned_performance_evaluation(
-            binning_cfg1.__dict__,
-            binning_cfg2.__dict__,
-            save_dir=binned_2d_variable_output_dir,
-        )
-        print(
-            f"Saved binned 2D performance evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} to {binned_2d_variable_output_dir} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
-        )
+
     print(f"Saved all evaluation plots to {output_dir}")

@@ -201,6 +201,7 @@ def angle_vectors(a: np.ndarray, b: np.ndarray, axis=-1) -> np.ndarray:
     return np.arccos(np.clip(np.sum(unit_a * unit_b, axis=axis), -1.0, 1.0))
 
 
+
 def PtEtaPhi_to_vector3(vector: np.ndarray) -> np.ndarray:
     pt, eta, phi = vector[..., 0], vector[..., 1], vector[..., 2]
     px = pt * np.cos(phi)
@@ -216,7 +217,7 @@ def vector3_to_PtEtaPhi(vector: np.ndarray) -> np.ndarray:
     phi = np.arctan2(py, px)
     return np.stack((pt, eta, phi), axis=-1)
 
-def cos_angle_between_vectors(vec1: np.ndarray, vec2: np.ndarray, axis=-1) -> np.ndarray:
+def cos_angle_vectors(vec1: np.ndarray, vec2: np.ndarray, axis=-1) -> np.ndarray:
     """
     Computes the cosine of the angle between two vectors.
 

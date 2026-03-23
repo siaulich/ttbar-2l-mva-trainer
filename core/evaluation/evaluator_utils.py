@@ -309,7 +309,7 @@ class Binning2DUtility:
         return mask_x[:, np.newaxis, :] & mask_y[np.newaxis, :, :]
     
     @staticmethod
-    def compute_binned_statistic(
+    def compute_weighted_binned_statistic(
         binning_mask: np.ndarray,
         data: np.ndarray,
         weights: np.ndarray,
