@@ -11,12 +11,14 @@ from .physics_calculations import (
 )
 from core.utils import (
     compute_pt_from_lorentz_vector_array,
+    compute_eta_from_lorentz_vector_array,
+    compute_phi_from_lorentz_vector_array,
     lorentz_vector_from_neutrino_momenta_array,
     compute_mass_from_lorentz_vector_array,
     project_vectors_onto_axis,
     angle_vectors,
-
     cos_angle_vectors,
+    delta_phi_top_lepton_helicity,
 )
 
 # Function aliases
@@ -181,10 +183,15 @@ reconstruction_variable_configs = {
             "ylabel_deviation": r"Mean $p_{z}(\bar{\nu})$ Deviation [GeV]",
         },
     },
-    "nunubar_mag" : {
-        "compute_func": lambda l, j, n: (np.linalg.norm(n[:, 0, :3] + n[:, 1, :3], axis=-1) / 1e3,),
+    "nunubar_mag": {
+        "compute_func": lambda l, j, n: (
+            np.linalg.norm(n[:, 0, :3] + n[:, 1, :3], axis=-1) / 1e3,
+        ),
         "extract_func": lambda X: (
-            np.linalg.norm(X["regression"][:, 0, :3] + X["regression"][:, 1, :3], axis=-1) / 1e3,
+            np.linalg.norm(
+                X["regression"][:, 0, :3] + X["regression"][:, 1, :3], axis=-1
+            )
+            / 1e3,
         ),
         "label": r"$|\vec{p}(\nu) + \vec{p}(\bar{\nu})|$ [GeV]",
         "use_relative_deviation": True,
@@ -195,9 +202,7 @@ reconstruction_variable_configs = {
         },
     },
     "cos_angle_nu_lep": {
-        "compute_func": lambda l, j, n: cos_angle_vectors(
-            n[:, 0, :], l[:, 0, :4]
-        ),
+        "compute_func": lambda l, j, n: cos_angle_vectors(n[:, 0, :], l[:, 0, :4]),
         "extract_func": lambda X: cos_angle_vectors(
             X["regression"][:, 0, :], X["lepton_truth"][:, 0, :4]
         ),
@@ -210,9 +215,7 @@ reconstruction_variable_configs = {
         },
     },
     "cos_angle_nu_nubar": {
-        "compute_func": lambda l, j, n: cos_angle_vectors(
-            n[:, 0, :], n[:, 1, :]
-        ),
+        "compute_func": lambda l, j, n: cos_angle_vectors(n[:, 0, :], n[:, 1, :]),
         "extract_func": lambda X: cos_angle_vectors(
             X["regression"][:, 0, :], X["regression"][:, 1, :]
         ),
@@ -226,7 +229,8 @@ reconstruction_variable_configs = {
     },
     "cos_angle_nunubar_bbarll": {
         "compute_func": lambda l, j, n: cos_angle_vectors(
-            n[:, 0, :] + n[:, 1, :], l[:, 0, :4] + l[:, 1, :4] + j[:, 0, :4] + j[:, 1, :4]
+            n[:, 0, :] + n[:, 1, :],
+            l[:, 0, :4] + l[:, 1, :4] + j[:, 0, :4] + j[:, 1, :4],
         ),
         "extract_func": lambda X: cos_angle_vectors(
             X["regression"][:, 0, :] + X["regression"][:, 1, :],
@@ -234,7 +238,6 @@ reconstruction_variable_configs = {
             + X["lepton_truth"][:, 1, :4]
             + select_jets(make_4vect(X["jet_inputs"]), X["assignment"])[:, 0, :4]
             + select_jets(make_4vect(X["jet_inputs"]), X["assignment"])[:, 1, :4],
-            
         ),
         "label": r"$\cos\theta(\nu\bar{\nu}, b\bar{b}\ell^+\ell^-)$",
         "use_relative_deviation": False,
@@ -245,12 +248,7 @@ reconstruction_variable_configs = {
         },
     },
     "top_energy": {
-        "compute_func": lambda l, j, n: (
-            (
-                l[:, 0, 3] + j[:, 0, 3] + n[:, 0, 3]
-            )
-            / 1e3
-        ),
+        "compute_func": lambda l, j, n: ((l[:, 0, 3] + j[:, 0, 3] + n[:, 0, 3]) / 1e3),
         "extract_func": lambda X: (make_4vect(X["top_truth"][:, 0, :4])[..., 3] / 1e3,),
         "label": r"$E(t)$ [GeV]",
         "use_relative_deviation": True,
@@ -279,10 +277,8 @@ reconstruction_variable_configs = {
     },
     "top_gamma": {
         "compute_func": lambda l, j, n: (
-            (l[:, 0, 3]
-            + j[:, 0, 3]
-            + n[:, 0, 3]
-            )/ compute_mass_from_lorentz_vector_array(
+            (l[:, 0, 3] + j[:, 0, 3] + n[:, 0, 3])
+            / compute_mass_from_lorentz_vector_array(
                 l[:, 0, :4] + j[:, 0, :4] + n[:, 0, :]
             )
         ),
@@ -323,8 +319,7 @@ reconstruction_variable_configs = {
         ),
         "extract_func": lambda X: (
             compute_mass_from_lorentz_vector_array(
-                X["lepton_truth"][:, 0, :4]
-                + make_nu_4vect(X["regression"][:, 0, :])
+                X["lepton_truth"][:, 0, :4] + make_nu_4vect(X["regression"][:, 0, :])
             )
             / 1e3
         ),
@@ -361,8 +356,7 @@ reconstruction_variable_configs = {
         ),
         "extract_func": lambda X: (
             compute_pt_from_lorentz_vector_array(
-                X["lepton_truth"][:, 0, :4]
-                + make_nu_4vect(X["regression"][:, 0, :])
+                X["lepton_truth"][:, 0, :4] + make_nu_4vect(X["regression"][:, 0, :])
             )
             / 1e3
         ),
@@ -374,20 +368,37 @@ reconstruction_variable_configs = {
             "ylabel_deviation": r"Mean Relative $p_{T}(W)$ Deviation",
         },
     },
-    "top_emission_cos_angle": {
-        "compute_func": lambda l, j, n: cos_angle_vectors(
-            l[:, 0, :3] + j[:, 0, :3] + n[:, 0, :3], n[:, 0, :3])
-        ,
-        "extract_func": lambda X: cos_angle_vectors(
-            make_4vect(X["top_truth"][:, 0, :4])[..., :3],
-            make_nu_4vect(X["regression"][:, 0, :]),
-        ),
-        "label": r"Emission Angle of $\nu$ from $t$ [rad]",
+    "delta_phi_ell_top": {
+        "compute_func": lambda l, j, n: compute_phi_from_lorentz_vector_array(
+            l[:, 0, :4] + j[:, 0, :4] + n[:, 0, :]
+        )
+        - compute_phi_from_lorentz_vector_array(l[:, 0, :4]),
+        "extract_func": lambda X: compute_phi_from_lorentz_vector_array(
+            make_4vect(X["top_truth"][:, 0, :4])
+        )
+        - compute_phi_from_lorentz_vector_array(X["lepton_truth"][:, 0, :4]),
+        "label": r"$\Delta\phi(\ell, t)$ [rad]",
         "use_relative_deviation": False,
         "resolution": {
             "use_relative_deviation": False,
-            "ylabel_resolution": r"Emission Angle Resolution [rad]",
-            "ylabel_deviation": r"Mean Emission Angle Deviation [rad]",
+            "ylabel_resolution": r"$\Delta\phi(\ell, t)$ Resolution [rad]",
+            "ylabel_deviation": r"Mean $\Delta\phi(\ell, t)$ De viation [rad]",
+        },
+    },
+    "delta_phi_ell_top_helicity": {
+        "compute_func": lambda l, j, n: delta_phi_top_lepton_helicity(
+            l[:, 0, :4] + j[:, 0, :4] + n[:, 0, :],l[:, 1, :4] + j[:, 1, :4] + n[:, 1, :], l[:, 0, :4]
+        ),
+        "extract_func": lambda X: delta_phi_top_lepton_helicity(
+            make_4vect(X["top_truth"][:, 0, :4]),make_4vect(X["top_truth"][:, 1, :4]), X["lepton_truth"][:, 0, :4]
+        ),
+        "xlims": (-np.pi, np.pi),
+        "label": r"$\Delta\phi(\ell_{hel}, t)$ [rad]",
+        "use_relative_deviation": False,
+        "resolution": {
+            "use_relative_deviation": False,
+            "ylabel_resolution": r"$\Delta\phi_{\text{helicity}}(\ell, t)$ Resolution [rad]",
+            "ylabel_deviation": r"Mean $\Delta\phi_{\text{helicity}}(\ell, t)$ Deviation [rad]",
         },
     },
 }

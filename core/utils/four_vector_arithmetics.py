@@ -162,6 +162,45 @@ def compute_pt_from_lorentz_vector_array(array, padding_value=-999):
     return np.where(mask, padding_value, pt)
 
 
+def compute_eta_from_lorentz_vector_array(array, padding_value=-999):
+    """
+    Computes the pseudorapidity (eta) from an array of four-momentum components.
+
+    Args:
+        array (np.ndarray): An array with shape (..., 4) containing px, py, pz, and e.
+    Returns:
+        array (np.ndarray): An array with shape (...) containing the pseudorapidity (eta).
+    """
+    px = array[..., 0]
+    py = array[..., 1]
+    pz = array[..., 2]
+    mask = (px == padding_value) | (py == padding_value) | (pz == padding_value)
+    px = np.where(mask, 0, px)
+    py = np.where(mask, 0, py)
+    pz = np.where(mask, 0, pz)
+    pt = np.sqrt(px**2 + py**2)
+    eta = np.arcsinh(pz / np.clip(pt, 1e-10, None))
+    return np.where(mask, padding_value, eta)
+
+
+def compute_phi_from_lorentz_vector_array(array, padding_value=-999):
+    """
+    Computes the azimuthal angle (phi) from an array of four-momentum components.
+
+    Args:
+        array (np.ndarray): An array with shape (..., 4) containing px, py, pz, and e.
+    Returns:
+        array (np.ndarray): An array with shape (...) containing the azimuthal angle (phi).
+    """
+    px = array[..., 0]
+    py = array[..., 1]
+    mask = (px == padding_value) | (py == padding_value)
+    px = np.where(mask, 0, px)
+    py = np.where(mask, 0, py)
+    phi = np.arctan2(py, px)
+    return np.where(mask, padding_value, phi)
+
+
 def project_vectors_onto_axis(
     vectors: np.ndarray,
     axis: np.ndarray,
@@ -201,7 +240,6 @@ def angle_vectors(a: np.ndarray, b: np.ndarray, axis=-1) -> np.ndarray:
     return np.arccos(np.clip(np.sum(unit_a * unit_b, axis=axis), -1.0, 1.0))
 
 
-
 def PtEtaPhi_to_vector3(vector: np.ndarray) -> np.ndarray:
     pt, eta, phi = vector[..., 0], vector[..., 1], vector[..., 2]
     px = pt * np.cos(phi)
@@ -216,6 +254,7 @@ def vector3_to_PtEtaPhi(vector: np.ndarray) -> np.ndarray:
     eta = np.arcsinh(pz / np.clip(pt, 1e-10, None))
     phi = np.arctan2(py, px)
     return np.stack((pt, eta, phi), axis=-1)
+
 
 def cos_angle_vectors(vec1: np.ndarray, vec2: np.ndarray, axis=-1) -> np.ndarray:
     """
@@ -241,6 +280,7 @@ def cos_angle_vectors(vec1: np.ndarray, vec2: np.ndarray, axis=-1) -> np.ndarray
     cos_angle = np.where(valid, dot_product / (norm_a * norm_b), 0.0)
     return np.clip(cos_angle, -1.0, 1.0)
 
+
 def magnitude_of_vector(vec: np.ndarray, axis=-1) -> np.ndarray:
     """
     Computes the magnitude of a vector.
@@ -254,3 +294,104 @@ def magnitude_of_vector(vec: np.ndarray, axis=-1) -> np.ndarray:
     """
     a = vec[..., :3]  # Ensure we only use the spatial components
     return np.linalg.norm(a, axis=axis)
+
+
+import numpy as np
+
+
+# ---------- Basic helpers ----------
+
+
+def spatial(v):
+    return v[..., :3]
+
+
+def energy(v):
+    return v[..., 3]
+
+
+def unit(v, eps=1e-15):
+    norm = np.linalg.norm(v, axis=-1, keepdims=True)
+    return v / np.clip(norm, eps, None)
+
+
+def boost(p, beta):
+    """
+    Boost 4-vector p by 3-velocity beta.
+
+    p    : (...,4)
+    beta : (...,3)
+    """
+
+    beta2 = np.sum(beta**2, axis=-1, keepdims=True)
+    gamma = 1.0 / np.sqrt(1.0 - beta2)
+
+    bp = np.sum(spatial(p) * beta, axis=-1, keepdims=True)
+
+    gamma2 = np.where(beta2 > 0, (gamma - 1.0) / beta2, 0.0)
+
+    spatial_part = spatial(p) + gamma2 * bp * beta + gamma * energy(p)[..., None] * beta
+
+    energy_part = gamma * (energy(p)[..., None] + bp)
+
+    return np.concatenate([spatial_part, energy_part], axis=-1)
+
+
+def boost_to_rest(p, parent):
+    """
+    Boost p into rest frame of parent.
+    """
+    beta = spatial(parent) / energy(parent)[..., None]
+    return boost(p, -beta)
+
+
+# ---------- Main observable ----------
+
+
+def delta_phi_top_lepton_helicity(t, tbar, lepton, beam_axis=np.array([0.0, 0.0, 1.0])):
+    """
+    Compute helicity-basis Δφ between top and its decay lepton.
+
+    Parameters
+    ----------
+    t        : (...,4)  parent top
+    tbar     : (...,4)  other top
+    lepton   : (...,4)  lepton from t decay
+    beam_axis: (3,)     usually (0,0,1)
+
+    Returns
+    -------
+    phi : (...)  azimuthal angle in [-π, π]
+    """
+
+    # ---- 1) ttbar COM frame ----
+    ttbar = t + tbar
+
+    top_rest = boost_to_rest(t, ttbar)
+    lep_rest = boost_to_rest(lepton, ttbar)
+
+    k = unit(top_rest[..., :3])  # Top direction in ttbar rest frame
+    b = np.broadcast_to(beam_axis, k.shape)  # Ensure beam axis has the same shape as k
+    cos_theta = np.sum(unit(k) * unit(b), axis=-1)
+    sin_theta = np.sqrt(1.0 - cos_theta**2)
+
+    # Helicity Basis
+    n = (
+        np.sign(cos_theta)[..., np.newaxis]
+        * np.cross(b, k, axis=-1)
+        / np.clip(sin_theta[..., None], 1e-15, None)
+    )
+    r = (
+        np.sign(cos_theta)[..., np.newaxis]
+        * (b - cos_theta[..., None] * k)
+        / np.clip(sin_theta[..., None], 1e-15, None)
+    )
+    k = k
+
+    unit_lep = unit(lep_rest[..., :3])  # Lepton direction in top rest frame
+
+    # Compute lepton direction
+    lep_n_comp = np.sum(unit_lep * n, axis=-1)
+    lep_r_comp = np.sum(unit_lep * r, axis=-1)
+    phi = np.arctan2(lep_n_comp, lep_r_comp)
+    return phi

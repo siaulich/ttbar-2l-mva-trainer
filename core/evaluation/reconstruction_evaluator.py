@@ -2210,6 +2210,7 @@ class ReconstructionPlotter:
         for variable_key in self.variable_configs.keys():
             config = self.variable_configs[variable_key]
             variable_label = config["label"]
+            kwargs["xlims"] = config.get("xlims", None)
 
             fig, axes = self.plot_distributions_all_reconstructors(
                 variable_name=variable_key,

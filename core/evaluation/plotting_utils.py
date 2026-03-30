@@ -487,6 +487,8 @@ class DistributionPlotter:
         ampl.draw_atlas_label(
             x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
         )
+        if np.isfinite(bin_edges).all() and not np.isnan(bin_edges).any():
+            ax.set_xlim(bin_edges[0], bin_edges[-1])
         ax.grid(alpha=0.3)
         if labels is not None:
             ax.legend(loc=config.legend_loc)
