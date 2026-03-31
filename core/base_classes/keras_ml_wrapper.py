@@ -82,13 +82,12 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         self.model_id = None
         self.perform_regression = perform_regression
 
-
     def build_model(self, **kwargs):
         raise NotImplementedError("Subclasses must implement build_model method.")
         pass
 
     def prepare_training_data(
-        self, X,y =None, sample_weights=None, class_weights=None, copy_data=False
+        self, X, y=None, sample_weights=None, class_weights=None, copy_data=False
     ):
         for input_name in self.inputs.keys():
             if input_name not in X:
@@ -100,10 +99,10 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
             X_train = {key: X[key] for key in self.inputs.keys()}
 
         y_train = self.prepare_labels(X, y)
-        
+
         return X_train, y_train, sample_weights
 
-    def prepare_labels(self, X,y):
+    def prepare_labels(self, X, y):
         return y
 
     def _prepare_inputs(
@@ -117,7 +116,10 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
 
         if self.config.has_global_event_inputs:
             global_event_inputs = keras.Input(
-                shape=(1, self.n_global,),
+                shape=(
+                    1,
+                    self.n_global,
+                ),
                 name="global_event_inputs",
             )
 
@@ -135,7 +137,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
             padding_value=self.padding_value,
             log_variables=log_variables,
         )(lep_inputs)
-        transformed_met_inputs = InputMetLayer(name="met_input_transform", log_variables=log_variables)(met_inputs)
+        transformed_met_inputs = InputMetLayer(
+            name="met_input_transform", log_variables=log_variables
+        )(met_inputs)
 
         if compute_HLF:
             high_level_features = ComputeHighLevelFeatures_from_PtEtaPhiE(
@@ -311,8 +315,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         # --- Prepare and unpad jet data ---
         for key in self.inputs.keys():
             if key not in data:
-                raise ValueError(f"Expected input '{key}' not found in data dictionary.")
-
+                raise ValueError(
+                    f"Expected input '{key}' not found in data dictionary."
+                )
 
         jet_data = data["jet_inputs"]  # (num_events, n_jets, n_features)
         jet_mask = np.any(jet_data != self.padding_value, axis=-1)
@@ -380,7 +385,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
                 print("Adapted normalization layer: ", layer.name)
 
         self.adapt_output_layer_scales(data)
-    
+
     def adapt_output_layer_scales(self, data: dict):
         print("No output layer scaling applied for this model.")
         pass
@@ -435,7 +440,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         for k, v in model_outputs.items():
             named_outputs[k] = keras.layers.Lambda(
                 lambda x, n=k: tf.identity(x, n), name=f"{k}"
-            )(v)  # layer name irrelevant
+            )(
+                v
+            )  # layer name irrelevant
 
         # Convert to ONNX
         spec = (tf.TensorSpec((None, flat_input_size), tf.float32, name="flat_input"),)
@@ -454,7 +461,37 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
 
         meta = onnx_model.metadata_props.add()
         meta.key = "input_names"
-        meta.value = ",".join(input_shapes.keys())
+        meta.value = ",".join(model_input_dict.keys())
+
+        meta = onnx_model.metadata_props.add()
+        meta.key = "jet_inputs"
+        meta.value = ",".join(
+            [f"{name}" for name in self.config.feature_indices["jet_inputs"].keys()]
+        )
+
+        meta = onnx_model.metadata_props.add()
+        meta.key = "lep_inputs"
+        meta.value = ",".join(
+            [f"{name}" for name in self.config.feature_indices["lep_inputs"].keys()]
+        )
+
+        meta = onnx_model.metadata_props.add()
+        meta.key = "met_inputs"
+        meta.value = ",".join(
+            [f"{name}" for name in self.config.feature_indices["met_inputs"].keys()]
+        )
+
+        if "global_event_inputs" in model_input_dict:
+            meta = onnx_model.metadata_props.add()
+            meta.key = "global_event_inputs"
+            meta.value = ",".join(
+                [
+                    f"{name}"
+                    for name in self.config.feature_indices[
+                        "global_event_inputs"
+                    ].keys()
+                ]
+            )
 
         # Save ONNX model
         onnx.save_model(onnx_model, onnx_file_path)

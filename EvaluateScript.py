@@ -58,9 +58,10 @@ def parse_args():
     parser.add_argument(
         "--output_dir",
         type=str,
-        default=None,
+        default="evaluation_results",
         help="Directory to save evaluation results (default: ./evaluation_results)",
     )
+
     parser.add_argument(
         "--accuracy",
         action="store_true",

@@ -7,10 +7,8 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-# Get the command from arguments
 COMMAND="$*"
 
-# Create logs directory if it doesn't exist
 mkdir -p logs
 
 # Create temporary HTCondor submit file
@@ -38,7 +36,6 @@ arguments = $COMMAND
 queue 1
 EOF
 
-# Submit the job
 condor_submit "$SUBMIT_FILE"
 
 # Clean up

@@ -2,6 +2,7 @@
 executable = submitCondor.sh
 universe = vanilla
 
+mkdir -p logs
 # Resource requirements
 RequestGPUs    = 1
 RequestMemory  = 60000
@@ -18,6 +19,7 @@ arguments = python3 ../TrainScript.py \
     --train_config training/train_config.yaml \
     --model_config models/$(ModelName).yaml \
     --event_numbers even 
+
 
 # Queue from file - reads each line and assigns to variables
 queue ModelName from $(ModelNamesFile)

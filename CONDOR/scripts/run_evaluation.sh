@@ -8,6 +8,7 @@ RequestGPUs    = 1
 RequestMemory  = 60000
 +RequestRuntime = 60000
 
+mkdir -p logs
 # Output files
 output = logs/job_eval_$(Cluster).out
 error = logs/job_eval_$(Cluster).err
