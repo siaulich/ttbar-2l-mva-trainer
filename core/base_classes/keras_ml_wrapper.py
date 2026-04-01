@@ -423,10 +423,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         flat_input_size = sum(np.prod(shape) for shape in input_shapes.values())
         flat_input = keras.Input(shape=(flat_input_size,), name="flat_input")
 
-        split_layer = onnx_support.SplitInputsLayer(
+        split_inputs = onnx_support.SplitInputsLayer(
             input_shapes.values(), name="split_inputs"
-        )
-        split_inputs = split_layer(flat_input)
+        )(flat_input)
 
         model_input_dict = {}
         for i, input in enumerate(input_shapes.keys()):

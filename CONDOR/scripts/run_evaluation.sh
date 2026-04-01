@@ -8,7 +8,6 @@ RequestGPUs    = 1
 RequestMemory  = 60000
 +RequestRuntime = 60000
 
-mkdir -p logs
 # Output files
 output = logs/job_eval_$(Cluster).out
 error = logs/job_eval_$(Cluster).err
@@ -16,7 +15,7 @@ log = logs/job_eval_$(Cluster).log
 
 arguments = python3 ../EvaluateScript.py \
     --output_dir ../evaluation/$(ModelName)/ \
-    --load_config ../config/test_load_config.yaml \
+    --load_config ../config/load_test_config.yaml \
     --evaluation_config evaluation/evaluation_config.yaml \
     --model_config models/$(ModelName).yaml \
     --event_numbers $(EventNumbers)

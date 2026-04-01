@@ -8,7 +8,6 @@ RequestGPUs    = 1
 RequestMemory  = 60000
 +RequestRuntime = 60000
 
-mkdir -p logs
 # Output files
 output = logs/job_$(Cluster)_$(EventNumbers).out
 error = logs/job_$(Cluster)_$(EventNumbers).err
@@ -16,7 +15,7 @@ log = logs/job_$(Cluster)_$(EventNumbers).log
 
 arguments = python3 ../TrainScript.py \
     --output_dir ../models/$(ModelName)/ \
-    --load_config ../config/nominal_load_config.yaml \
+    --load_config ../config/load_nominal_config.yaml \
     --train_config training/train_config.yaml \
     --model_config models/$(ModelName).yaml \
     --event_numbers $(EventNumbers) 

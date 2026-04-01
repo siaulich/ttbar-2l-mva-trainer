@@ -1,9 +1,11 @@
 # ttbar-2l-mva-trainer
-A standalone analysis framework for training and evaluating machine learning models for reconstruction of dileptonic ttbar events. The framework includes data-preprocessing, data loading and model training using TensorFlow, and integration with the Condor job scheduler for distributed training and evaluation.
+A standalone framework for training and evaluating machine learning models for reconstruction of dileptonic ttbar events. The framework includes data-preprocessing, data loading and model training using TensorFlow, and integration with the Condor job scheduler for distributed training and evaluation.
 
 The models are designed to perform both reconstruction of the neutrino momenta as well as assignment of jets to the corresponding b-quarks from the top quark decays.
 
 To inject the trained machine learning models into the TopCPToolKit, the models can be exported to ONNX format. Currently, only models feed-forward neural network architectures are supported for export to ONNX format, but support for additional architectures can be implemented.
+
+While the framework is designed for training and evaluating machine learning models for ATLAS, it can be easily adapted for use in other contexts by modifying the data preprocessing and loading steps to fit the specific requirements of the new context. The modular design of the framework allows for easy integration of new models and evaluation metrics.
 
 
 ## Setup
