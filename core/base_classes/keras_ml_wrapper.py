@@ -73,6 +73,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         )
         self.padding_value: float = config.padding_value
         self.feature_index_dict = config.feature_indices
+        self.index_names_dict = config.index_names
 
         # initialize empty dicts to hold inputs and transformed inputs
         self.inputs = {}
@@ -462,35 +463,12 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         meta.key = "input_names"
         meta.value = ",".join(model_input_dict.keys())
 
-        meta = onnx_model.metadata_props.add()
-        meta.key = "jet_inputs"
-        meta.value = ",".join(
-            [f"{name}" for name in self.config.feature_indices["jet_inputs"].keys()]
-        )
-
-        meta = onnx_model.metadata_props.add()
-        meta.key = "lep_inputs"
-        meta.value = ",".join(
-            [f"{name}" for name in self.config.feature_indices["lep_inputs"].keys()]
-        )
-
-        meta = onnx_model.metadata_props.add()
-        meta.key = "met_inputs"
-        meta.value = ",".join(
-            [f"{name}" for name in self.config.feature_indices["met_inputs"].keys()]
-        )
-
-        if "global_event_inputs" in model_input_dict:
+        for input_name in model_input_dict.keys():
             meta = onnx_model.metadata_props.add()
-            meta.key = "global_event_inputs"
-            meta.value = ",".join(
-                [
-                    f"{name}"
-                    for name in self.config.feature_indices[
-                        "global_event_inputs"
-                    ].keys()
-                ]
-            )
+            index_names = self.index_names_dict.get(input_name, {})
+            n_features = len(index_names)
+            meta.key = input_name
+            meta.value = ",".join(index_names.get(i) for i in range(n_features))
 
         # Save ONNX model
         onnx.save_model(onnx_model, onnx_file_path)

@@ -222,6 +222,7 @@ class DataConfig:
 
     # Computed properties (populated after loading)
     feature_indices: Dict[str, Dict[str, int]] = field(default_factory=dict, init=False)
+    index_names: Dict[str, Dict[int, str]] = field(default_factory=dict, init=False)
     data_shapes: Dict[str, Tuple[int, ...]] = field(default_factory=dict, init=False)
     custom_features: Dict[str, int] = field(default_factory=dict, init=False)
 
@@ -229,6 +230,7 @@ class DataConfig:
         """Initialize computed properties."""
         self._build_feature_indices()
         self._build_data_shapes()
+        self._build_index_names()
 
     def _add_feature_indices(self, key: str, features: Optional[List[str]]) -> None:
         """Helper to add feature indices for a given feature type."""
@@ -266,6 +268,12 @@ class DataConfig:
             self._add_feature_indices("top_truth", self.top_truth_features)
         if self.has_lepton_truth:
             self._add_feature_indices("lepton_truth", self.top_lepton_truth_features)
+
+    def _build_index_names(self) -> None:
+        """Build reverse mapping from indices to feature names."""
+        self.index_names = {}
+        for key, feature_dict in self.feature_indices.items():
+            self.index_names[key] = {idx: name for name, idx in feature_dict.items()}
 
     def _build_data_shapes(self) -> None:
         """Build expected data shapes for each feature type."""
