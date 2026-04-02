@@ -1,6 +1,7 @@
 import keras as keras
 import tensorflow as tf
 
+
 @keras.utils.register_keras_serializable()
 class GenerateMask(keras.layers.Layer):
     def __init__(self, padding_value=-999, **kwargs):
@@ -17,6 +18,7 @@ class GenerateMask(keras.layers.Layer):
         config = super().get_config()
         config.update({"padding_value": self.padding_value})
         return config
+
 
 @keras.utils.register_keras_serializable()
 class TemporalSoftmax(keras.layers.Layer):
@@ -73,4 +75,3 @@ class TemporalSoftmax(keras.layers.Layer):
         config = super().get_config()
         config.update({"axis": self.axis})
         return config
-    

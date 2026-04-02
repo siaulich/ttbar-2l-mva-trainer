@@ -1,9 +1,10 @@
 import keras as keras
 
+
 @keras.saving.register_keras_serializable()
 class OutputUpScaleLayer(keras.layers.Layer):
-    def __init__(self, name="OutputUpScaleLayer",**kwargs):
-        super().__init__(name=name,**kwargs)
+    def __init__(self, name="OutputUpScaleLayer", **kwargs):
+        super().__init__(name=name, **kwargs)
 
     def build(self, input_shape):
         self.std = self.add_weight(
@@ -32,10 +33,10 @@ class OutputUpScaleLayer(keras.layers.Layer):
     def get_config(self):
         config = super().get_config()
         return config
-    
+
     def get_stats(self):
         return {"mean": self.mean.numpy(), "std": self.std.numpy()}
-    
+
     @classmethod
     def from_config(cls, config):
         return cls(**config)

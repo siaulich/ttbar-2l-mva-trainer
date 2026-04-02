@@ -19,7 +19,7 @@ class ResolutionCalculator:
         true_values: np.ndarray,
         use_relative_deviation: bool = True,
         use_signed_deviation: bool = True,
-        deviation_function: Optional[Callable] = None
+        deviation_function: Optional[Callable] = None,
     ) -> np.ndarray:
         """
         Compute deviations between reconstructed and true masses.
@@ -34,16 +34,16 @@ class ResolutionCalculator:
         """
         # Filter out invalid values before computation
         valid_mask = (
-            np.isfinite(reco_values) & 
-            np.isfinite(true_values) & 
-            (true_values != 0) &
-            (reco_values != -999)  # padding value
+            np.isfinite(reco_values)
+            & np.isfinite(true_values)
+            & (true_values != 0)
+            & (reco_values != -999)  # padding value
         )
-        
+
         if deviation_function is not None:
             deviations = deviation_function(true_values, reco_values)
         elif use_relative_deviation:
-            with np.errstate(divide='ignore', invalid='ignore'):
+            with np.errstate(divide="ignore", invalid="ignore"):
                 deviations = (reco_values - true_values) / true_values
             if not use_signed_deviation:
                 deviations = np.abs(deviations)
@@ -51,8 +51,6 @@ class ResolutionCalculator:
             deviations = reco_values - true_values
             if not use_signed_deviation:
                 deviations = np.abs(deviations)
-
-
 
         # Set invalid entries to NaN so they can be filtered later
         deviations = np.where(valid_mask, deviations, np.nan)
@@ -114,9 +112,10 @@ class ResolutionCalculator:
                 )
 
         return resolutions
-    
+
 
 import numpy as np
+
 
 # ----------------------------------------------------------------------
 # Lorentz boost of v into the rest frame of parent, both shaped (N,4)
@@ -130,41 +129,44 @@ def boost(v, parent):
     """
     pv = parent[:, :3]
     Ep = parent[:, 3]
-    
+
     # Beta points along parent momentum; negate to boost to rest frame
     p = np.linalg.norm(pv, axis=1)
-    
+
     # Safe beta calculation
     beta = np.zeros_like(pv)
     mask = (Ep > 1e-10) & (p > 0) & np.isfinite(Ep) & np.all(np.isfinite(pv), axis=1)
     beta[mask] = pv[mask] / Ep[mask, None]
-    
+
     # Gamma factor with safe division and overflow protection
     beta_sq = np.sum(beta**2, axis=1)
     beta_sq = np.clip(beta_sq, 0, 1 - 1e-15)  # Ensure < 1 for physical values
     gamma = 1.0 / np.sqrt(np.maximum(1 - beta_sq, 1e-10))
     gamma = np.clip(gamma, 1.0, 1e6)  # Limit gamma to reasonable values
-    
+
     vv = v[:, :3]
     E = v[:, 3]
-    
+
     # Boost formulas (negating beta for rest frame boost)
-    with np.errstate(divide='ignore', invalid='ignore'):
+    with np.errstate(divide="ignore", invalid="ignore"):
         beta_dot_v = np.sum(beta * vv, axis=1)
-        
+
         # Safe computation of boost components
         denominator = np.maximum(beta_sq[:, None], 1e-10)
-        boost_correction = (gamma[:, None] - 1) * beta_dot_v[:, None] * beta / denominator
-        
+        boost_correction = (
+            (gamma[:, None] - 1) * beta_dot_v[:, None] * beta / denominator
+        )
+
         v_prime = vv - gamma[:, None] * beta * E[:, None] + boost_correction
         E_prime = gamma * (E - beta_dot_v)
-    
+
     # Replace any NaN or Inf with original values
     valid = np.isfinite(v_prime).all(axis=1) & np.isfinite(E_prime)
     v_prime = np.where(valid[:, None], v_prime, v[:, :3])
     E_prime = np.where(valid, E_prime, v[:, 3])
-    
+
     return np.column_stack([v_prime, E_prime])
+
 
 # ----------------------------------------------------------------------
 # Common boost sequence (same for cos_han and c_hel)
@@ -180,17 +182,18 @@ def _prep_leptons(top, tbar, lep_pos, lep_neg):
     # --- ttbar 4-vector
     ttbar = np.zeros_like(top)
     ttbar[:, :3] = top[:, :3] + tbar[:, :3]
-    ttbar[:,  3] = top[:,  3] + tbar[:,  3]
+    ttbar[:, 3] = top[:, 3] + tbar[:, 3]
 
     lep_pos_1 = boost(lep_pos, ttbar)
     lep_neg_1 = boost(lep_neg, ttbar)
-    top_1     = boost(top,     ttbar)
-    tbar_1    = boost(tbar,    ttbar)
+    top_1 = boost(top, ttbar)
+    tbar_1 = boost(tbar, ttbar)
 
     lep_pos_2 = boost(lep_pos_1, top_1)
     lep_neg_2 = boost(lep_neg_1, tbar_1)
 
     return lep_pos_2[:, :3], lep_neg_2[:, :3]
+
 
 def select_jets(jet_inputs, assignment_pred):
     selected_jet_indices = assignment_pred.argmax(axis=-2)
@@ -202,7 +205,6 @@ def select_jets(jet_inputs, assignment_pred):
     return reco_jets
 
 
-
 # ----------------------------------------------------------------------
 # cos_han  (CMS version: flip neg lepton z-component)
 # ----------------------------------------------------------------------
@@ -210,21 +212,25 @@ def c_han(top, tbar, lep_pos, lep_neg):
     p1, p2 = _prep_leptons(top, tbar, lep_pos, lep_neg)
 
     # CMS-specific flip along tbar direction
-    with np.errstate(divide='ignore', invalid='ignore'):
+    with np.errstate(divide="ignore", invalid="ignore"):
         tbar_norm = np.linalg.norm(tbar[:, :3], axis=1, keepdims=True)
         tbar_norm = np.clip(tbar_norm, 1e-10, None)  # Avoid division by zero
-        
+
         # Check for finite values
-        valid_tbar = np.isfinite(tbar_norm) & np.all(np.isfinite(tbar[:, :3]), axis=1, keepdims=True)
+        valid_tbar = np.isfinite(tbar_norm) & np.all(
+            np.isfinite(tbar[:, :3]), axis=1, keepdims=True
+        )
         tbar_norm = np.where(valid_tbar, tbar_norm, 1.0)
-        
+
         tbar_dir = tbar[:, :3] / tbar_norm
-        tbar_dir = np.where(valid_tbar, tbar_dir, np.array([0, 0, 1]))  # Default z-direction
-        
+        tbar_dir = np.where(
+            valid_tbar, tbar_dir, np.array([0, 0, 1])
+        )  # Default z-direction
+
         # Project and flip p2 along tbar direction
         p2_z = np.sum(p2 * tbar_dir, axis=1)
         p2_z_inverted = p2 - 2 * (p2_z[:, None] * tbar_dir)
-        
+
         # Safely handle p2_z_inverted if p2 was invalid
         valid_p2 = np.all(np.isfinite(p2), axis=1, keepdims=True)
         p2_z_inverted = np.where(valid_p2, p2_z_inverted, p2)
@@ -236,10 +242,12 @@ def c_han(top, tbar, lep_pos, lep_neg):
         p1_norm = np.where(valid_p1, p1_norm, 1.0)
         u1 = p1 / p1_norm
         u1 = np.where(valid_p1, u1, 0.0)
-        
+
         p2_inv_norm = np.linalg.norm(p2_z_inverted, axis=1, keepdims=True)
         p2_inv_norm = np.clip(p2_inv_norm, 1e-10, None)
-        valid_p2_inv = np.isfinite(p2_inv_norm) & np.all(np.isfinite(p2_z_inverted), axis=1, keepdims=True)
+        valid_p2_inv = np.isfinite(p2_inv_norm) & np.all(
+            np.isfinite(p2_z_inverted), axis=1, keepdims=True
+        )
         p2_inv_norm = np.where(valid_p2_inv, p2_inv_norm, 1.0)
         u2 = p2_z_inverted / p2_inv_norm
         u2 = np.where(valid_p2_inv, u2, 0.0)
@@ -247,7 +255,7 @@ def c_han(top, tbar, lep_pos, lep_neg):
         result = np.sum(u1 * u2, axis=1)
         # Return 0 for invalid cases
         result = np.where(np.isfinite(result), result, 0.0)
-        
+
     return result
 
 
@@ -260,7 +268,7 @@ def c_hel(top, tbar, lep_pos, lep_neg):
     p1_norm = np.linalg.norm(p1, axis=1, keepdims=True)
     p1_norm = np.maximum(p1_norm, 1e-10)
     u1 = p1 / p1_norm
-    
+
     p2_norm = np.linalg.norm(p2, axis=1, keepdims=True)
     p2_norm = np.maximum(p2_norm, 1e-10)
     u2 = p2 / p2_norm

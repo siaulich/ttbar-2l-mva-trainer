@@ -188,14 +188,15 @@ class PredictionManager:
     def get_neutrino_predictions(self, index: int) -> np.ndarray:
         """Get neutrino predictions for a specific reconstructor."""
         return self.predictions[index]["regression"]
-    
+
     def get_assignment_truth(self) -> np.ndarray:
         """Get true assignment indices from y_test."""
         return self.y_test["assignment"]
-    
+
     def get_neutrino_truth(self) -> Optional[np.ndarray]:
         """Get true neutrino regression targets from y_test, if available."""
         return self.y_test.get("regression", None)
+
 
 class ReconstructionVariableHandler:
     """Handles configuration for reconstructed physics variables."""
@@ -603,7 +604,7 @@ class ReconstructionPlotter:
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
             ylims=(0, 1.1),
-            legend_loc="upper right"
+            legend_loc="upper right",
         )
 
         # Extract feature data
@@ -663,19 +664,18 @@ class ReconstructionPlotter:
             config,
         )
         return fig, ax
-    
+
     def plot_2d_binned_accuracy(
         self,
         feature1_binning_config: BinningVariableConfig,
         feature2_binning_config: BinningVariableConfig,
     ):
-        
         """Plot 2D binned accuracy vs. two features."""
         config = PlotConfig(
             confidence=0.95,
             n_bootstrap=10,
             show_errorbar=False,
-            legend_loc="upper right"
+            legend_loc="upper right",
         )
         feature1_data_type = feature1_binning_config.feature_type
         feature1_name = feature1_binning_config.feature_name
@@ -718,17 +718,23 @@ class ReconstructionPlotter:
                 )
 
         # Create bins
-        bin_edges_feature1,bin_edges_feature2  = Binning2DUtility.create_bins(
-            feature1_data, feature2_data, bins_feature1, bins_feature2, xlims_feature1, xlims_feature2
+        bin_edges_feature1, bin_edges_feature2 = Binning2DUtility.create_bins(
+            feature1_data,
+            feature2_data,
+            bins_feature1,
+            bins_feature2,
+            xlims_feature1,
+            xlims_feature2,
         )
-        binning_mask = Binning2DUtility.create_binning_mask(feature1_data, feature2_data, bin_edges_feature1, bin_edges_feature2)
+        binning_mask = Binning2DUtility.create_binning_mask(
+            feature1_data, feature2_data, bin_edges_feature1, bin_edges_feature2
+        )
 
         # Mask out bins with too few events
         min_events_per_bin = 10
         bin_counts = (binning_mask != 0).sum(axis=2)
         low_stat_mask = bin_counts < min_events_per_bin
         binning_mask[low_stat_mask, ...] = False
-
 
         # Get event weights
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
@@ -779,7 +785,7 @@ class ReconstructionPlotter:
             confidence=confidence,
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
-            legend_loc="upper right"
+            legend_loc="upper right",
         )
 
         feature_data = FeatureExtractor.extract_feature(
@@ -880,7 +886,7 @@ class ReconstructionPlotter:
             confidence=confidence,
             n_bootstrap=n_bootstrap,
             show_errorbar=True,
-            legend_loc="upper right"
+            legend_loc="upper right",
         )
 
         # Extract feature data
@@ -1153,7 +1159,6 @@ class ReconstructionPlotter:
             labels=["reco", "truth"],
             ax=ax,
             config=config,
-
         )
 
     def plot_deviations_distributions_all_reconstructors(
@@ -1948,7 +1953,9 @@ class ReconstructionPlotter:
                     event_weights=event_weights,
                     labels=names,
                     bins=bins,
-                    config = PlotConfig(xlims=xlims) if xlims is not None else PlotConfig(),
+                    config=(
+                        PlotConfig(xlims=xlims) if xlims is not None else PlotConfig()
+                    ),
                     ax=ax_i,
                 )
 
@@ -2175,7 +2182,6 @@ class ReconstructionPlotter:
             file_path = os.path.join(save_dir, file_name)
             fig.savefig(file_path)
         plt.close(fig)
-
 
     def plot_neutrino_deviation_evaluation(
         self, save_dir: Optional[str] = None, **kwargs

@@ -110,18 +110,24 @@ if __name__ == "__main__":
     output_dir = args.output_dir or "./evaluation_results"
     if ml_reconstructors and args.ml_metrics:
         ml_evaluator = evaluation.MLEvaluator(ml_reconstructors, X, y)
-        ml_metrics_output_dir = os.path.join(args.output_dir or "./evaluation_results", "ml_metrics")
+        ml_metrics_output_dir = os.path.join(
+            args.output_dir or "./evaluation_results", "ml_metrics"
+        )
         os.makedirs(ml_metrics_output_dir, exist_ok=True)
         fig, ax = ml_evaluator.plot_training_history()
         fig.savefig(os.path.join(ml_metrics_output_dir, "training_history.pdf"))
         print(f"Saved training history plot to {ml_metrics_output_dir}")
 
         fig, ax = ml_evaluator.plot_model_parameters_comparison()
-        fig.savefig(os.path.join(ml_metrics_output_dir, "model_parameters_comparison.pdf"))
+        fig.savefig(
+            os.path.join(ml_metrics_output_dir, "model_parameters_comparison.pdf")
+        )
         print(f"Saved model parameters comparison plot to {ml_metrics_output_dir}")
 
         fig, ax = ml_evaluator.plot_inference_time_comparison()
-        fig.savefig(os.path.join(ml_metrics_output_dir, "inference_time_comparison.pdf"))
+        fig.savefig(
+            os.path.join(ml_metrics_output_dir, "inference_time_comparison.pdf")
+        )
         print(f"Saved inference time comparison plot to {ml_metrics_output_dir}")
 
         del ml_evaluator
@@ -132,8 +138,6 @@ if __name__ == "__main__":
 
     evaluator = evaluation.ReconstructionPlotter(prediction_manager)
     os.makedirs(output_dir, exist_ok=True)
-
-
 
     deviation_directory = os.path.join(output_dir, "deviations")
     os.makedirs(deviation_directory, exist_ok=True)
@@ -148,9 +152,10 @@ if __name__ == "__main__":
     binned_performance_directory = os.path.join(output_dir, "binned_performance")
     os.makedirs(binned_performance_directory, exist_ok=True)
     if evaluation_config.binned_2d_binning_variables:
-        binned_2d_performance_directory = os.path.join(output_dir, "binned_2d_performance")
+        binned_2d_performance_directory = os.path.join(
+            output_dir, "binned_2d_performance"
+        )
         os.makedirs(binned_2d_performance_directory, exist_ok=True)
-
 
     for idx, (binning_cfgs) in enumerate(evaluation_config.binned_2d_binning_variables):
         if len(binning_cfgs) != 2:
@@ -160,7 +165,8 @@ if __name__ == "__main__":
             continue
         binning_cfg1, binning_cfg2 = binning_cfgs[0], binning_cfgs[1]
         binned_2d_variable_output_dir = os.path.join(
-            binned_2d_performance_directory, f"{binning_cfg1.feature_name}_vs_{binning_cfg2.feature_name}"
+            binned_2d_performance_directory,
+            f"{binning_cfg1.feature_name}_vs_{binning_cfg2.feature_name}",
         )
         os.makedirs(binned_2d_variable_output_dir, exist_ok=True)
         evaluator.plot_2d_binned_performance_evaluation(
@@ -172,8 +178,6 @@ if __name__ == "__main__":
             f"Saved binned 2D evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} to {binned_2d_variable_output_dir} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
         )
 
-
-
     evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
     print(f"Saved all accuracy evaluation plots to {accuracy_directory}")
     if not args.accuracy:
@@ -183,7 +187,9 @@ if __name__ == "__main__":
         print(f"Saved all distribution plots to {distributions_directory}")
         evaluator.plot_all_confusion_matrices(save_dir=confusion_matrix_directory)
         print(f"Saved all confusion matrix plots to {confusion_matrix_directory}")
-        evaluator.plot_neutrino_deviation_evaluation(save_dir=neutrino_deviation_directory)
+        evaluator.plot_neutrino_deviation_evaluation(
+            save_dir=neutrino_deviation_directory
+        )
         print(
             f"Saved all neutrino deviation evaluation plots to {neutrino_deviation_directory}"
         )
@@ -193,7 +199,9 @@ if __name__ == "__main__":
         )
         os.makedirs(binned_variable_output_dir, exist_ok=True)
         evaluator.plot_binned_performance_evaluation(
-            **binning_cfg.__dict__, save_dir=binned_variable_output_dir, accuracy_only=args.accuracy
+            **binning_cfg.__dict__,
+            save_dir=binned_variable_output_dir,
+            accuracy_only=args.accuracy,
         )
         print(
             f"Saved binned evaluation plots for {binning_cfg.feature_name} to {binned_variable_output_dir} [{idx + 1}/{len(evaluation_config.binning_variables)}]"

@@ -79,7 +79,7 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
             outputs=trainable_outputs,
             name=kwargs.get("name", "reco_trainable_model"),
         )
-    
+
     def add_reco_mass_deviation_loss(self):
         if self.model is None:
             raise ValueError(
@@ -118,8 +118,7 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
             y_train["assignment"] = X["assignment"]
             y_train["regression"] = X["regression"] if "regression" in y else None
         else:
-            y_train = y.copy()  if not copy_data else deepcopy(y)
-
+            y_train = y.copy() if not copy_data else deepcopy(y)
 
         if not self.perform_regression:
             y_train.pop("regression")
@@ -140,7 +139,9 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
                 y_train["normalized_regression"] = {}
                 for key in regression_data:
                     if regression_data[key] is not None:
-                        y_train["normalized_regression"][key] = regression_data[key] / regression_std
+                        y_train["normalized_regression"][key] = (
+                            regression_data[key] / regression_std
+                        )
                     else:
                         y_train["normalized_regression"][key] = None
             else:
@@ -175,13 +176,30 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
         )
 
     def generate_one_hot_encoding(self, predictions, exclusive):
-        prediction_product_matrix = predictions[..., 0][:,:,np.newaxis] + predictions[..., 1][:, np.newaxis, ...] # shape (batch_size, max_jets, max_jets)
+        prediction_product_matrix = (
+            predictions[..., 0][:, :, np.newaxis]
+            + predictions[..., 1][:, np.newaxis, ...]
+        )  # shape (batch_size, max_jets, max_jets)
         if exclusive:
-            prediction_product_matrix[:,np.arange(predictions.shape[1]),np.arange(predictions.shape[1])] = 0 # set diagonal to zero to enforce exclusivity
-        one_hot = np.zeros((predictions.shape[0], self.max_jets, self.NUM_LEPTONS), dtype=int)
-        idx = np.argmax(prediction_product_matrix.reshape(predictions.shape[0], -1), axis=1)
-        one_hot[np.arange(predictions.shape[0]), np.unravel_index(idx, prediction_product_matrix.shape[1:])[0], 0] = 1
-        one_hot[np.arange(predictions.shape[0]), np.unravel_index(idx, prediction_product_matrix.shape[1:])[1], 1] = 1
+            prediction_product_matrix[
+                :, np.arange(predictions.shape[1]), np.arange(predictions.shape[1])
+            ] = 0  # set diagonal to zero to enforce exclusivity
+        one_hot = np.zeros(
+            (predictions.shape[0], self.max_jets, self.NUM_LEPTONS), dtype=int
+        )
+        idx = np.argmax(
+            prediction_product_matrix.reshape(predictions.shape[0], -1), axis=1
+        )
+        one_hot[
+            np.arange(predictions.shape[0]),
+            np.unravel_index(idx, prediction_product_matrix.shape[1:])[0],
+            0,
+        ] = 1
+        one_hot[
+            np.arange(predictions.shape[0]),
+            np.unravel_index(idx, prediction_product_matrix.shape[1:])[1],
+            1,
+        ] = 1
 
         return one_hot
 

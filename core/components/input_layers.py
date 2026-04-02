@@ -114,7 +114,7 @@ class InputMetLayer(keras.layers.Layer):
     to (met_x, met_y).
     """
 
-    def __init__(self,log_variables=True, **kwargs):
+    def __init__(self, log_variables=True, **kwargs):
         super().__init__(**kwargs)
         self.log_variables = log_variables
 
@@ -151,11 +151,10 @@ class ProcessPtEtaPhiELayer(keras.layers.Layer):
         padding_value (float): The value to use for padding masked entries.
     """
 
-    def __init__(self, padding_value, log_variables = True, **kwargs):
+    def __init__(self, padding_value, log_variables=True, **kwargs):
         super().__init__(**kwargs)
         self.padding_value = padding_value
         self.log_variables = log_variables
-
 
     def call(self, inputs, mask=None):
         # Split input features
@@ -189,18 +188,17 @@ class ProcessPtEtaPhiELayer(keras.layers.Layer):
         safe_sin_phi = tf.sin(safe_phi)
 
         output_tensors = [
-                safe_log_pt,
-                safe_eta,
-                safe_cos_phi,
-                safe_sin_phi,
-                safe_log_energy,
-            ]
+            safe_log_pt,
+            safe_eta,
+            safe_cos_phi,
+            safe_sin_phi,
+            safe_log_energy,
+        ]
 
         if self.log_variables:
             output_tensors.extend([safe_energy, safe_pt])
 
         output_tensors.append(residual)
-
 
         # Concatenate outputs
         outputs = tf.concat(

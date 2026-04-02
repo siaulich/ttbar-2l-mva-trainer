@@ -3,6 +3,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import atlas_mpl_style as ampl
+
 ampl.use_atlas_style()
 from typing import Optional
 from copy import deepcopy
@@ -80,7 +81,12 @@ class FeatureImportanceCalculator:
         regression_importances = {}
 
         # Compute importance for each available feature type
-        available_feature_types = ["jet_inputs", "lep_inputs", "met_inputs", "global_event_inputs"]
+        available_feature_types = [
+            "jet_inputs",
+            "lep_inputs",
+            "met_inputs",
+            "global_event_inputs",
+        ]
 
         for feature_type in available_feature_types:
             # Check if this feature type is available in both config and test data
@@ -130,7 +136,9 @@ class FeatureImportanceCalculator:
 
                 if feature_type == "jet_inputs":
                     # Only permute non-padded jet features
-                    mask = np.any(X_permuted["jet_inputs"] != self.padding_value, axis=-1)
+                    mask = np.any(
+                        X_permuted["jet_inputs"] != self.padding_value, axis=-1
+                    )
                     X_permuted["jet_inputs"][mask, feature_idx] = np.random.permutation(
                         X_permuted["jet_inputs"][mask, feature_idx]
                     )
@@ -188,9 +196,12 @@ class MLEvaluator:
         self.reconstructors = (
             reconstructor if isinstance(reconstructor, list) else [reconstructor]
         )
-        self.X_test = X_test if isinstance(X_test, list) else [X_test] * len(self.reconstructors)
-        self.y_test = y_test if isinstance(y_test, list) else [y_test] * len(self.reconstructors)
-
+        self.X_test = (
+            X_test if isinstance(X_test, list) else [X_test] * len(self.reconstructors)
+        )
+        self.y_test = (
+            y_test if isinstance(y_test, list) else [y_test] * len(self.reconstructors)
+        )
 
         # Store configuration from first reconstructor (for backward compatibility)
         first_reconstructor = self.reconstructors[0].config
@@ -220,19 +231,26 @@ class MLEvaluator:
                     "Please train the model before plotting history."
                 )
 
-
         # Adjust subplot layout based on whether regression metrics exist
 
         color_map = plt.get_cmap("tab10")
 
         unique_metrics = set()
         for reconstructor in self.reconstructors:
-            unique_metrics.update([metric.replace("val_", "") for metric in reconstructor.history.history.keys() if metric.startswith("val_") ])
+            unique_metrics.update(
+                [
+                    metric.replace("val_", "")
+                    for metric in reconstructor.history.history.keys()
+                    if metric.startswith("val_")
+                ]
+            )
         unique_metrics = list(unique_metrics)
         num_metrics = len(unique_metrics)
         num_cols = int(np.ceil(np.sqrt(num_metrics)))
         num_rows = int(np.ceil(num_metrics / num_cols))
-        fig, axes = plt.subplots(num_rows, num_cols, figsize=(8 * num_cols, 6 * num_rows))
+        fig, axes = plt.subplots(
+            num_rows, num_cols, figsize=(8 * num_cols, 6 * num_rows)
+        )
         axes = axes.flatten()
         for idx, metric_name in enumerate(unique_metrics):
             ax = axes[idx]
@@ -250,7 +268,7 @@ class MLEvaluator:
                         history.history[metric_name],
                         label=f"{label_prefix} Training",
                         color=color,
-                        linestyle='-'
+                        linestyle="-",
                     )
                     if len(history.history[metric_name]) > max_epochs:
                         max_epochs = len(history.history[metric_name])
@@ -259,19 +277,24 @@ class MLEvaluator:
                         history.history[f"val_{metric_name}"],
                         label=f"{label_prefix} Validation",
                         color=color,
-                        linestyle='--'
+                        linestyle="--",
                     )
             ax.set_title(f"{metric_name.replace('_', ' ').title()}")
-            ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax, label="Simulation - Work in Progress", )
+            ampl.draw_atlas_label(
+                x=0.02,
+                y=0.92,
+                ax=ax,
+                label="Simulation - Work in Progress",
+            )
             ampl.set_xlabel(ax=ax, label="Training Epoch")
-            ampl.set_ylabel(ax=ax, label=metric_name.replace('_', ' ').title())
-            ax.set_xlim(-int(max_epochs/10), max_epochs + int(max_epochs/10))
+            ampl.set_ylabel(ax=ax, label=metric_name.replace("_", " ").title())
+            ax.set_xlim(-int(max_epochs / 10), max_epochs + int(max_epochs / 10))
             ax.legend()
             ax.grid(True, alpha=0.3)
         # Remove any unused subplots
         for j in range(idx + 1, len(axes)):
             fig.delaxes(axes[j])
-        
+
         return fig, ax
 
     @staticmethod
@@ -334,7 +357,12 @@ class MLEvaluator:
                 model_name = reconstructor.get_full_reco_name()
             # Get available features for this model
             available_features = []
-            for feature_type in ["jet_inputs", "lep_inputs", "met_inputs", "global_event_inputs"]:
+            for feature_type in [
+                "jet_inputs",
+                "lep_inputs",
+                "met_inputs",
+                "global_event_inputs",
+            ]:
                 if (
                     hasattr(reconstructor.config, "feature_indices")
                     and feature_type in reconstructor.config.feature_indices
@@ -367,13 +395,17 @@ class MLEvaluator:
 
                 fig, ax = plt.subplots(figsize=(6, 6))
                 ax.barh(features, scores, color="skyblue")
-                ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax1, label="Simulation - Work in Progress", )
+                ampl.draw_atlas_label(
+                    x=0.02,
+                    y=0.92,
+                    ax=ax1,
+                    label="Simulation - Work in Progress",
+                )
                 ampl.set_xlabel(ax=ax, label="Importance Score")
 
-                #ax.set_title(f"Feature Importance - {model_name}")
+                # ax.set_title(f"Feature Importance - {model_name}")
                 ax.invert_yaxis()
                 ax.grid(True, alpha=0.3, axis="x")
-                
 
                 if save_dir:
                     save_path = f"{save_dir}/{model_name}_feature_importance.pdf"
@@ -399,8 +431,13 @@ class MLEvaluator:
                 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
 
                 ax1.barh(features, scores, color="skyblue")
-                ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax1, label="Simulation - Work in Progress", )
-                ampl.set_xlabel(ax=ax1,label= "Importance Score")
+                ampl.draw_atlas_label(
+                    x=0.02,
+                    y=0.92,
+                    ax=ax1,
+                    label="Simulation - Work in Progress",
+                )
+                ampl.set_xlabel(ax=ax1, label="Importance Score")
                 ax1.set_title(f"Assignment Feature Importance - {model_name}")
                 ax1.invert_yaxis()
                 ax1.grid(True, alpha=0.3, axis="x")
@@ -417,13 +454,16 @@ class MLEvaluator:
                 scores = [item[1] for item in sorted_items]
 
                 ax2.barh(features, scores, color="salmon")
-                ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax1, label="Simulation - Work in Progress", )
+                ampl.draw_atlas_label(
+                    x=0.02,
+                    y=0.92,
+                    ax=ax1,
+                    label="Simulation - Work in Progress",
+                )
                 ampl.set_xlabel(ax=ax2, label="Importance Score")
                 ax2.set_title(f"Regression Feature Importance - {model_name}")
                 ax2.invert_yaxis()
                 ax2.grid(True, alpha=0.3, axis="x")
-
-                
 
                 if save_dir:
                     save_path = f"{save_dir}/{model_name}_feature_importance.pdf"
@@ -457,7 +497,11 @@ class MLEvaluator:
         if num_samples is None:
             # Use minimum dataset size to ensure all models can be tested equally
             min_samples = min(
-                len(X["jet_inputs"]) if "jet_inputs" in X else len(next(iter(X.values())))
+                (
+                    len(X["jet_inputs"])
+                    if "jet_inputs" in X
+                    else len(next(iter(X.values())))
+                )
                 for X in self.X_test
             )
             num_samples = min_samples
@@ -466,7 +510,9 @@ class MLEvaluator:
             # Verify all datasets have enough samples
             for idx, X in enumerate(self.X_test):
                 dataset_size = (
-                    len(X["jet_inputs"]) if "jet_inputs" in X else len(next(iter(X.values())))
+                    len(X["jet_inputs"])
+                    if "jet_inputs" in X
+                    else len(next(iter(X.values())))
                 )
                 if dataset_size < num_samples:
                     raise ValueError(
@@ -564,13 +610,11 @@ class MLEvaluator:
         ax2.grid(True, alpha=0.3, axis="y")
         ax2.tick_params(axis="x", rotation=45)
 
-        
-
         if save_path:
             fig.savefig(save_path, dpi=300)
             print(f"\nInference time comparison plot saved to {save_path}")
 
-        return fig,  ax2
+        return fig, ax2
 
     def evaluate_model_parameters(self) -> dict:
         """
@@ -627,7 +671,6 @@ class MLEvaluator:
         num_models = len(results)
         fig, ax = plt.subplots(1, 1, figsize=(num_models * 3, 6))
 
-
         model_names = list(results.keys())
         trainable_params = [
             results[name]["trainable_params"] / 1e6 for name in model_names
@@ -655,7 +698,12 @@ class MLEvaluator:
             color="lightcoral",
         )
 
-        ampl.draw_atlas_label(x=0.02,y=0.92, ax=ax, label="Simulation - Work in Progress", )
+        ampl.draw_atlas_label(
+            x=0.02,
+            y=0.92,
+            ax=ax,
+            label="Simulation - Work in Progress",
+        )
         ampl.set_ylabel(ax=ax, label="Number of Parameters (Millions)")
         ax.set_title("Model Parameters Comparison")
         ax.set_xticks(x)

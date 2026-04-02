@@ -46,7 +46,9 @@ class PreprocessorConfig:
 
     padding_value: float = -999.0  # Padding value for missing data
 
-    data_cuts: Dict[str, Tuple[float, float]] = None  # Optional cuts on features (min, max)
+    data_cuts: Dict[str, Tuple[float, float]] = (
+        None  # Optional cuts on features (min, max)
+    )
 
 
 @dataclass
@@ -108,7 +110,7 @@ class RootPreprocessor:
         self.processed_data = self._process_events(events)
 
         self.clean_event_data()
-    
+
         return self.processed_data
 
     def clean_event_data(self):
@@ -116,23 +118,30 @@ class RootPreprocessor:
         for key, array in self.processed_data.items():
             valid_mask &= ~np.any(np.isnan(array), axis=tuple(range(1, array.ndim)))
             valid_mask &= ~np.any(np.isinf(array), axis=tuple(range(1, array.ndim)))
-        
+
         if self.config.verbose:
             n_invalid = self.n_events_passed - np.sum(valid_mask)
             print(f"Events with invalid data (NaN/Inf): {n_invalid}")
-    
+
         if self.config.data_cuts is not None:
             for feature, (min_val, max_val) in self.config.data_cuts.items():
                 if feature in self.processed_data:
                     feature_array = self.processed_data[feature]
                     if min_val is not None:
-                        valid_mask &= np.all(feature_array >= min_val, axis=tuple(range(1, feature_array.ndim)))
+                        valid_mask &= np.all(
+                            feature_array >= min_val,
+                            axis=tuple(range(1, feature_array.ndim)),
+                        )
                     if max_val is not None:
-                        valid_mask &= np.all(feature_array <= max_val, axis=tuple(range(1, feature_array.ndim)))
+                        valid_mask &= np.all(
+                            feature_array <= max_val,
+                            axis=tuple(range(1, feature_array.ndim)),
+                        )
                 else:
                     if self.config.verbose:
-                        print(f"Warning: Feature '{feature}' specified in data_cuts not found in processed data.")
-
+                        print(
+                            f"Warning: Feature '{feature}' specified in data_cuts not found in processed data."
+                        )
 
         for key in self.processed_data.keys():
             self.processed_data[key] = self.processed_data[key][valid_mask]
@@ -289,8 +298,6 @@ class RootPreprocessor:
         # Compute reconstructed mllbb
         reco_mllbb = self._compute_reco_mllbb(leptons, jets)
         processed.update(reco_mllbb)
-
-
 
         # Extract truth information
         truth = self._extract_truth_info(events)
@@ -502,7 +509,7 @@ class RootPreprocessor:
 
         n_jets = ak.to_numpy(n_jets).astype(np.int32)
 
-        n_bjets = np.sum(jet_btag_np >= 2, axis = -1)
+        n_bjets = np.sum(jet_btag_np >= 2, axis=-1)
 
         return {
             "jet_pt": jet_pt_np,
@@ -686,7 +693,6 @@ class RootPreprocessor:
 
         total = b1_4 + b2_4 + l1_4 + l2_4
         return {"reco_mllbb": compute_mass_from_lorentz_vector_array(total)}
-        
 
     @staticmethod
     def _delta_r(eta1, phi1, eta2, phi2):
@@ -798,7 +804,6 @@ class RootPreprocessor:
             "truth_ttbar_pz": ttbar_pz,
             "truth_ttbar_e": ttbar_e,
             "truth_ttbar_p": ttbar_p,
-
             # Top quark
             "truth_top_mass": truth_top_mass,
             "truth_top_pt": truth_top_pt,

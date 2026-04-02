@@ -34,15 +34,17 @@ class ConfidenceLossOutputLayer(keras.layers.Layer):
     def call(self, assignment_probs, confidence_score):
         if len(confidence_score.shape) == 1:
             confidence_score = tf.expand_dims(confidence_score, axis=-1)
-        
+
         n_jets = tf.shape(assignment_probs)[1]
-        confidence_expanded = tf.tile(confidence_score[:, :, tf.newaxis], [1, n_jets, 1])
-        
+        confidence_expanded = tf.tile(
+            confidence_score[:, :, tf.newaxis], [1, n_jets, 1]
+        )
+
         output = tf.concat(
             [tf.stop_gradient(assignment_probs), confidence_expanded], axis=-1
         )
         return output
-    
+
     def get_config(self):
         config = super().get_config()
         return config

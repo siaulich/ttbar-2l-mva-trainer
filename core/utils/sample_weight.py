@@ -1,6 +1,7 @@
 import numpy as np
 
-def compute_sample_weights(X_train : dict, padding_value: float = -999) -> np.ndarray:
+
+def compute_sample_weights(X_train: dict, padding_value: float = -999) -> np.ndarray:
     """
     Compute sample weights based on the number of jets in each event.
     Events with more jets are given higher weights to balance the training.
@@ -24,13 +25,15 @@ def compute_sample_weights(X_train : dict, padding_value: float = -999) -> np.nd
 
     # Count valid jets per event (assuming padding value is -999)
     padding_value = -999
-    valid_jets = np.sum(np.any(jet_inputs != padding_value, axis=-1), axis=-1)  # (num_samples,)
+    valid_jets = np.sum(
+        np.any(jet_inputs != padding_value, axis=-1), axis=-1
+    )  # (num_samples,)
 
     num_jets = np.unique(valid_jets)
 
     for n in num_jets:
         mask = valid_jets == n
-        #event_weights[mask] *= (1.0 / np.sum(mask))  # Weight inversely proportional to count
+        # event_weights[mask] *= (1.0 / np.sum(mask))  # Weight inversely proportional to count
 
     # Normalize weights to have mean of 1
     event_weights /= np.mean(event_weights)

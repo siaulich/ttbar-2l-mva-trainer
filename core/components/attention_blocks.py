@@ -106,7 +106,15 @@ class MultiHeadAttentionBlock(layers.Layer):
             )
 
     def _call_pre_ln(
-        self, query, value, key, query_mask, value_mask, key_mask,attention_mask, training
+        self,
+        query,
+        value,
+        key,
+        query_mask,
+        value_mask,
+        key_mask,
+        attention_mask,
+        training,
     ):
         if key is None:
             key = value
@@ -151,7 +159,15 @@ class MultiHeadAttentionBlock(layers.Layer):
         return x + ffn_out
 
     def _call_post_ln(
-        self, query, value, key, query_mask, value_mask, key_mask,attention_mask, training
+        self,
+        query,
+        value,
+        key,
+        query_mask,
+        value_mask,
+        key_mask,
+        attention_mask,
+        training,
     ):
         if key is None:
             key = value
@@ -657,8 +673,8 @@ class JetLeptonAssignment(layers.Layer):
             probs: (B, N_l, N_j) assignment probabilities (softmax over jets)
         """
         # Project into latent space
-        queries = self.query_proj(leptons)   # (B, N_l, dim)
-        keys = self.key_proj(jets)           # (B, N_j, dim)
+        queries = self.query_proj(leptons)  # (B, N_l, dim)
+        keys = self.key_proj(jets)  # (B, N_j, dim)
 
         # Compute scaled dot product logits
         logits = tf.einsum("bld,bjd->bjl", queries, keys)  # (B, N_j, N_l)
@@ -676,11 +692,13 @@ class JetLeptonAssignment(layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "dim": self.dim,
-            "use_bias": self.use_bias,
-            "temperature": self._temperature_param,
-        })
+        config.update(
+            {
+                "dim": self.dim,
+                "use_bias": self.use_bias,
+                "temperature": self._temperature_param,
+            }
+        )
         return config
 
 
@@ -929,15 +947,15 @@ class PoolingAttentionBlock(layers.Layer):
 @keras.utils.register_keras_serializable()
 class InducedSetAttentionBlock(layers.Layer):
     def __init__(
-        self, 
-        key_dim, 
-        num_seeds, 
-        num_heads=4, 
-        dropout_rate=0.0, 
+        self,
+        key_dim,
+        num_seeds,
+        num_heads=4,
+        dropout_rate=0.0,
         ff_dim=None,
         regularizer=None,
         pre_ln=True,
-        **kwargs
+        **kwargs,
     ):
         super(InducedSetAttentionBlock, self).__init__(**kwargs)
         self.key_dim = key_dim
@@ -947,7 +965,7 @@ class InducedSetAttentionBlock(layers.Layer):
         self.ff_dim = ff_dim
         self.regularizer = regularizers.get(regularizer) if regularizer else None
         self.pre_ln = pre_ln
-        
+
         self.seed_vectors = self.add_weight(
             shape=(num_seeds, key_dim),
             initializer="glorot_uniform",
@@ -987,7 +1005,7 @@ class InducedSetAttentionBlock(layers.Layer):
 
         self.IMAB.build(seed_vectors_shape, value_shape)
         self.MAB.build(value_shape, seed_vectors_shape)
-        
+
         if isinstance(input_shape, list):
             input_shape = input_shape[0]
         self.input_spec = layers.InputSpec(shape=input_shape)

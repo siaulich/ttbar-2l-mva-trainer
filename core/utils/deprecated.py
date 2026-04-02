@@ -1,6 +1,7 @@
 import tensorflow as tf
 import keras
 
+
 @keras.utils.register_keras_serializable()
 class RegressionLoss(keras.losses.Loss):
     def __init__(
@@ -10,7 +11,9 @@ class RegressionLoss(keras.losses.Loss):
         name="regression_loss",
         **kwargs,
     ):
-        print("WARNING: RegressionLoss is deprecated and will be removed in future versions. Please use RegressionMSE or RegressionMAE instead.")
+        print(
+            "WARNING: RegressionLoss is deprecated and will be removed in future versions. Please use RegressionMSE or RegressionMAE instead."
+        )
         super().__init__(name=name, **kwargs)
         self.epsilon = float(epsilon)
         self.var_weights = (
@@ -54,5 +57,7 @@ class RegressionLoss(keras.losses.Loss):
         return config
 
     def from_config(cls, config):
-        print("WARNING: RegressionLoss is deprecated and will be removed in future versions. Please use RegressionMSE or RegressionMAE instead.")
+        print(
+            "WARNING: RegressionLoss is deprecated and will be removed in future versions. Please use RegressionMSE or RegressionMAE instead."
+        )
         return cls(**config)

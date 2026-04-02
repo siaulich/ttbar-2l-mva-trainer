@@ -11,13 +11,18 @@ class BaselineAssigner(EventReconstructorBase):
     def __init__(
         self,
         config: DataConfig,
-        name = "baseline_assigner",
+        name="baseline_assigner",
         mode="min",
         use_nu_flows=False,
-        manchester_style = False,
+        manchester_style=False,
     ):
         super().__init__(
-            config, assignment_name=name, full_reco_name= name + (r"+ $\nu^2$-Flows" if use_nu_flows else r" + True $\nu$"), perform_regression=False, use_nu_flows=use_nu_flows
+            config,
+            assignment_name=name,
+            full_reco_name=name
+            + (r"+ $\nu^2$-Flows" if use_nu_flows else r" + True $\nu$"),
+            perform_regression=False,
+            use_nu_flows=use_nu_flows,
         )
         """Initializes the BaselineAssigner class.
         Args:
@@ -81,7 +86,9 @@ class BaselineAssigner(EventReconstructorBase):
                     :, :, self.feature_index_dict["jet_inputs"][feature]
                 ]
             if "pt" in feature.lower():
-                jet_pt = data_dict["jet_inputs"][:, :, self.feature_index_dict["jet_inputs"][feature]]
+                jet_pt = data_dict["jet_inputs"][
+                    :, :, self.feature_index_dict["jet_inputs"][feature]
+                ]
 
         if jet_b_tag is not None:
             b_tag_mask = (jet_b_tag >= 2) & jet_mask[:, :, 0]
@@ -101,7 +108,9 @@ class BaselineAssigner(EventReconstructorBase):
                 )
             if self.manchester_style:
                 # For Manchester-style, if there are less than 2 b-tagged jets, keep all jets (including non-tagged) as viable
-                b_tag_mask[less_than_2_b_tag_jet_mask] = jet_mask[less_than_2_b_tag_jet_mask][:, :, 0]
+                b_tag_mask[less_than_2_b_tag_jet_mask] = jet_mask[
+                    less_than_2_b_tag_jet_mask
+                ][:, :, 0]
             else:
                 # For less than 2 b-tagged jets, fill up with leading non-tagged jets
                 iteration = 0
@@ -112,7 +121,10 @@ class BaselineAssigner(EventReconstructorBase):
                     leading_jet_pt_indices = np.argmax(jet_pt_masked, axis=1)
                     leading_jet_pt_indices = leading_jet_pt_indices[:, np.newaxis]
 
-                    update_mask = leading_jet_pt_indices[less_than_2_b_tag_jet_mask] == np.arange(self.max_jets)[np.newaxis, :]
+                    update_mask = (
+                        leading_jet_pt_indices[less_than_2_b_tag_jet_mask]
+                        == np.arange(self.max_jets)[np.newaxis, :]
+                    )
                     b_tag_mask[less_than_2_b_tag_jet_mask] |= update_mask
                     less_than_2_b_tag_jet_mask = np.sum(b_tag_mask, axis=1) < 2
 
@@ -157,18 +169,9 @@ class BaselineAssigner(EventReconstructorBase):
 
 
 class DeltaRAssigner(BaselineAssigner):
-    def __init__(
-        self,
-        name=None,
-        **kwargs
-    ):
+    def __init__(self, name=None, **kwargs):
         super().__init__(
-            name=(
-                name
-                if name is not None
-                else r"$\Delta R(\ell,j)$-Method"
-            ),
-            **kwargs
+            name=(name if name is not None else r"$\Delta R(\ell,j)$-Method"), **kwargs
         )
         """Initializes the DeltaRAssigner class.
         Args:
@@ -191,9 +194,13 @@ class DeltaRAssigner(BaselineAssigner):
         lepton_phi = None
         for feature in self.lepton_inputs:
             if "eta" in feature.lower():
-                lepton_eta = leptons[:, :, self.feature_index_dict["lep_inputs"][feature]]
+                lepton_eta = leptons[
+                    :, :, self.feature_index_dict["lep_inputs"][feature]
+                ]
             if "phi" in feature.lower():
-                lepton_phi = leptons[:, :, self.feature_index_dict["lep_inputs"][feature]]
+                lepton_phi = leptons[
+                    :, :, self.feature_index_dict["lep_inputs"][feature]
+                ]
         jet_eta = None
         jet_phi = None
         for feature in self.jet_inputs:
@@ -227,15 +234,7 @@ class ChiSquareAssigner(BaselineAssigner):
         top_mass=173.15e3,
         **kwargs
     ):
-        super().__init__(
-            config,
-            name=(
-                (
-                    r"$\chi^2$-Method"
-                )
-            ),
-            **kwargs
-        )
+        super().__init__(config, name=((r"$\chi^2$-Method")), **kwargs)
         """Initializes the ChiSquareAssigner class.
         Args:
             config (DataConfig): Configuration object containing data parameters.

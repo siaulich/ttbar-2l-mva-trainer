@@ -268,6 +268,7 @@ class BinningUtility:
 
         return result
 
+
 class Binning2DUtility:
     """Utilities for 2D binning of data."""
 
@@ -307,7 +308,7 @@ class Binning2DUtility:
         mask_x = BinningUtility.create_binning_mask(data_x, bins_x)
         mask_y = BinningUtility.create_binning_mask(data_y, bins_y)
         return mask_x[:, np.newaxis, :] & mask_y[np.newaxis, :, :]
-    
+
     @staticmethod
     def compute_weighted_binned_statistic(
         binning_mask: np.ndarray,
@@ -330,10 +331,12 @@ class Binning2DUtility:
         data_clean = np.where(valid_mask, data, 0)
 
         # Apply valid mask to binning
-        binning_mask_valid = binning_mask & valid_mask.reshape(1,1, -1)
+        binning_mask_valid = binning_mask & valid_mask.reshape(1, 1, -1)
 
         weighted_data = (
-            data_clean.reshape(1,1, -1) * weights.reshape(1,1, -1) * binning_mask_valid
+            data_clean.reshape(1, 1, -1)
+            * weights.reshape(1, 1, -1)
+            * binning_mask_valid
         )
         bin_weights = np.sum(weights.reshape(1, 1, -1) * binning_mask_valid, axis=2)
 
@@ -346,10 +349,11 @@ class Binning2DUtility:
                 where=bin_weights != 0,
             )
         else:
-            raise ValueError(f"Unsupported statistic for 2D binning: {statistic}. Only 'mean' is implemented.")
+            raise ValueError(
+                f"Unsupported statistic for 2D binning: {statistic}. Only 'mean' is implemented."
+            )
 
         return result
-
 
 
 class FeatureExtractor:

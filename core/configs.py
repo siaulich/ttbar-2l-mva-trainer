@@ -12,6 +12,7 @@ from typing import Optional, Dict, List, Tuple, Any
 import numpy as np
 import keras
 
+
 @dataclass
 class RecontructorConfig:
     type: str = "KerasFFRecoBase"
@@ -34,7 +35,9 @@ class EvaluationConfig:
     reconstructors: List[RecontructorConfig] = field(default_factory=list)
     evaluation_event_numbers: str = "odd"
     binning_variables: List[BinningVariableConfig] = field(default_factory=list)
-    binned_2d_binning_variables: List[List[BinningVariableConfig]] = field(default_factory=list)
+    binned_2d_binning_variables: List[List[BinningVariableConfig]] = field(
+        default_factory=list
+    )
 
 
 @dataclass
@@ -118,6 +121,7 @@ class LoadConfig:
             has_event_weight=self.event_weight is not None,
             has_event_number=self.mc_event_number is not None,
         )
+
 
 def load_yaml_config(yaml_path: str) -> dict:
     """

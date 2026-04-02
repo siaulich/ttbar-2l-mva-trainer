@@ -387,10 +387,14 @@ reconstruction_variable_configs = {
     },
     "delta_phi_ell_top_helicity": {
         "compute_func": lambda l, j, n: delta_phi_top_lepton_helicity(
-            l[:, 0, :4] + j[:, 0, :4] + n[:, 0, :],l[:, 1, :4] + j[:, 1, :4] + n[:, 1, :], l[:, 0, :4]
+            l[:, 0, :4] + j[:, 0, :4] + n[:, 0, :],
+            l[:, 1, :4] + j[:, 1, :4] + n[:, 1, :],
+            l[:, 0, :4],
         ),
         "extract_func": lambda X: delta_phi_top_lepton_helicity(
-            make_4vect(X["top_truth"][:, 0, :4]),make_4vect(X["top_truth"][:, 1, :4]), X["lepton_truth"][:, 0, :4]
+            make_4vect(X["top_truth"][:, 0, :4]),
+            make_4vect(X["top_truth"][:, 1, :4]),
+            X["lepton_truth"][:, 0, :4],
         ),
         "xlims": (-np.pi, np.pi),
         "label": r"$\Delta\phi(\ell_{hel}, t)$ [rad]",

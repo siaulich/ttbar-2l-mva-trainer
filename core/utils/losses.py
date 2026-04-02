@@ -42,6 +42,7 @@ class AssignmentLoss(keras.losses.Loss):
         cfg.update({"lambda_excl": self.lambda_excl, "epsilon": self.epsilon})
         return cfg
 
+
 @keras.utils.register_keras_serializable()
 class RegressionHuber(keras.losses.Loss):
     def __init__(self, delta=1.0, name="regression_huber_loss", **kwargs):
@@ -55,6 +56,7 @@ class RegressionHuber(keras.losses.Loss):
             sample_weight = tf.reshape(tf.cast(sample_weight, huber.dtype), [-1])
             huber = huber * sample_weight
         return huber
+
 
 @keras.utils.register_keras_serializable()
 class RegressionMSE(keras.losses.Loss):
@@ -102,7 +104,7 @@ class BinnedRegressionLoss(keras.losses.Loss):
         # y_pred: (batch, n_items, n_vars, n_bins) - probabilities
         n_bins = tf.shape(y_pred)[-1]
 
-        y_true = tf.one_hot(tf.cast(y_true,tf.int32), n_bins, dtype=tf.float32)
+        y_true = tf.one_hot(tf.cast(y_true, tf.int32), n_bins, dtype=tf.float32)
         y_pred = tf.cast(y_pred, tf.float32)
 
         # Cross entropy per item and var

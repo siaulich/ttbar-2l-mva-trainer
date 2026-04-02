@@ -163,7 +163,9 @@ class BinnedFeaturePlotter:
         num_cols = int(np.ceil(np.sqrt(num_reconstructors)))
         num_rows = int(np.ceil(num_reconstructors / num_cols))
         fig, axes = plt.subplots(
-            num_rows, num_cols, figsize=(config.figsize[0] * num_cols, config.figsize[1] * num_rows)
+            num_rows,
+            num_cols,
+            figsize=(config.figsize[0] * num_cols, config.figsize[1] * num_rows),
         )
         axes = axes.flatten() if num_reconstructors > 1 else [axes]
 
@@ -177,33 +179,34 @@ class BinnedFeaturePlotter:
         ):
             ax = axes[index]
             im = ax.imshow(
-            mean_val.T,
-            origin="lower",
-            cmap="viridis",
-            extent=[
-                bins_x[0],
-                bins_x[-1],
-                bins_y[0],
-                bins_y[-1],
-            ],
-            aspect="auto",
-            vmin=value_min,
-            vmax=value_max,
+                mean_val.T,
+                origin="lower",
+                cmap="viridis",
+                extent=[
+                    bins_x[0],
+                    bins_x[-1],
+                    bins_y[0],
+                    bins_y[-1],
+                ],
+                aspect="auto",
+                vmin=value_min,
+                vmax=value_max,
             )
             ampl.set_xlabel(feature_label_x, ax=ax)
             ampl.set_ylabel(feature_label_y, ax=ax)
             ax.set_title(name)
             ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+                x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
             )
-        
+
         # Add combined colorbar
         fig.colorbar(im, ax=axes, label=value_label, shrink=0.6)
-        
+
         # Remove unused subplots
         for j in range(index + 1, len(axes)):
             fig.delaxes(axes[j])
         return fig, axes[: index + 1]
+
 
 class ConfusionMatrixPlotter:
     """Handles plotting of confusion matrices."""
@@ -273,7 +276,7 @@ class ConfusionMatrixPlotter:
         # Remove unused subplots
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
-        #fig.suptitle("Confusion Matrix")
+        # fig.suptitle("Confusion Matrix")
 
         return fig, axes[: i + 1]
 
@@ -410,7 +413,7 @@ class ResolutionPlotter:
         title = f"{resolution_label} per Bin vs {feature_label}"
         if config.show_errorbar:
             title += f" ({config.confidence*100:.0f}% CI)"
-        #ax.set_title(title)
+        # ax.set_title(title)
 
         return fig, ax
 

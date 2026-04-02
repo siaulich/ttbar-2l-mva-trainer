@@ -118,4 +118,3 @@ class EventReconstructorBase(BaseUtilityModel, ABC):
             mse = self.evaluate_regression(data_dict, data_dict["regression"])
             results["regression_mse"] = mse
         return results
-

@@ -37,11 +37,14 @@ def neutrino_3_vect_to_4_vect_tensor(tensor: tf.Tensor):
 
 
 def reco_W_mass(neutrino_momenta, lepton_momenta):
-    
-    # Convert to 4-vectors
-    lepton_momenta_4v = pt_eta_phi_e_tensor_to_4_vect_tensor(lepton_momenta) # (batch_size, 2, 4)
-    neutrino_momenta_4v = neutrino_3_vect_to_4_vect_tensor(neutrino_momenta) # (batch_size, 2, 4)
 
+    # Convert to 4-vectors
+    lepton_momenta_4v = pt_eta_phi_e_tensor_to_4_vect_tensor(
+        lepton_momenta
+    )  # (batch_size, 2, 4)
+    neutrino_momenta_4v = neutrino_3_vect_to_4_vect_tensor(
+        neutrino_momenta
+    )  # (batch_size, 2, 4)
 
     # Sum momenta
     total_momenta = lepton_momenta_4v + neutrino_momenta_4v
@@ -49,16 +52,15 @@ def reco_W_mass(neutrino_momenta, lepton_momenta):
     total_energy = total_momenta[..., 3]
     total_momentum_squared = tf.reduce_sum(total_momenta[..., 0:3] ** 2, axis=-1)
     # Invariant mass with numerical stability
-    invariant_mass_squared = (total_energy**2 - total_momentum_squared )
+    invariant_mass_squared = total_energy**2 - total_momentum_squared
     # Ensure non-negative before sqrt
     invariant_mass_squared = tf.maximum(invariant_mass_squared, 0.0)
-    invariant_mass = tf.sqrt(invariant_mass_squared + 1e-6) /1e3  # Convert to GeV
+    invariant_mass = tf.sqrt(invariant_mass_squared + 1e-6) / 1e3  # Convert to GeV
 
     return invariant_mass
 
-def reco_W_mass_deviation(
-    neutrino_momenta, lepton_momenta
-):
+
+def reco_W_mass_deviation(neutrino_momenta, lepton_momenta):
     W_MASS = 80.379  # GeV
     invariant_mass = reco_W_mass(neutrino_momenta, lepton_momenta)
 
@@ -77,15 +79,14 @@ def reco_W_mass_deviation(
 
     return mass_loss
 
+
 @keras.utils.register_keras_serializable()
 class PhysicsInformedLoss(keras.layers.Layer):
     def __init__(self, name="reco_mass_deviation", **kwargs):
         super().__init__(name=name, **kwargs)
 
     def call(self, neutrino_momenta, lepton_momenta):
-        mass_loss = reco_W_mass_deviation(
-            neutrino_momenta, lepton_momenta
-        )
+        mass_loss = reco_W_mass_deviation(neutrino_momenta, lepton_momenta)
         return mass_loss
 
     def get_config(self):

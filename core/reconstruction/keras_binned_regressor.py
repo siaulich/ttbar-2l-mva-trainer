@@ -190,7 +190,7 @@ class KerasBinnedRegressor(EventReconstructorBase, KerasMLWrapper):
         regression_scale = np.percentile(np.abs(data["regression"]), 99.5, axis=0)
         print(f"Computed regression scale from data: {regression_scale}")
         unbinning_layer = UnbinRegressionOutput(
-            scale=2*regression_scale, name="regression"
+            scale=2 * regression_scale, name="regression"
         )
         outputs = self.model.output
         outputs["regression"] = unbinning_layer(
@@ -208,10 +208,18 @@ class KerasBinnedRegressor(EventReconstructorBase, KerasMLWrapper):
             data["regression"]
         )
         alpha = kwargs.get("alpha", 0.25)
-        class_weights = np.sum(one_hot_binned_regression, axis=0) / np.sum(one_hot_binned_regression)
-        class_weights = 1 / (class_weights + 1e-4)  # Invert to get higher weight for less frequent classes
+        class_weights = np.sum(one_hot_binned_regression, axis=0) / np.sum(
+            one_hot_binned_regression
+        )
+        class_weights = 1 / (
+            class_weights + 1e-4
+        )  # Invert to get higher weight for less frequent classes
         sample_weights = one_hot_binned_regression * class_weights[np.newaxis, :]
-        sample_weights = np.prod(sample_weights, axis=tuple(range(1,sample_weights.ndim)))
-        sample_weights = sample_weights / np.mean(sample_weights)  # Normalize to mean of 1
-        sample_weights = (sample_weights)**alpha  # Apply scaling factor
+        sample_weights = np.prod(
+            sample_weights, axis=tuple(range(1, sample_weights.ndim))
+        )
+        sample_weights = sample_weights / np.mean(
+            sample_weights
+        )  # Normalize to mean of 1
+        sample_weights = (sample_weights) ** alpha  # Apply scaling factor
         return sample_weights

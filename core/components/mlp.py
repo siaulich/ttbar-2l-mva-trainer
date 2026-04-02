@@ -141,7 +141,6 @@ class MLP(keras.layers.Layer):
         )
         return config
 
-
     @classmethod
     def from_config(cls, config):
         # Deserialize regularizers
@@ -150,7 +149,6 @@ class MLP(keras.layers.Layer):
         activity_reg = config.pop("activity_regularizer", None)
         config.pop("apply_final_norm", None)
         config.pop("apply_final_dropout", None)
-
 
         return cls(**config)
 
@@ -190,7 +188,7 @@ class EmbeddingMLP(keras.layers.Layer):
 
     def build(self, input_shape):
         self.ff_dense_1 = keras.layers.Dense(
-            2*self.output_dim,
+            2 * self.output_dim,
             activation="relu",
             name="ff_dense_1",
         )

@@ -143,40 +143,44 @@ class DataPreprocessor:
     # -------------------------------------------------------------------------
 
     def _load_feature_array(
-        self, 
-        loaded: Dict, 
-        feature_keys: List[str], 
+        self,
+        loaded: Dict,
+        feature_keys: List[str],
         target_shape: Optional[Tuple[int, ...]] = None,
-        max_objects: Optional[int] = None
+        max_objects: Optional[int] = None,
     ) -> np.ndarray:
         """Helper to load and transpose feature arrays from npz.
-        
+
         Args:
             loaded: Loaded npz file data
             feature_keys: List of keys to extract from npz
             target_shape: Shape to reshape into (if needed)
             max_objects: Maximum number of objects to keep (for jets/leptons)
-            
+
         Returns:
             Transposed and reshaped feature array
         """
         arrays = [loaded[key] for key in feature_keys]
-        result = np.array(arrays).transpose(1, 2, 0) if len(arrays[0].shape) > 1 else np.array(arrays).transpose(1, 0)
+        result = (
+            np.array(arrays).transpose(1, 2, 0)
+            if len(arrays[0].shape) > 1
+            else np.array(arrays).transpose(1, 0)
+        )
 
         if max_objects is not None and len(result.shape) > 2:
             result = result[:, :max_objects, :]
 
         if target_shape is not None:
             result = result.reshape(target_shape)
-            
+
         return result
 
     def _create_xy_dict(self, feature_data: Dict) -> Tuple[Dict, Dict]:
         """Helper to create X and y dictionaries from feature data.
-        
+
         Args:
             feature_data: Dictionary of feature arrays
-            
+
         Returns:
             X and y dictionaries
         """
@@ -189,7 +193,7 @@ class DataPreprocessor:
 
     def _apply_mask_to_features(self, mask: np.ndarray) -> None:
         """Apply a boolean mask to all feature data.
-        
+
         Args:
             mask: Boolean array to filter events
         """
@@ -221,16 +225,16 @@ class DataPreprocessor:
 
         # Load core features
         self._load_core_features(loaded_data)
-        
+
         # Load optional features
         self._load_optional_features(loaded_data)
-        
+
         # Load truth features
         self._load_truth_features(loaded_data)
 
         # Build labels and apply reconstruction mask
         self._build_and_apply_labels(loaded_data)
-        
+
         # Remove NaN events from NuFlows if present
         self._filter_nuflows_nans()
 
@@ -240,7 +244,9 @@ class DataPreprocessor:
         self.data_config = self.load_config.to_data_config()
         return self.data_config
 
-    def _get_event_filter_mask(self, loaded: Dict, event_numbers: Optional[str]) -> np.ndarray:
+    def _get_event_filter_mask(
+        self, loaded: Dict, event_numbers: Optional[str]
+    ) -> np.ndarray:
         """Get mask for filtering events by event number parity."""
         if event_numbers is not None and self.load_config.mc_event_number is not None:
             event_number_array = loaded[self.load_config.mc_event_number]
@@ -254,7 +260,9 @@ class DataPreprocessor:
                 raise ValueError("event_numbers must be 'even', 'odd', or None")
         return np.ones(len(loaded[list(loaded.files)[0]]), dtype=bool)
 
-    def _filter_loaded_data(self, loaded: Dict, mask: np.ndarray, max_events: Optional[int]) -> Dict:
+    def _filter_loaded_data(
+        self, loaded: Dict, mask: np.ndarray, max_events: Optional[int]
+    ) -> Dict:
         """Apply mask and max_events limit to loaded data."""
         if max_events is not None:
             result = {}
@@ -267,7 +275,9 @@ class DataPreprocessor:
         """Load core jet and lepton features."""
         if self.load_config.jet_inputs:
             self.feature_data["jet_inputs"] = self._load_feature_array(
-                loaded, self.load_config.jet_inputs, max_objects=self.load_config.max_jets
+                loaded,
+                self.load_config.jet_inputs,
+                max_objects=self.load_config.max_jets,
             )
 
         if self.load_config.lepton_inputs:
@@ -281,7 +291,9 @@ class DataPreprocessor:
             global_event_data = self._load_feature_array(
                 loaded, self.load_config.global_event_inputs
             )
-            self.feature_data["global_event_inputs"] = global_event_data[:, np.newaxis, :]
+            self.feature_data["global_event_inputs"] = global_event_data[
+                :, np.newaxis, :
+            ]
 
         if self.load_config.met_inputs:
             met_data = self._load_feature_array(loaded, self.load_config.met_inputs)
@@ -301,10 +313,14 @@ class DataPreprocessor:
     def _load_truth_features(self, loaded: Dict) -> None:
         """Load truth features for neutrinos, tops, and leptons."""
         # Neutrino momentum truth
-        if (self.load_config.neutrino_momentum_features and 
-            self.load_config.antineutrino_momentum_features):
-            combined_keys = (self.load_config.neutrino_momentum_features + 
-                           self.load_config.antineutrino_momentum_features)
+        if (
+            self.load_config.neutrino_momentum_features
+            and self.load_config.antineutrino_momentum_features
+        ):
+            combined_keys = (
+                self.load_config.neutrino_momentum_features
+                + self.load_config.antineutrino_momentum_features
+            )
             data_length = len(loaded[combined_keys[0]])
             target_shape = (data_length, self.load_config.NUM_LEPTONS, -1)
             self.feature_data["regression"] = self._load_feature_array(
@@ -312,10 +328,14 @@ class DataPreprocessor:
             )
 
         # NuFlows neutrino truth
-        if (self.load_config.nu_flows_neutrino_momentum_features and 
-            self.load_config.nu_flows_antineutrino_momentum_features):
-            combined_keys = (self.load_config.nu_flows_neutrino_momentum_features + 
-                           self.load_config.nu_flows_antineutrino_momentum_features)
+        if (
+            self.load_config.nu_flows_neutrino_momentum_features
+            and self.load_config.nu_flows_antineutrino_momentum_features
+        ):
+            combined_keys = (
+                self.load_config.nu_flows_neutrino_momentum_features
+                + self.load_config.nu_flows_antineutrino_momentum_features
+            )
             data_length = len(loaded[combined_keys[0]])
             target_shape = (data_length, self.load_config.NUM_LEPTONS, -1)
             self.feature_data["nu_flows_neutrino_truth"] = self._load_feature_array(
@@ -324,7 +344,10 @@ class DataPreprocessor:
 
         # Top truth
         if self.load_config.top_truth_features and self.load_config.tbar_truth_features:
-            combined_keys = self.load_config.top_truth_features + self.load_config.tbar_truth_features
+            combined_keys = (
+                self.load_config.top_truth_features
+                + self.load_config.tbar_truth_features
+            )
             data_length = len(loaded[combined_keys[0]])
             target_shape = (data_length, self.load_config.NUM_LEPTONS, -1)
             self.feature_data["top_truth"] = self._load_feature_array(
@@ -332,10 +355,14 @@ class DataPreprocessor:
             )
 
         # Lepton truth
-        if (self.load_config.top_lepton_truth_features and 
-            self.load_config.tbar_lepton_truth_features):
-            combined_keys = (self.load_config.top_lepton_truth_features + 
-                           self.load_config.tbar_lepton_truth_features)
+        if (
+            self.load_config.top_lepton_truth_features
+            and self.load_config.tbar_lepton_truth_features
+        ):
+            combined_keys = (
+                self.load_config.top_lepton_truth_features
+                + self.load_config.tbar_lepton_truth_features
+            )
             data_length = len(loaded[combined_keys[0]])
             target_shape = (data_length, self.load_config.NUM_LEPTONS, -1)
             self.feature_data["lepton_truth"] = self._load_feature_array(
@@ -453,7 +480,12 @@ class DataPreprocessor:
         # Get feature index from DataConfig
         feature_idx = self.data_config.get_feature_index(data_type, feature_name)
 
-        if data_type in ["jet_inputs", "lep_inputs", "met_inputs", "global_event_inputs"]:
+        if data_type in [
+            "jet_inputs",
+            "lep_inputs",
+            "met_inputs",
+            "global_event_inputs",
+        ]:
             return self.feature_data[data_type][:, :, feature_idx].copy()
         elif data_type in ["non_training", "custom"]:
             return self.feature_data[data_type][:, feature_idx].copy()
@@ -548,12 +580,12 @@ class DataPreprocessor:
                 X_train[key], X_test[key] = train_test_split(
                     data, test_size=test_size, random_state=random_state
                 )
-        
+
         _, y_train = self._create_xy_dict(X_train)
         _, y_test = self._create_xy_dict(X_test)
 
         return X_train, y_train, X_test, y_test
-    
+
     def get_num_events(self) -> int:
         """Get the number of events in the loaded dataset."""
         if self.data_length is None:
@@ -620,7 +652,7 @@ class DataPreprocessor:
                 X_test = {
                     k: self.feature_data[k][test_indices] for k in self.feature_data
                 }
-                
+
                 _, y_train = self._create_xy_dict(X_train)
                 _, y_test = self._create_xy_dict(X_test)
 
@@ -630,7 +662,12 @@ class DataPreprocessor:
 
     def split_even_odd(
         self,
-    ) -> Tuple[Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray], Dict[str, np.ndarray]]:
+    ) -> Tuple[
+        Dict[str, np.ndarray],
+        Dict[str, np.ndarray],
+        Dict[str, np.ndarray],
+        Dict[str, np.ndarray],
+    ]:
         """
         Split data into even and odd event number sets.
 
@@ -649,7 +686,7 @@ class DataPreprocessor:
 
         X_even = {k: v[even_mask] for k, v in self.feature_data.items()}
         X_odd = {k: v[odd_mask] for k, v in self.feature_data.items()}
-        
+
         _, y_even = self._create_xy_dict(X_even)
         _, y_odd = self._create_xy_dict(X_odd)
 

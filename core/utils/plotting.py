@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-def scale_axis_tick_labels(ax, scale=1e-3, axis='x', tick_format="{:.0f}"):
+def scale_axis_tick_labels(ax, scale=1e-3, axis="x", tick_format="{:.0f}"):
     """
     Scales the tick labels of a specified axis (x or y) by a given factor and formats them.
 
@@ -15,7 +15,7 @@ def scale_axis_tick_labels(ax, scale=1e-3, axis='x', tick_format="{:.0f}"):
     Returns:
     None
     """
-    if axis == 'x':
+    if axis == "x":
         ticks = ax.get_xticks()
         xlims = ax.get_xlim()
         scaled_ticks = ticks * scale
@@ -23,7 +23,7 @@ def scale_axis_tick_labels(ax, scale=1e-3, axis='x', tick_format="{:.0f}"):
         ax.set_xticks(ticks)
         ax.set_xticklabels(formatted_labels)
         ax.set_xlim(xlims)  # Ensure limits remain unchanged after scaling
-    elif axis == 'y':
+    elif axis == "y":
         ticks = ax.get_yticks()
         ylims = ax.get_ylim()
         scaled_ticks = ticks * scale
@@ -33,8 +33,9 @@ def scale_axis_tick_labels(ax, scale=1e-3, axis='x', tick_format="{:.0f}"):
         ax.set_ylim(ylims)  # Ensure limits remain unchanged after scaling
     else:
         raise ValueError("Axis must be 'x' or 'y'.")
-    
-def center_axis_ticks(ax, axis='x'):
+
+
+def center_axis_ticks(ax, axis="x"):
     """
     Centers the tick labels of a specified axis (x or y) around zero.
 
@@ -45,14 +46,14 @@ def center_axis_ticks(ax, axis='x'):
     Returns:
     None
     """
-    if axis == 'x':
+    if axis == "x":
         ticks = ax.get_xticks()
         xlims = ax.get_xlim()
         centered_ticks = ticks + (ticks[1] - ticks[0]) / 2
         ax.set_xticks(centered_ticks)
         ax.set_xticklabels([f"{tick:.0f}" for tick in ticks])
         ax.set_xlim(xlims)  # Ensure limits remain unchanged after centering
-    elif axis == 'y':
+    elif axis == "y":
         ticks = ax.get_yticks()
         ylims = ax.get_ylim()
         centered_ticks = ticks + (ticks[1] - ticks[0]) / 2

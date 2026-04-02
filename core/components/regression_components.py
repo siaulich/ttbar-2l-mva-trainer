@@ -157,9 +157,11 @@ class UnbinRegressionOutput(keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({
-            "scale": self.scale.tolist(),  # JSON-safe
-        })
+        config.update(
+            {
+                "scale": self.scale.tolist(),  # JSON-safe
+            }
+        )
         return config
 
     @classmethod
