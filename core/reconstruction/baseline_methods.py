@@ -30,8 +30,8 @@ class BaselineAssigner(EventReconstructorBase):
         self.NUM_LEPTONS = config.NUM_LEPTONS
         self.max_jets = config.max_jets
         self.padding_value = config.padding_value
-        self.lepton_features = config.lepton_features
-        self.jet_features = config.jet_features
+        self.lepton_inputs = config.lepton_inputs
+        self.jet_inputs = config.jet_inputs
         self.feature_index_dict = config.feature_indices
         self.b_tag_threshold = 2
         self.manchester_style = manchester_style
@@ -189,14 +189,14 @@ class DeltaRAssigner(BaselineAssigner):
         jets = data_dict["jet_inputs"]
         lepton_eta = None
         lepton_phi = None
-        for feature in self.lepton_features:
+        for feature in self.lepton_inputs:
             if "eta" in feature.lower():
                 lepton_eta = leptons[:, :, self.feature_index_dict["lep_inputs"][feature]]
             if "phi" in feature.lower():
                 lepton_phi = leptons[:, :, self.feature_index_dict["lep_inputs"][feature]]
         jet_eta = None
         jet_phi = None
-        for feature in self.jet_features:
+        for feature in self.jet_inputs:
             if "eta" in feature.lower():
                 jet_eta = jets[:, :, self.feature_index_dict["jet_inputs"][feature]]
             if "phi" in feature.lower():

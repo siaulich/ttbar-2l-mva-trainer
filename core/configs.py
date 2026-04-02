@@ -54,8 +54,8 @@ class LoadConfig:
     data_path: Dict[str, str]
 
     # Feature specifications
-    jet_features: List[str]
-    lepton_features: List[str]
+    jet_inputs: List[str]
+    lepton_inputs: List[str]
     jet_truth_label: str
     lepton_truth_label: str
 
@@ -70,7 +70,7 @@ class LoadConfig:
     max_jets: int = 4
 
     # Optional features
-    met_features: Optional[List[str]] = None
+    met_inputs: Optional[List[str]] = None
     global_event_inputs: Optional[List[str]] = None
     non_training_features: Optional[List[str]] = None
 
@@ -93,9 +93,9 @@ class LoadConfig:
             DataConfig describing the structure of loaded data
         """
         return DataConfig(
-            jet_features=self.jet_features,
-            lepton_features=self.lepton_features,
-            met_features=self.met_features,
+            jet_inputs=self.jet_inputs,
+            lepton_inputs=self.lepton_inputs,
+            met_inputs=self.met_inputs,
             non_training_features=self.non_training_features,
             max_jets=self.max_jets,
             NUM_LEPTONS=self.NUM_LEPTONS,
@@ -166,9 +166,9 @@ class DataConfig:
     truth labels, or cuts - those are in LoadConfig.
 
     Attributes:
-        jet_features: Names of jet features
-        lepton_features: Names of lepton features
-        met_features: Names of MET features (optional)
+        jet_inputs: Names of jet features
+        lepton_inputs: Names of lepton features
+        met_inputs: Names of MET features (optional)
         non_training_features: Names of features not used in training (optional)
         max_jets: Maximum number of jets per event
         NUM_LEPTONS: Maximum number of leptons per event
@@ -182,9 +182,9 @@ class DataConfig:
     """
 
     # Feature names
-    jet_features: List[str]
-    lepton_features: List[str]
-    met_features: Optional[List[str]] = None
+    jet_inputs: List[str]
+    lepton_inputs: List[str]
+    met_inputs: Optional[List[str]] = None
     global_event_inputs: Optional[List[str]] = None
     has_global_event_inputs: bool = False
 
@@ -242,9 +242,9 @@ class DataConfig:
         self.feature_indices = {}
 
         # Core features (always present)
-        self._add_feature_indices("lep_inputs", self.lepton_features)
-        self._add_feature_indices("jet_inputs", self.jet_features)
-        self._add_feature_indices("met_inputs", self.met_features)
+        self._add_feature_indices("lep_inputs", self.lepton_inputs)
+        self._add_feature_indices("jet_inputs", self.jet_inputs)
+        self._add_feature_indices("met_inputs", self.met_inputs)
 
         # Optional features
         self._add_feature_indices("non_training", self.non_training_features)
@@ -282,9 +282,9 @@ class DataConfig:
         # Define shape configurations: (key, condition, feature_list, shape_dims)
         shape_configs = [
             # Core object features (n_events, n_objects, n_features)
-            ("lep_inputs", True, self.lepton_features, (None, self.NUM_LEPTONS)),
-            ("jet_inputs", True, self.jet_features, (None, self.max_jets)),
-            ("met_inputs", self.met_features, self.met_features, (None, 1)),
+            ("lep_inputs", True, self.lepton_inputs, (None, self.NUM_LEPTONS)),
+            ("jet_inputs", True, self.jet_inputs, (None, self.max_jets)),
+            ("met_inputs", self.met_inputs, self.met_inputs, (None, 1)),
             # Event-level features (n_events, n_features)
             (
                 "non_training",

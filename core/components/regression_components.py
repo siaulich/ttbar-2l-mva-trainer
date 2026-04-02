@@ -52,12 +52,12 @@ class ConcatLeptonCharge(keras.layers.Layer):
         Returns:
             tf.Tensor: Tensor of shape (batch_size, max_leptons, feature_dim + 1) with charge concatenated.
         """
-        lepton_features = input[:, :, :-1]
+        lepton_inputs = input[:, :, :-1]
         # Create charge indicators: 1 for first lepton, -1 for second lepton
-        charge_indicators = tf.constant([[1.0], [-1.0]], dtype=lepton_features.dtype)
+        charge_indicators = tf.constant([[1.0], [-1.0]], dtype=lepton_inputs.dtype)
         charge_indicators = tf.reshape(charge_indicators, [1, 2, 1])
         charge_indicators = tf.tile(charge_indicators, [tf.shape(input)[0], 1, 1])
-        concatenated = tf.concat([lepton_features, charge_indicators], axis=-1)
+        concatenated = tf.concat([lepton_inputs, charge_indicators], axis=-1)
         return concatenated
 
 

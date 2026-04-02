@@ -153,7 +153,7 @@ class DataPlotter:
         feature_data = self.data_processor.get_all_feature_data(feature_type)
         return feature_data[self.event_cuts]
 
-    def plot_relational_jet_lepton_features(
+    def plot_relational_jet_lepton_inputs(
         self, feature_function, name="relational_feature", **kwargs
     ):
         """
@@ -162,21 +162,21 @@ class DataPlotter:
             feature_function (function): A function that takes jet and lepton feature arrays and computes a relational feature.
         """
         region_tag = kwargs.pop("region_tag", None)
-        jet_features = self.get_all_feature_data("jet_inputs")
-        lepton_features = self.get_all_feature_data("lep_inputs")
+        jet_inputs = self.get_all_feature_data("jet_inputs")
+        lepton_inputs = self.get_all_feature_data("lep_inputs")
         labels = self.get_all_feature_data("assignment")
 
         lepton_extended = np.repeat(
-            lepton_features[:, np.newaxis, :, :], self.max_jets, axis=1
+            lepton_inputs[:, np.newaxis, :, :], self.max_jets, axis=1
         )
         jet_extended = np.repeat(
-            jet_features[:, :, np.newaxis, :], self.NUM_LEPTONS, axis=2
+            jet_inputs[:, :, np.newaxis, :], self.NUM_LEPTONS, axis=2
         )
         relational_feature = feature_function(
             jet_extended.transpose(-1, 1, 2, 0), lepton_extended.transpose(-1, 1, 2, 0)
         ).transpose(2, 0, 1)
 
-        jet_mask = (jet_features[:, :, :] != self.padding_value).any(
+        jet_mask = (jet_inputs[:, :, :] != self.padding_value).any(
             axis=-1, keepdims=True
         )
         matched_relational_features = relational_feature[

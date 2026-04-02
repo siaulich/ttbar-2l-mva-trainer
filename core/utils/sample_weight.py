@@ -12,19 +12,19 @@ def compute_sample_weights(X_train : dict, padding_value: float = -999) -> np.nd
         sample_weights (np.ndarray): Array of sample weights with shape (num_samples,).
     """
     event_weights = np.ones(X_train[list(X_train.keys())[0]].shape[0])
-    jet_features = None
+    jet_inputs = None
     for key in X_train.keys():
         if "event_weight" in key:
             event_weights = X_train[key].flatten()
         if "jet_inputs" in key:
-            jet_features = X_train[key]
+            jet_inputs = X_train[key]
             break
-    if jet_features is None:
+    if jet_inputs is None:
         raise ValueError("Jet data not found in X_train.")
 
     # Count valid jets per event (assuming padding value is -999)
     padding_value = -999
-    valid_jets = np.sum(np.any(jet_features != padding_value, axis=-1), axis=-1)  # (num_samples,)
+    valid_jets = np.sum(np.any(jet_inputs != padding_value, axis=-1), axis=-1)  # (num_samples,)
 
     num_jets = np.unique(valid_jets)
 

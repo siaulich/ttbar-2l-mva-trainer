@@ -64,10 +64,10 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         self.history = None
         self.NUM_LEPTONS = config.NUM_LEPTONS
         self.max_jets = config.max_jets
-        self.met_features = config.met_features
-        self.n_jets: int = len(config.jet_features)
-        self.n_leptons: int = len(config.lepton_features)
-        self.n_met: int = len(config.met_features) if config.met_features else 0
+        self.met_inputs = config.met_inputs
+        self.n_jets: int = len(config.jet_inputs)
+        self.n_leptons: int = len(config.lepton_inputs)
+        self.n_met: int = len(config.met_inputs) if config.met_inputs else 0
         self.n_global: int = (
             len(config.global_event_inputs) if config.has_global_event_inputs else 0
         )

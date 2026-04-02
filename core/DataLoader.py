@@ -265,14 +265,14 @@ class DataPreprocessor:
 
     def _load_core_features(self, loaded: Dict) -> None:
         """Load core jet and lepton features."""
-        if self.load_config.jet_features:
+        if self.load_config.jet_inputs:
             self.feature_data["jet_inputs"] = self._load_feature_array(
-                loaded, self.load_config.jet_features, max_objects=self.load_config.max_jets
+                loaded, self.load_config.jet_inputs, max_objects=self.load_config.max_jets
             )
 
-        if self.load_config.lepton_features:
+        if self.load_config.lepton_inputs:
             self.feature_data["lep_inputs"] = self._load_feature_array(
-                loaded, self.load_config.lepton_features
+                loaded, self.load_config.lepton_inputs
             )
 
     def _load_optional_features(self, loaded: Dict) -> None:
@@ -283,8 +283,8 @@ class DataPreprocessor:
             )
             self.feature_data["global_event_inputs"] = global_event_data[:, np.newaxis, :]
 
-        if self.load_config.met_features:
-            met_data = self._load_feature_array(loaded, self.load_config.met_features)
+        if self.load_config.met_inputs:
+            met_data = self._load_feature_array(loaded, self.load_config.met_inputs)
             self.feature_data["met_inputs"] = met_data[:, np.newaxis, :]
 
         if self.load_config.non_training_features:

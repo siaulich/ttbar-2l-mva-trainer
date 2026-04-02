@@ -192,10 +192,10 @@ def _prep_leptons(top, tbar, lep_pos, lep_neg):
 
     return lep_pos_2[:, :3], lep_neg_2[:, :3]
 
-def select_jets(jet_features, assignment_pred):
+def select_jets(jet_inputs, assignment_pred):
     selected_jet_indices = assignment_pred.argmax(axis=-2)
     reco_jets = np.take_along_axis(
-        jet_features,
+        jet_inputs,
         selected_jet_indices[:, :, np.newaxis],
         axis=1,
     )
