@@ -10,7 +10,7 @@
 # Ignore directories for outputs, logs, and temporary files
 **logs/
 **plots/
-**models/
+**/models/
 **config/
 **.vscode/
 **__pycache__/

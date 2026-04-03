@@ -120,6 +120,32 @@ class BinnedRegressionLoss(keras.losses.Loss):
         return ce
 
 
+class GaussianLoss(keras.losses.Loss):
+    def __init__(self, name="gaussian_loss", **kwargs):
+        super().__init__(name=name, **kwargs)
+
+    def call(self, y_true, y_pred, sample_weight=None):
+        # y_true: (batch, n_items, n_vars*2) - [mean1,var1, mean2,var2,...]
+        # y_pred: (batch, n_items, n_vars) - [mean1,var1, mean2,var2,...]
+        n_vars = tf.shape(y_true)[-1] // 2
+
+        mean_true = y_true[:, :, :n_vars]
+        var_true = y_true[:, :, n_vars:]
+
+        mean_pred = y_pred[:, :, :n_vars]
+        var_pred = y_pred[:, :, n_vars:]
+
+        # Gaussian NLL per item and var
+        nll = 0.5 * tf.math.log(var_pred + 1e-7) + 0.5 * tf.square(
+            mean_true - mean_pred
+        ) / (var_pred + 1e-7)
+
+        nll = tf.reduce_mean(nll, axis=[1, 2])  # mean over items and vars -> (batch,)
+        if sample_weight is not None:
+            nll = nll * sample_weight
+        return nll
+
+
 @keras.utils.register_keras_serializable()
 class PtEtaPhiLoss(keras.losses.Loss):
 
