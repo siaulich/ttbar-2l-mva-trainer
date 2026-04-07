@@ -135,9 +135,9 @@ class CrossAttentionAssigner(KerasFFRecoBase):
             )(jets_attent_leptons, mask=jet_mask)
 
         # Output layers
-        jet_assignment_probs = components.JetLeptonAssignment(name="assignment", dim=hidden_dim)(
-            jets_attent_leptons, leptons_attent_jets, jet_mask=jet_mask
-        )
+        jet_assignment_probs = components.JetLeptonAssignment(
+            name="assignment", dim=hidden_dim
+        )(jets_attent_leptons, leptons_attent_jets, jet_mask=jet_mask)
 
         self._build_model_base(jet_assignment_probs, name="CrossAttentionModel")
 
@@ -248,9 +248,9 @@ class FeatureConcatAssigner(KerasFFRecoBase):
         confidence_score = None
         # Confidence score output (optional)
         if predict_confidence:
-            confidence_extraction = components.StopGradientLayer(name="confidence_extraction")(
-                jets_transformed
-            )
+            confidence_extraction = components.StopGradientLayer(
+                name="confidence_extraction"
+            )(jets_transformed)
             pooling = components.PoolingAttentionBlock(
                 num_heads=num_heads,
                 num_seeds=1,
@@ -305,7 +305,9 @@ class TransformerAssigner(KerasFFRecoBase):
             keras.Model: The constructed Keras model.
         """
         normed_inputs, masks = self._prepare_inputs(
-            use_global_event_inputs=False, compute_HLF=compute_HLF, log_variables=log_variables
+            use_global_event_inputs=False,
+            compute_HLF=compute_HLF,
+            log_variables=log_variables,
         )
         normed_jet_inputs = normed_inputs["jet_inputs"]
         normed_lep_inputs = normed_inputs["lepton_inputs"]
@@ -376,7 +378,9 @@ class TransformerAssigner(KerasFFRecoBase):
             num_layers=2,
         )(lepton_outputs)
 
-        assignment_logits = components.JetLeptonAssignment(dim=hidden_dim, name="assignment")(
+        assignment_logits = components.JetLeptonAssignment(
+            dim=hidden_dim, name="assignment"
+        )(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
@@ -385,6 +389,7 @@ class TransformerAssigner(KerasFFRecoBase):
         self._build_model_base(
             assignment_logits,
         )
+
 
 class CompactAssigner(KerasFFRecoBase):
     def __init__(self, config: DataConfig, name="CrossAttentionModel"):
@@ -402,7 +407,7 @@ class CompactAssigner(KerasFFRecoBase):
         use_global_event_inputs=True,
     ):
         """
-            Builds a more compact version of the Assignment Transformer model with fewer parameters.
+        Builds a more compact version of the Assignment Transformer model with fewer parameters.
         """
         # Input layers
         normed_inputs, masks = self._prepare_inputs(
@@ -417,7 +422,9 @@ class CompactAssigner(KerasFFRecoBase):
         normed_global_event_inputs = normed_inputs["global_event_inputs"]
         jet_mask = masks["jet_mask"]
 
-        normed_global_inputs = keras.layers.Concatenate(axis=-1)([normed_met_inputs, normed_global_event_inputs])
+        normed_global_inputs = keras.layers.Concatenate(axis=-1)(
+            [normed_met_inputs, normed_global_event_inputs]
+        )
 
         # Embed jets, leptons, and global event features
         jet_embedding = components.EmbeddingMLP(
@@ -425,7 +432,7 @@ class CompactAssigner(KerasFFRecoBase):
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(normed_jet_inputs)
-    
+
         lep_embedding = components.EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
@@ -439,7 +446,9 @@ class CompactAssigner(KerasFFRecoBase):
         )(normed_global_inputs)
 
         # Concatenate objects to sequence
-        sequence = keras.layers.Concatenate(axis=1)([jet_embedding, lep_embedding, global_embedding])
+        sequence = keras.layers.Concatenate(axis=1)(
+            [jet_embedding, lep_embedding, global_embedding]
+        )
         sequence_mask = components.ExpandJetMask(
             name="expand_jet_mask",
             extra_sequence_length=self.NUM_LEPTONS + 1,
@@ -455,7 +464,6 @@ class CompactAssigner(KerasFFRecoBase):
                 name=f"self_attention_block_{i}",
             )(x, sequence_mask)
 
-    
         # Split outputs
         jet_outputs, lepton_outputs, _ = components.SplitTransformerOutput(
             name="split_transformer_output",
@@ -474,7 +482,9 @@ class CompactAssigner(KerasFFRecoBase):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_logits = components.JetLeptonAssignment(dim=hidden_dim, name="assignment")(
+        assignment_logits = components.JetLeptonAssignment(
+            dim=hidden_dim, name="assignment"
+        )(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,

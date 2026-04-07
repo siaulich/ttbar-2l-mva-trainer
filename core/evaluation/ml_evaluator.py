@@ -284,7 +284,7 @@ class MLEvaluator:
                 x=0.02,
                 y=0.92,
                 ax=ax,
-                label="Simulation - Work in Progress",
+                label="Simulation Work in Progress",
             )
             ampl.set_xlabel(ax=ax, label="Training Epoch")
             ampl.set_ylabel(ax=ax, label=metric_name.replace("_", " ").title())
@@ -399,7 +399,7 @@ class MLEvaluator:
                     x=0.02,
                     y=0.92,
                     ax=ax1,
-                    label="Simulation - Work in Progress",
+                    label="Simulation Work in Progress",
                 )
                 ampl.set_xlabel(ax=ax, label="Importance Score")
 
@@ -435,7 +435,7 @@ class MLEvaluator:
                     x=0.02,
                     y=0.92,
                     ax=ax1,
-                    label="Simulation - Work in Progress",
+                    label="Simulation Work in Progress",
                 )
                 ampl.set_xlabel(ax=ax1, label="Importance Score")
                 ax1.set_title(f"Assignment Feature Importance - {model_name}")
@@ -458,7 +458,7 @@ class MLEvaluator:
                     x=0.02,
                     y=0.92,
                     ax=ax1,
-                    label="Simulation - Work in Progress",
+                    label="Simulation Work in Progress",
                 )
                 ampl.set_xlabel(ax=ax2, label="Importance Score")
                 ax2.set_title(f"Regression Feature Importance - {model_name}")
@@ -702,7 +702,7 @@ class MLEvaluator:
             x=0.02,
             y=0.92,
             ax=ax,
-            label="Simulation - Work in Progress",
+            label="Simulation Work in Progress",
         )
         ampl.set_ylabel(ax=ax, label="Number of Parameters (Millions)")
         ax.set_title("Model Parameters Comparison")

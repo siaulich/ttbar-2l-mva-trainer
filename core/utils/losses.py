@@ -127,13 +127,11 @@ class GaussianLoss(keras.losses.Loss):
     def call(self, y_true, y_pred, sample_weight=None):
         # y_true: (batch, n_items, n_vars*2) - [mean1,var1, mean2,var2,...]
         # y_pred: (batch, n_items, n_vars) - [mean1,var1, mean2,var2,...]
-        n_vars = tf.shape(y_true)[-1] // 2
 
-        mean_true = y_true[:, :, :n_vars]
-        var_true = y_true[:, :, n_vars:]
+        mean_true = y_true
+        mean_pred, var_pred = tf.split(y_pred, num_or_size_splits=2, axis=-1)
 
-        mean_pred = y_pred[:, :, :n_vars]
-        var_pred = y_pred[:, :, n_vars:]
+        var_pred = tf.clip_by_value(var_pred, 1e-7, 1e7)
 
         # Gaussian NLL per item and var
         nll = 0.5 * tf.math.log(var_pred + 1e-7) + 0.5 * tf.square(

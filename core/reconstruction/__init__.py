@@ -17,6 +17,7 @@ from .ground_truth_reconstructor import (
     PerfectAssignmentReconstructor,
 )
 from .keras_ff_reco_base import KerasFFRecoBase
+from .keras_ff_gaussian import KerasFFGaussian
 from .keras_binned_regressor import KerasBinnedRegressor
 
 

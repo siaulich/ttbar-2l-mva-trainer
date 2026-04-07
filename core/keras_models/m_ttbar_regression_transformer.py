@@ -7,6 +7,7 @@ from core.reconstruction import KerasFFRecoBase
 import core.components as components
 from core import DataConfig
 
+
 class FullRecoTransformer(KerasFFRecoBase):
     def __init__(
         self, config, name="Transformer", use_nu_flows=False, perform_regression=True
@@ -112,7 +113,9 @@ class FullRecoTransformer(KerasFFRecoBase):
             num_layers=2,
         )(lepton_outputs)
 
-        assignment_logits = components.JetLeptonAssignment(dim=hidden_dim, name="assignment")(
+        assignment_logits = components.JetLeptonAssignment(
+            dim=hidden_dim, name="assignment"
+        )(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
@@ -296,7 +299,6 @@ class FeatureConcatReconstructor(KerasFFRecoBase):
         )
 
 
-
 class CompactReconstructor(KerasFFRecoBase):
     def __init__(self, config: DataConfig, name="CrossAttentionModel"):
         super().__init__(config, name=name)
@@ -314,7 +316,7 @@ class CompactReconstructor(KerasFFRecoBase):
         stop_gradient_assignment_probs=True,
     ):
         """
-            Builds a more compact version of the Assignment Transformer model with fewer parameters.
+        Builds a more compact version of the Assignment Transformer model with fewer parameters.
         """
         # Input layers
         normed_inputs, masks = self._prepare_inputs(
@@ -329,7 +331,9 @@ class CompactReconstructor(KerasFFRecoBase):
         normed_global_event_inputs = normed_inputs["global_event_inputs"]
         jet_mask = masks["jet_mask"]
 
-        normed_global_inputs = keras.layers.Concatenate(axis=-1)([normed_met_inputs, normed_global_event_inputs])
+        normed_global_inputs = keras.layers.Concatenate(axis=-1)(
+            [normed_met_inputs, normed_global_event_inputs]
+        )
 
         # Embed jets, leptons, and global event features
         jet_embedding = components.EmbeddingMLP(
@@ -337,7 +341,7 @@ class CompactReconstructor(KerasFFRecoBase):
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(normed_jet_inputs)
-    
+
         lep_embedding = components.EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
@@ -351,7 +355,9 @@ class CompactReconstructor(KerasFFRecoBase):
         )(normed_global_inputs)
 
         # Concatenate objects to sequence
-        sequence = keras.layers.Concatenate(axis=1)([jet_embedding, lep_embedding, global_embedding])
+        sequence = keras.layers.Concatenate(axis=1)(
+            [jet_embedding, lep_embedding, global_embedding]
+        )
         sequence_mask = components.ExpandJetMask(
             name="expand_jet_mask",
             extra_sequence_length=self.NUM_LEPTONS + 1,
@@ -367,7 +373,6 @@ class CompactReconstructor(KerasFFRecoBase):
                 name=f"self_attention_block_{i}",
             )(x, sequence_mask)
 
-    
         # Split outputs
         jet_outputs, lepton_outputs, global_outputs = components.SplitTransformerOutput(
             name="split_transformer_output",
@@ -386,20 +391,28 @@ class CompactReconstructor(KerasFFRecoBase):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_probs = components.JetLeptonAssignment(dim=hidden_dim, name="assignment")(
+        assignment_probs = components.JetLeptonAssignment(
+            dim=hidden_dim, name="assignment"
+        )(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
         )
         # Regression Head (optional, can be removed if only assignment is needed)
 
-        per_lepton_repeated_global = keras.layers.RepeatVector(self.NUM_LEPTONS)(keras.layers.Flatten()(global_outputs))
-        
+        per_lepton_repeated_global = keras.layers.RepeatVector(self.NUM_LEPTONS)(
+            keras.layers.Flatten()(global_outputs)
+        )
+
         jet_attention = assignment_probs
         if stop_gradient_assignment_probs:
-            jet_attention = components.StopGradientLayer(name="stop_gradient_assignment")(assignment_probs)
+            jet_attention = components.StopGradientLayer(
+                name="stop_gradient_assignment"
+            )(assignment_probs)
         assosciated_jets = keras.layers.Dot(axes=(1, 1))([jet_attention, jet_outputs])
-        regression_inputs = keras.layers.Concatenate(axis=-1)([assosciated_jets, per_lepton_repeated_global])
+        regression_inputs = keras.layers.Concatenate(axis=-1)(
+            [assosciated_jets, per_lepton_repeated_global]
+        )
 
         regression_outputs = components.MLP(
             output_dim=3,

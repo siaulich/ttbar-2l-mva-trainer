@@ -64,7 +64,7 @@ class BarPlotter:
         ax.set_ylim(0, None)
         ax.grid(axis="y", alpha=config.alpha)
         ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+            x=0.02, y=0.98, ax=ax, status="Simulation Work in Progress"
         )
 
         return fig, ax
@@ -140,7 +140,7 @@ class BinnedFeaturePlotter:
         # ampl.draw_legend(ax=ax)
         ax.legend(loc=config.legend_loc)
         ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+            x=0.02, y=0.98, ax=ax, status="Simulation Work in Progress"
         )
 
         # Add event count histogram
@@ -196,7 +196,7 @@ class BinnedFeaturePlotter:
             ampl.set_ylabel(feature_label_y, ax=ax)
             ax.set_title(name)
             ampl.draw_atlas_label(
-                x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+                x=0.02, y=0.98, ax=ax, status="Simulation Work in Progress"
             )
 
         # Add combined colorbar
@@ -270,7 +270,7 @@ class ConfusionMatrixPlotter:
             ampl.set_xlabel("Predicted Label", ax=axes[i])
             ampl.set_ylabel("True Label", ax=axes[i])
             ampl.draw_atlas_label(
-                x=0.02, y=0.98, ax=axes[i], status="Simulation - Work in Progress"
+                x=0.02, y=0.98, ax=axes[i], status="Simulation Work in Progress"
             )
 
         # Remove unused subplots
@@ -337,7 +337,7 @@ class ConfusionMatrixPlotter:
         ampl.set_xlabel(f"True {variable_label}", ax=axes)
         ampl.set_ylabel(f"Predicted {variable_label}", ax=axes)
         ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=axes, status="Simulation - Work in Progress"
+            x=0.02, y=0.98, ax=axes, status="Simulation Work in Progress"
         )
         axes.get_figure().colorbar(im, ax=axes)
 
@@ -389,7 +389,7 @@ class ResolutionPlotter:
         ampl.set_xlabel(feature_label, ax=ax)
         ampl.set_ylabel(resolution_label, ax=ax)
         ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+            x=0.02, y=0.98, ax=ax, status="Simulation Work in Progress"
         )
 
         ax.set_xlim(bins[0], bins[-1])
@@ -488,7 +488,7 @@ class DistributionPlotter:
         ampl.set_xlabel(feature_label, ax=ax)
         ampl.set_ylabel("Density", ax=ax)
         ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=ax, status="Simulation - Work in Progress"
+            x=0.02, y=0.98, ax=ax, status="Simulation Work in Progress"
         )
         if np.isfinite(bin_edges).all() and not np.isnan(bin_edges).any():
             ax.set_xlim(bin_edges[0], bin_edges[-1])

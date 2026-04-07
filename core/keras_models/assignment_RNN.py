@@ -11,9 +11,11 @@ from core.components import (
 
 
 class FeatureConcatRNN(KerasFFRecoBase):
-    def __init__(self, config : DataConfig, name="RNN"):
+    def __init__(self, config: DataConfig, name="RNN"):
         if config.has_neutrino_truth:
-            print("FeatureConcatRNN is designed for classification tasks; regression targets will be ignored.")
+            print(
+                "FeatureConcatRNN is designed for classification tasks; regression targets will be ignored."
+            )
         super().__init__(config, assignment_name=name, perform_regression=False)
 
     def build_model(self, hidden_dim, num_layers, dropout_rate, recurrent_type="lstm"):
@@ -25,9 +27,7 @@ class FeatureConcatRNN(KerasFFRecoBase):
         flatted_lepton_inputs = keras.layers.Flatten()(lep_inputs)
 
         # Concat lepton and met features to jets
-        met_repeated_jets = keras.layers.RepeatVector(self.max_jets)(
-            flatted_met_inputs
-        )
+        met_repeated_jets = keras.layers.RepeatVector(self.max_jets)(flatted_met_inputs)
         lepton_repeated_jets = keras.layers.RepeatVector(self.max_jets)(
             flatted_lepton_inputs
         )
@@ -55,11 +55,15 @@ class FeatureConcatRNN(KerasFFRecoBase):
         x = jet_embedding
         for i in range(num_layers):
             x = keras.layers.Bidirectional(
-                RNN(RNNCell(units=hidden_dim, dropout=dropout_rate, 
-                            ), return_sequences=True),
+                RNN(
+                    RNNCell(
+                        units=hidden_dim,
+                        dropout=dropout_rate,
+                    ),
+                    return_sequences=True,
+                ),
                 name=f"bidir_rnn_{i}",
             )(x, mask=jet_mask)
-
 
             x = keras.layers.LayerNormalization(name=f"rnn_ln_{i}")(x)
 

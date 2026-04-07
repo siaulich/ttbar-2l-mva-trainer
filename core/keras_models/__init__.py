@@ -6,6 +6,7 @@ from .binned_regression_transformer import *
 from ..reconstruction.baseline_methods import *
 from ..base_classes import KerasMLWrapper
 
+
 def _get_model(model_name) -> type[KerasMLWrapper]:
     if model_name not in globals():
         raise ValueError(f"Model '{model_name}' not found in keras_models.")
