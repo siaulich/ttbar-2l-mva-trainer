@@ -3,6 +3,7 @@
 import numpy as np
 from typing import Union, Optional, List, Tuple, Callable
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import atlas_mpl_style as ampl
 
 ampl.use_atlas_style()
@@ -30,6 +31,7 @@ from .evaluator_utils import (
     NeutrinoDeviationCalculator,
 )
 from .plotting_utils import (
+    convert_reco_name,
     BarPlotter,
     ConfusionMatrixPlotter,
     ResolutionPlotter,
@@ -1382,7 +1384,7 @@ class ReconstructionPlotter:
         bins: int = 10,
         xlims: Optional[Tuple[float, float]] = None,
         figsize_per_plot: Tuple[int, int] = (7, 7),
-        normalize: str = "true",
+        normalize: str = "all",
         **kwargs,
     ):
         """Plot confusion matrices for all reconstructors for a specific variable."""
@@ -1417,34 +1419,27 @@ class ReconstructionPlotter:
         num_plots = len(self.prediction_manager.reconstructors)  # Exclude ground truth
         num_cols = np.ceil(np.sqrt(num_plots)).astype(int)
         num_rows = np.ceil(num_plots / num_cols).astype(int)
-        fig, axes = plt.subplots(
-            num_rows,
-            num_cols,
-            figsize=(figsize_per_plot[0] * num_cols, figsize_per_plot[1] * num_rows),
-            constrained_layout=True,
-        )
-        if isinstance(axes, np.ndarray):
-            axes = axes.flatten()
-        else:
-            axes = [axes]
+        
+        figures = {}
 
         for reco_index, reconstructed, name in zip(
             range(len(reconstructed_list)), reconstructed_list, names
         ):
+            fig, ax = plt.subplots(figsize=figsize_per_plot)
             ConfusionMatrixPlotter.plot_variable_confusion_matrix(
                 truth,
                 reconstructed,
                 variable_label,
-                axes[reco_index],
+                ax,
                 bin_edges,
                 normalize=normalize,
                 **kwargs,
             )
+            figures[name] = (fig, ax)
             # Add correlation coefficient to axis
-            axes[reco_index].set_title(name)
-        for i in range(len(reconstructed_list), len(axes)):
-            fig.delaxes(axes[i])  # Remove unused subplots
-        return fig, axes
+            corr_coeff = np.corrcoef(truth, reconstructed)[0, 1]
+            ampl.draw_tag(text = f"Corr: {corr_coeff:.2f}", ax=ax)
+        return figures
 
     # ==================== Binned Variable Resolution/Deviation Methods ====================
 
@@ -2034,16 +2029,18 @@ class ReconstructionPlotter:
             config = self.variable_configs[variable_key]
             variable_label = config["label"]
 
-            fig, axes = self.plot_variable_confusion_matrix_for_all_reconstructors(
+            figs = self.plot_variable_confusion_matrix_for_all_reconstructors(
                 variable_name=variable_key,
                 variable_label=variable_label,
                 **kwargs,
             )
             if save_dir is not None:
-                file_name = f"{variable_key}_confusion_matrices.pdf"
-                file_path = os.path.join(save_dir, file_name)
-                fig.savefig(file_path)
-            plt.close(fig)
+                for reco_name in figs:
+                    fig, ax = figs[reco_name]
+                    file_name = f"{variable_key}_{convert_reco_name(reco_name)}_confusion_matrix.pdf"
+                    file_path = os.path.join(save_dir, file_name)
+                    fig.savefig(file_path)
+                    plt.close(fig)
 
     def plot_accuracy_evaluation(self, save_dir: Optional[str] = None, **kwargs):
         """

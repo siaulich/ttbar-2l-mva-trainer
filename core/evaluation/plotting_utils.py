@@ -335,7 +335,7 @@ class ConfusionMatrixPlotter:
             )
 
         ampl.set_xlabel(f"True {variable_label}", ax=axes)
-        ampl.set_ylabel(f"Predicted {variable_label}", ax=axes)
+        ampl.set_ylabel(f"Reco {variable_label}", ax=axes)
         ampl.draw_atlas_label(
             x=0.02, y=0.98, ax=axes, status="Simulation Work in Progress"
         )
@@ -498,3 +498,8 @@ class DistributionPlotter:
         if labels is not None:
             ax.legend(loc=config.legend_loc)
         return ax
+
+
+def convert_reco_name(string: str) -> str:
+    """Convert printable latex-like reconstructor name to a file-name.""" 
+    return string.replace(" ", "_").replace("$", "").replace("{", "").replace("}", "").replace("$", "").replace("\\", "").replace("/", "_").replace("(", "").replace(")", "").lower()

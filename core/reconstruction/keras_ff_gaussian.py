@@ -281,7 +281,6 @@ class KerasFFGaussian(EventReconstructorBase, KerasMLWrapper):
                 inputs=self.model.inputs,
                 outputs=outputs,
             )
-            print("Set regression denormalization layer with computed mean and std.")
         else:
             print(
                 "No regression output found in model outputs to adapt scales for. Skipping output layer scale adaptation."

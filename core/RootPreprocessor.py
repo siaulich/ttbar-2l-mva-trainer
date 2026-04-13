@@ -22,6 +22,7 @@ from core.utils import (
     lorentz_vector_array_from_pt_eta_phi_e,
     compute_mass_from_lorentz_vector_array,
 )
+from core.evaluation.physics_calculations import c_han, c_hel
 
 
 @dataclass
@@ -794,6 +795,23 @@ class RootPreprocessor:
             nu_tbar_mass**2 + nu_tbar_px**2 + nu_tbar_py**2 + nu_tbar_pz**2
         )
 
+        truth_c_hel = c_hel(
+                np.stack([top_px, top_py, top_pz, top_e], axis=1),
+                np.stack([tbar_px, tbar_py, tbar_pz, tbar_e], axis=1),
+                np.stack([top_lep_px, top_lep_py, top_lep_pz, lep_top_e], axis=1),
+                np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz, lep_tbar_e], axis=1),
+            )
+        
+        truth_c_han = c_han(
+                np.stack([top_px, top_py, top_pz, top_e], axis=1),
+                np.stack([tbar_px, tbar_py, tbar_pz, tbar_e], axis=1),
+                np.stack([top_lep_px, top_lep_py, top_lep_pz, lep_top_e], axis=1),
+                np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz, lep_tbar_e], axis=1),
+            )
+        
+        truth_c_hel = np.clip(truth_c_hel, -1, 1)
+        truth_c_han = np.clip(truth_c_han, -1, 1)
+
         return {
             # ttbar system
             "truth_ttbar_mass": truth_ttbar_mass,
@@ -842,6 +860,9 @@ class RootPreprocessor:
             "truth_tbar_lepton_px": tbar_lep_px,
             "truth_tbar_lepton_py": tbar_lep_py,
             "truth_tbar_lepton_pz": tbar_lep_pz,
+            # Truth c_han, c_hel
+            "truth_c_hel": truth_c_hel,
+            "truth_c_han": truth_c_han,
         }
 
     def _extract_nuflow_results(self, events: ak.Array) -> Dict[str, np.ndarray]:
