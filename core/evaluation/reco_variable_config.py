@@ -43,6 +43,8 @@ reconstruction_variable_configs = {
         / 1e3,
         "label": r"$m(t\bar{t})$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (340, 1000),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $m(t\bar{t})$ Resolution",
@@ -64,6 +66,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$c_{\text{han}}$",
         "use_relative_deviation": False,
+        "xlims": (-1, 1),
+        "bins": 10,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$c_{\text{han}}$ Resolution",
@@ -85,6 +89,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$c_{\text{hel}}$",
         "use_relative_deviation": False,
+        "xlims": (-1, 1),
+        "bins": 10,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$c_{\text{hel}}$ Resolution",
@@ -122,6 +128,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (X["regression"][:, 0, 0] / 1e3),
         "label": r"$p_{x}(\nu)$ [GeV]",
         "use_relative_deviation": False,
+        "xlims": (-300, 300),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$p_{x}(\nu)$ Resolution [GeV]",
@@ -133,6 +141,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (X["regression"][:, 0, 1] / 1e3),
         "label": r"$p_{y}(\nu)$ [GeV]",
         "use_relative_deviation": False,
+        "xlims": (-300, 300),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$p_{y}(\nu)$ Resolution [GeV]",
@@ -144,6 +154,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (X["regression"][:, 0, 2] / 1e3),
         "label": r"$p_{z}(\nu)$ [GeV]",
         "use_relative_deviation": False,
+        "xlims": (-300, 300),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$p_{z}(\nu)$ Resolution [GeV]",
@@ -155,6 +167,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (X["regression"][:, 1, 0] / 1e3),
         "label": r"$p_{x}(\bar{\nu})$ [GeV]",
         "use_relative_deviation": False,
+        "xlims": (-300, 300),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$p_{x}(\bar{\nu})$ Resolution [GeV]",
@@ -166,6 +180,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (X["regression"][:, 1, 1] / 1e3),
         "label": r"$p_{y}(\bar{\nu})$ [GeV]",
         "use_relative_deviation": False,
+        "xlims": (-300, 300),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$p_{y}(\bar{\nu})$ Resolution [GeV]",
@@ -177,6 +193,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (X["regression"][:, 1, 2] / 1e3),
         "label": r"$p_{z}(\bar{\nu})$ [GeV]",
         "use_relative_deviation": False,
+        "xlims": (-300, 300),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$p_{z}(\bar{\nu})$ Resolution [GeV]",
@@ -208,6 +226,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$\cos\theta(\nu, \ell)$",
         "use_relative_deviation": False,
+        "xlims": (-1, 1),
+        "bins": 10,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$\cos\theta(\nu, \ell)$ Resolution",
@@ -221,6 +241,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$\cos\theta(\nu, \bar{\nu})$",
         "use_relative_deviation": False,
+        "xlims": (-1, 1),
+        "bins": 10,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$\cos\theta(\nu, \bar{\nu})$ Resolution",
@@ -241,6 +263,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$\cos\theta(\nu\bar{\nu}, b\bar{b}\ell^+\ell^-)$",
         "use_relative_deviation": False,
+        "xlims": (-1, 1),
+        "bins": 10,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$\cos\theta(\nu\bar{\nu}, b\bar{b}\ell^+\ell^-)$ Resolution",
@@ -252,6 +276,8 @@ reconstruction_variable_configs = {
         "extract_func": lambda X: (make_4vect(X["top_truth"][:, 0, :4])[..., 3] / 1e3,),
         "label": r"$E(t)$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (0, 500),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $E(t)$ Resolution",
@@ -269,6 +295,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$p_{T}(t)$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (0, 500),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $p_{T}(t)$ Resolution",
@@ -290,6 +318,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$\gamma(t)$",
         "use_relative_deviation": False,
+        "xlims": (0, 5),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$\gamma(t)$ Resolution",
@@ -307,6 +337,8 @@ reconstruction_variable_configs = {
         / 1e3,
         "label": r"$m(t)$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (100, 300),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $m(t)$ Resolution",
@@ -325,6 +357,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$m(W)$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (50, 110),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$m(W)$ Resolution [GeV]",
@@ -344,6 +378,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$E(W)$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (0, 300),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $E(W)$ Resolution",
@@ -362,6 +398,8 @@ reconstruction_variable_configs = {
         ),
         "label": r"$p_{T}(W)$ [GeV]",
         "use_relative_deviation": True,
+        "xlims": (0, 300),
+        "bins": 30,
         "resolution": {
             "use_relative_deviation": True,
             "ylabel_resolution": r"Relative $p_{T}(W)$ Resolution",
@@ -379,6 +417,8 @@ reconstruction_variable_configs = {
         - compute_phi_from_lorentz_vector_array(X["lepton_truth"][:, 0, :4]),
         "label": r"$\Delta\phi(\ell, t)$ [rad]",
         "use_relative_deviation": False,
+        "xlims": (-np.pi, np.pi),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$\Delta\phi(\ell, t)$ Resolution [rad]",
@@ -396,9 +436,10 @@ reconstruction_variable_configs = {
             make_4vect(X["top_truth"][:, 1, :4]),
             X["lepton_truth"][:, 0, :4],
         ),
-        "xlims": (-np.pi, np.pi),
         "label": r"$\Delta\phi(\ell_{hel}, t)$ [rad]",
         "use_relative_deviation": False,
+        "xlims": (-np.pi, np.pi),
+        "bins": 20,
         "resolution": {
             "use_relative_deviation": False,
             "ylabel_resolution": r"$\Delta\phi_{\text{helicity}}(\ell, t)$ Resolution [rad]",

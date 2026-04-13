@@ -11,6 +11,33 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, List, Tuple, Any
 import numpy as np
 import keras
+import yaml
+
+def load_yaml_config(file_path):
+    """Load a YAML configuration file."""
+    with open(file_path, "r") as file:
+        config = yaml.safe_load(file)
+    return config
+
+
+
+@dataclass
+class TrainConfig:
+    batch_size: int = 1024
+    epochs: int = 50
+    callbacks: Optional[Dict[str, any]] = field(default_factory=dict)
+    validation_split: float = 0.1
+    shuffle: bool = True
+    verbose: int = 1
+
+
+@dataclass
+class ModelConfig:
+    model_type: str = "FeatureConcatTransformer"
+    model_options: Dict[str, any] = field(default_factory=dict)
+    model_params: Dict[str, any] = field(default_factory=dict)
+    compile_options: Dict[str, any] = field(default_factory=dict)
+    num_events: Optional[int] = None
 
 
 @dataclass

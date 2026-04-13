@@ -505,7 +505,6 @@ class MLEvaluator:
                 for X in self.X_test
             )
             num_samples = min_samples
-            print(f"Using {num_samples} samples for inference time evaluation")
         else:
             # Verify all datasets have enough samples
             for idx, X in enumerate(self.X_test):
@@ -535,12 +534,10 @@ class MLEvaluator:
                 X_subset[key] = value[:num_samples]
 
             # Warmup iterations
-            print(f"  Running {num_warmup} warmup iterations...")
             for _ in range(num_warmup):
                 _ = reconstructor.complete_forward_pass(X_subset)
 
             # Timed iterations
-            print(f"  Running {num_iterations} timed iterations...")
             times = []
             for _ in range(num_iterations):
                 start_time = time.perf_counter()
@@ -559,12 +556,6 @@ class MLEvaluator:
                 "num_samples": num_samples,
                 "time_per_sample": np.mean(times) / num_samples,
             }
-
-            print(f"  Mean time: {results[model_name]['mean_time']*1000:.2f} ms")
-            print(f"  Std time: {results[model_name]['std_time']*1000:.2f} ms")
-            print(
-                f"  Time per sample: {results[model_name]['time_per_sample']*1000:.4f} ms"
-            )
 
         return results
 
@@ -646,11 +637,6 @@ class MLEvaluator:
                 "trainable_params": trainable_params,
                 "non_trainable_params": non_trainable_params,
             }
-
-            print(f"\n{model_name}:")
-            print(f"  Total parameters: {total_params:,}")
-            print(f"  Trainable parameters: {trainable_params:,}")
-            print(f"  Non-trainable parameters: {non_trainable_params:,}")
 
         return results
 
@@ -813,4 +799,3 @@ class MLEvaluator:
             file_name = os.path.join(save_dir, file_name)
         with open(file_name, "w") as f:
             f.write(latex_str)
-        print(f"LaTeX table saved to {file_name}")

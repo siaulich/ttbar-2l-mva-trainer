@@ -31,7 +31,7 @@ def load_evaluation_config(path: str) -> EvaluationConfig:
 
 
 def parse_args():
-    """Parse command line arguments for running the evaluation script."""
+    #"""Parse command line arguments for running the evaluation script."""
     parser = argparse.ArgumentParser(
         description="Evaluate trained models on specified datasets"
     )
@@ -116,19 +116,19 @@ if __name__ == "__main__":
         os.makedirs(ml_metrics_output_dir, exist_ok=True)
         fig, ax = ml_evaluator.plot_training_history()
         fig.savefig(os.path.join(ml_metrics_output_dir, "training_history.pdf"))
-        print(f"Saved training history plot to {ml_metrics_output_dir}")
+        print(f"Saved training history plot")
 
         fig, ax = ml_evaluator.plot_model_parameters_comparison()
         fig.savefig(
             os.path.join(ml_metrics_output_dir, "model_parameters_comparison.pdf")
         )
-        print(f"Saved model parameters comparison plot to {ml_metrics_output_dir}")
+        print(f"Saved model parameters comparison plot")
 
         fig, ax = ml_evaluator.plot_inference_time_comparison()
         fig.savefig(
             os.path.join(ml_metrics_output_dir, "inference_time_comparison.pdf")
         )
-        print(f"Saved inference time comparison plot to {ml_metrics_output_dir}")
+        print(f"Saved inference time comparison plot")
 
         del ml_evaluator
     del ml_reconstructors
@@ -175,23 +175,23 @@ if __name__ == "__main__":
             save_dir=binned_2d_variable_output_dir,
         )
         print(
-            f"Saved binned 2D evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} to {binned_2d_variable_output_dir} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
+            f"Saved binned 2D evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
         )
 
     evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
-    print(f"Saved all accuracy evaluation plots to {accuracy_directory}")
+    print(f"Saved all accuracy evaluation plots")
     if not args.accuracy:
         evaluator.plot_all_deviations(save_dir=deviation_directory)
-        print(f"Saved all deviation evaluation plots to {deviation_directory}")
+        print(f"Saved all deviation evaluation plots")
         evaluator.plot_all_distributions(save_dir=distributions_directory)
-        print(f"Saved all distribution plots to {distributions_directory}")
+        print(f"Saved all distribution plots")
         evaluator.plot_all_confusion_matrices(save_dir=confusion_matrix_directory)
-        print(f"Saved all confusion matrix plots to {confusion_matrix_directory}")
+        print(f"Saved all confusion matrix plots")
         evaluator.plot_neutrino_deviation_evaluation(
             save_dir=neutrino_deviation_directory
         )
         print(
-            f"Saved all neutrino deviation evaluation plots to {neutrino_deviation_directory}"
+            f"Saved all neutrino deviation evaluation plots"
         )
     for idx, binning_cfg in enumerate(evaluation_config.binning_variables):
         binned_variable_output_dir = os.path.join(
@@ -204,7 +204,7 @@ if __name__ == "__main__":
             accuracy_only=args.accuracy,
         )
         print(
-            f"Saved binned evaluation plots for {binning_cfg.feature_name} to {binned_variable_output_dir} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
+            f"Saved binned evaluation plots for {binning_cfg.feature_name} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
         )
 
     print(f"Saved all evaluation plots to {output_dir}")

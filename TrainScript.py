@@ -17,24 +17,7 @@ from core.DataLoader import (
     LoadConfig,
 )
 
-
-@dataclass
-class TrainConfig:
-    batch_size: int = 1024
-    epochs: int = 50
-    callbacks: Optional[Dict[str, any]] = field(default_factory=dict)
-    validation_split: float = 0.1
-    shuffle: bool = True
-    verbose: int = 1
-
-
-@dataclass
-class ModelConfig:
-    model_type: str = "FeatureConcatTransformer"
-    model_options: Dict[str, any] = field(default_factory=dict)
-    model_params: Dict[str, any] = field(default_factory=dict)
-    compile_options: Dict[str, any] = field(default_factory=dict)
-    num_events: Optional[int] = None
+from core.configs import ModelConfig, TrainConfig, load_yaml_config
 
 
 def parse_args():
@@ -82,13 +65,6 @@ def parse_args():
     )
 
     return parser.parse_args()
-
-
-def load_yaml_config(file_path):
-    """Load a YAML configuration file."""
-    with open(file_path, "r") as file:
-        config = yaml.safe_load(file)
-    return config
 
 
 if __name__ == "__main__":
@@ -150,6 +126,7 @@ if __name__ == "__main__":
         metrics=metrics,
         **compile_options,
     )
+    compile_options.update(optimizer=optimizer, loss=losses, metrics=metrics)
 
     train_options = deepcopy(train_config.__dict__)
 

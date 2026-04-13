@@ -614,11 +614,22 @@ class ReconstructionPlotter:
             feature_data_type,
             feature_name,
         )
+        if np.isnan(feature_data).any() or np.isinf(feature_data).any():
+            print(
+                f"WARNING: NaN values found in feature data for {feature_name}. "
+                "These will be ignored in the binned accuracy calculation."
+            )
 
         # Create bins
         bin_edges = BinningUtility.create_bins(feature_data, bins, xlims)
         binning_mask = BinningUtility.create_binning_mask(feature_data, bin_edges)
         bin_centers = BinningUtility.compute_bin_centers(bin_edges)
+
+        if np.any(~np.any(binning_mask, axis=1)):
+            print(
+                "WARNING: Some bins have no events. "
+                "These bins will be ignored in the binned accuracy calculation."
+            )
 
         # Get event weights
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
@@ -1370,7 +1381,7 @@ class ReconstructionPlotter:
         variable_label: str,
         bins: int = 10,
         xlims: Optional[Tuple[float, float]] = None,
-        figsize_per_plot: Tuple[int, int] = (5, 5),
+        figsize_per_plot: Tuple[int, int] = (7, 7),
         normalize: str = "true",
         **kwargs,
     ):
@@ -1430,15 +1441,6 @@ class ReconstructionPlotter:
                 **kwargs,
             )
             # Add correlation coefficient to axis
-            corr = np.corrcoef(truth.flatten(), reconstructed.flatten())[0, 1]
-            axes[reco_index].text(
-                0.05,
-                0.95,
-                f"ρ = {corr:.3f}",
-                transform=axes[reco_index].transAxes,
-                verticalalignment="top",
-                bbox=dict(boxstyle="round", facecolor="white", alpha=0.8),
-            )
             axes[reco_index].set_title(name)
         for i in range(len(reconstructed_list), len(axes)):
             fig.delaxes(axes[i])  # Remove unused subplots
@@ -2217,13 +2219,12 @@ class ReconstructionPlotter:
             config = self.variable_configs[variable_key]
             variable_label = config["label"]
             kwargs["xlims"] = config.get("xlims", None)
-
+            kwargs["bins"] = config.get("bins", 20)
             fig, axes = self.plot_distributions_all_reconstructors(
                 variable_name=variable_key,
                 variable_label=variable_label,
                 **kwargs,
             )
-
             if save_dir is not None:
                 file_name = f"{variable_key}_distributions.pdf"
                 file_path = os.path.join(save_dir, file_name)

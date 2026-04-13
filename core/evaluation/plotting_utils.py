@@ -266,7 +266,7 @@ class ConfusionMatrixPlotter:
                 cmap="Blues",
                 cbar_kws={"label": "Normalized Count" if normalize else "Count"},
             )
-            axes[i].set_title(f"{name}")
+            ampl.draw_tag( tag=name, ax=axes[i])
             ampl.set_xlabel("Predicted Label", ax=axes[i])
             ampl.set_ylabel("True Label", ax=axes[i])
             ampl.draw_atlas_label(
@@ -306,12 +306,12 @@ class ConfusionMatrixPlotter:
         else:
             pass  # No normalization
 
-        im = axes.imshow(
+        mesh, cbar = ampl.plot.plot_2d(
+            xedges,
+            yedges,
             hist.T,
-            origin="lower",
-            cmap="viridis",
-            extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
-            aspect="auto",
+            ax=axes,
+            **kwargs,
         )
 
         if plot_mean:
@@ -339,7 +339,9 @@ class ConfusionMatrixPlotter:
         ampl.draw_atlas_label(
             x=0.02, y=0.98, ax=axes, status="Simulation Work in Progress"
         )
-        axes.get_figure().colorbar(im, ax=axes)
+        ampl.draw_legend(ax=axes)
+        #axes.get_figure().colorbar(mesh, ax=axes, label="Normalized Count" if normalize else "Count")
+        return axes
 
 
 class ResolutionPlotter:

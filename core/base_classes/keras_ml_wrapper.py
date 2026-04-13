@@ -470,6 +470,15 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
             meta.key = input_name
             meta.value = ",".join(index_names.get(i) for i in range(n_features))
 
+        meta = onnx_model.metadata_props.add()
+        meta.key = "output_names"
+        meta.value = ",".join(model_outputs.keys())
+
+        for output_name in model_outputs.keys():
+            meta = onnx_model.metadata_props.add()
+            meta.key = output_name + "_shape"
+            meta.value = ",".join(str(dim) for dim in model_outputs[output_name].shape[1:])
+
         # Save ONNX model
         onnx.save_model(onnx_model, onnx_file_path)
 
