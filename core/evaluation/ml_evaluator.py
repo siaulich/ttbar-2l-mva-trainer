@@ -218,6 +218,121 @@ class MLEvaluator:
             for idx, rec in enumerate(self.reconstructors)
         ]
 
+    def evaluate_idx(self, reconstructor_idx: int = 0) -> dict:
+        """
+        Evaluate the specified reconstructor on the test dataset.
+
+        Args:
+            reconstructor_idx: Index of reconstructor to evaluate (default: 0)
+
+        Returns:
+            Dictionary containing evaluation results
+        """
+        reconstructor = self.reconstructors[reconstructor_idx]
+        X_test = self.X_test[reconstructor_idx]
+        y_test = self.y_test[reconstructor_idx]
+
+        assignment_pred, regression_pred = reconstructor.complete_forward_pass(X_test)
+
+        results = {
+            "assignment_accuracy": AccuracyCalculator.compute_accuracy(
+                assignment_pred, y_test["assignment"], per_event=False
+            )
+        }
+
+        results["regression_mse"] = (
+            NeutrinoDeviationCalculator.compute_relative_deviation(
+                regression_pred, y_test["regression"], per_event=False
+            )
+        )
+
+        return results
+
+    def evaluate_num_parameters_idx(self, reconstructor_idx: int = 0) -> dict:
+        """
+        Evaluate model parameters such as number of trainable parameters.
+
+        Args:
+            reconstructor_idx: Index of reconstructor to evaluate (default: 0)
+        Returns:
+            Dictionary containing model parameter statistics
+        """
+        reconstructor = self.reconstructors[reconstructor_idx]
+
+        num_trainable_params = reconstructor.model.count_params()
+
+        return {
+            "num_trainable_parameters": num_trainable_params,
+        }
+
+    def evaluate_inference_time_idx(
+        self,
+        reconstructor_idx: int = 0,
+        num_samples: Optional[int] = 10000,
+        num_warmup: int = 2,
+        num_iterations: int = 10,
+    ) -> dict:
+        """
+        Evaluate inference time for the specified reconstructor.
+
+        Args:
+            reconstructor_idx: Index of reconstructor to evaluate (default: 0)
+            num_samples: Number of samples to use for inference testing
+            num_warmup: Number of warmup iterations before timing
+            num_iterations: Number of iterations to average over
+        Returns:
+            Dictionary containing inference time statistics
+        """
+        reconstructor = self.reconstructors[reconstructor_idx]
+
+        # Prepare test subset with exactly num_samples
+        X_subset = {}
+        for key, value in self.X_test[reconstructor_idx].items():
+            X_subset[key] = value[:num_samples]
+
+        # Warmup iterations
+        for _ in range(num_warmup):
+            _ = reconstructor.complete_forward_pass(X_subset)
+
+        # Timed iterations
+        times = []
+        for _ in range(num_iterations):
+            start_time = time.perf_counter()
+            _ = reconstructor.complete_forward_pass(X_subset)
+            end_time = time.perf_counter()
+            times.append(end_time - start_time)
+
+        # Calculate statistics
+        times = np.array(times)
+        results = {
+            "mean_time": np.mean(times),
+            "std_time": np.std(times),
+            "median_time": np.median(times),
+            "min_time": np.min(times),
+            "max_time": np.max(times),
+            "num_samples": num_samples,
+            "time_per_sample": np.mean(times) / num_samples,
+        }
+
+        return results
+    
+    def evaluate_num_training_epochs_idx(self, reconstructor_idx: int = 0) -> dict:
+        """
+        Evaluate the number of training epochs for the specified reconstructor.
+
+        Args:
+            reconstructor_idx: Index of reconstructor to evaluate (default: 0)
+        Returns:
+            Dictionary containing number of training epochs
+        """        
+        reconstructor = self.reconstructors[reconstructor_idx]
+
+        num_epochs = np.argmin(reconstructor.history.history["loss"])
+
+        return {
+            "num_training_epochs": num_epochs,
+        }
+
     def plot_training_history(self):
         """Plot training and validation loss/accuracy over epochs for all models."""
         for reconstructor in self.reconstructors:

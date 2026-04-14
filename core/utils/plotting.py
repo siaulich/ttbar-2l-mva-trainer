@@ -62,3 +62,27 @@ def center_axis_ticks(ax, axis="x"):
         ax.set_ylim(ylims)  # Ensure limits remain unchanged after centering
     else:
         raise ValueError("Axis must be 'x' or 'y'.")
+
+
+def evaluate(y_true, y_pred):
+    """
+    Computes the accuracy of predictions compared to true labels.
+
+    Parameters:
+    y_true (array-like): The true labels.
+    y_pred (array-like): The predicted labels.
+
+    Returns:
+    float: The accuracy as a value between 0 and 1.
+    """
+    true_assignment = y_true["assignment"]
+    predicted_assignment = y_pred["assignment"]
+    evaluate_assignment = np.mean(np.all(true_assignment == predicted_assignment, axis=[1,2]))
+
+    regression_true = y_true["regression"]
+    regression_pred = y_pred["regression"]
+    evaluate_regression = np.mean(np.square(regression_true - regression_pred).sum(axis=[1,2]))
+    return {
+        "assignment": evaluate_assignment,
+        "regression": evaluate_regression,
+    }

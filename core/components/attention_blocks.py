@@ -519,128 +519,67 @@ class MultiHeadAttentionStack(layers.Layer):
 
 
 @keras.utils.register_keras_serializable()
-class CrossAttentionBlock(layers.Layer):
-    """
-    Cross Attention Block
-    Implements cross-attention between two sequences.
-    """
+class CrossAttentionAssignment(layers.Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    def __init__(
+    def build(self, query_shape, value_shape, cross_values_shape):
+        super().build(query_shape)
+        if (
+            len(query_shape) != 3
+            or len(value_shape) != 3
+            or len(cross_values_shape) != 3
+        ):
+            raise ValueError(
+                "Expected all inputs to be rank 3 (batch_size, seq_len, features)"
+            )
+        self.feature_dim = query_shape[-1]
+        self.query_proj = layers.Dense(
+            self.feature_dim // 2, use_bias=False, name="query_proj"
+        )
+        self.value_proj = layers.Dense(
+            self.feature_dim // 2, use_bias=False, name="value_proj"
+        )
+        self.output_proj = layers.Dense(1, use_bias=False, name="output_proj")
+
+    def call(
         self,
-        num_heads,
-        key_dim,
-        dropout_rate=0.0,
-        ff_dim=None,
-        regularizer=None,
-        pre_ln=True,
-        **kwargs,
+        query,
+        value,
+        cross_values,
+        query_mask=None,
+        value_mask=None,
+        training=None,
     ):
-        super(CrossAttentionBlock, self).__init__(**kwargs)
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-        self.dropout_rate = dropout_rate
-        self.ff_dim = ff_dim or key_dim * 2
-        self.regularizer = regularizers.get(regularizer) if regularizer else None
-        self.pre_ln = pre_ln
 
-        # Create cross-attention blocks (not self-attention!)
-        self.b_to_a_attention = MultiHeadAttentionBlock(
-            num_heads=num_heads,
-            key_dim=key_dim,
-            dropout_rate=dropout_rate,
-            ff_dim=ff_dim,
-            regularizer=regularizer,
-            pre_ln=pre_ln,
-            self_attention=False,  # Important: this is cross-attention
-            name="b_to_a_attention",
-        )
-        self.a_to_b_attention = MultiHeadAttentionBlock(
-            num_heads=num_heads,
-            key_dim=key_dim,
-            dropout_rate=dropout_rate,
-            ff_dim=ff_dim,
-            regularizer=regularizer,
-            pre_ln=pre_ln,
-            self_attention=False,  # Important: this is cross-attention
-            name="a_to_b_attention",
-        )
+        q_proj = self.query_proj(query)  # (B, N_q, feature_dim//3)
+        v_proj = self.value_proj(value)  # (B, N_v, feature_dim//3)
+        cv_proj = cross_values  # (B, N_cv, feature_dim//3)
 
-    def call(self, a, b, a_mask, b_mask, training=None):
-        """
-        Args:
-            a: First sequence (query)
-            b: Second sequence (key/value)
-            a_mask: Mask for the first sequence
-            b_mask: Mask for the second sequence
-            training: Whether in training mode
-        Returns:
-            tuple: (output_a, output_b)
-        """
-        # Cross-attention: a attends to b, b attends to a
-        output_a = self.b_to_a_attention(
-            query=a,
-            key=b,
-            value=b,
-            query_mask=a_mask,
-            key_mask=b_mask,
-            value_mask=b_mask,
-            training=training,
-        )
+        q_proj = tf.expand_dims(q_proj, axis=2)  # (B, N_q, 1, feature_dim//3)
+        v_proj = tf.expand_dims(v_proj, axis=1)  # (B, 1, N_v, feature_dim//3)
 
-        output_b = self.a_to_b_attention(
-            query=b,
-            key=a,
-            value=a,
-            query_mask=b_mask,
-            key_mask=a_mask,
-            value_mask=a_mask,
-            training=training,
-        )
-
-        return (output_a, output_b)
-
-    def build(self, a_shape, b_shape):
-        """
-        Build method that works with Keras conventions
-        """
-        # Build the attention layers with correct shapes
-        # For cross-attention: query_shape, key_value_shape
-        self.b_to_a_attention.build(a_shape, b_shape)  # a queries b
-        self.a_to_b_attention.build(b_shape, a_shape)  # b queries a
-
-        super().build(a_shape)
-
-    def compute_output_shape(self, a_shape, b_shape):
-        return (a_shape, b_shape)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update(
-            {
-                "num_heads": self.num_heads,
-                "key_dim": self.key_dim,
-                "dropout_rate": self.dropout_rate,
-                "ff_dim": self.ff_dim,
-                "regularizer": regularizers.serialize(self.regularizer),
-                "pre_ln": self.pre_ln,
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        regularizer_config = config.pop("regularizer", None)
-        if regularizer_config:
-            config["regularizer"] = regularizers.deserialize(regularizer_config)
-        return cls(**config)
-
-    def count_params(self):
-        """
-        Count total parameters in both attention blocks
-        """
-        return (
-            self.b_to_a_attention.count_params() + self.a_to_b_attention.count_params()
-        )
+        # Compute attention scores
+        pair_vectors = tf.concat(
+            [q_proj, v_proj, cv_proj], axis=-1
+        )  # (B, N_q, N_v, feature_dim)
+        scores = self.output_proj(pair_vectors)  # (B, N_q, N_v, 1)
+        scores = tf.squeeze(scores, axis=-1)  # (B, N_q, N_v)
+        if query_mask is not None:
+            query_mask = tf.cast(query_mask, tf.bool)
+            scores = tf.where(
+                query_mask[:, :, tf.newaxis],
+                scores,
+                tf.constant(-1e9, dtype=scores.dtype),
+            )
+        if value_mask is not None:
+            value_mask = tf.cast(value_mask, tf.bool)
+            scores = tf.where(
+                value_mask[:, tf.newaxis, :],
+                scores,
+                tf.constant(-1e9, dtype=scores.dtype),
+            )
+        return tf.nn.softmax(scores, axis=1)  # (B, N_q, N_v)
 
 
 @keras.utils.register_keras_serializable()
@@ -700,94 +639,6 @@ class JetLeptonAssignment(layers.Layer):
             }
         )
         return config
-
-
-@keras.utils.register_keras_serializable()
-class CrossAttentionStack(layers.Layer):
-    def __init__(
-        self,
-        num_heads,
-        key_dim,
-        stack_size=3,
-        dropout_rate=0.0,
-        ff_dim=None,
-        regularizer=None,
-        pre_ln=True,
-        **kwargs,
-    ):
-        super(CrossAttentionStack, self).__init__(**kwargs)
-        self.regularizer = regularizers.get(regularizer) if regularizer else None
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-        self.ff_dim = ff_dim
-        self.dropout_rate = dropout_rate
-        self.stack_size = stack_size
-        self.pre_ln = pre_ln
-
-        self.attention_blocks = [
-            CrossAttentionBlock(
-                num_heads=num_heads,
-                key_dim=key_dim,
-                dropout_rate=dropout_rate,
-                ff_dim=ff_dim,
-                name=f"cross_attention_block_{i+1}",
-                regularizer=regularizer,
-                pre_ln=pre_ln,
-            )
-            for i in range(stack_size)
-        ]
-
-    def build(self, a_shape, b_shape):
-        """
-        Build method that works with Keras conventions
-        """
-        # Build the attention layers with correct shapes
-        for block in self.attention_blocks:
-            block.build(a_shape, b_shape)
-
-        super().build((a_shape, b_shape))
-
-    def call(self, a, b, a_mask, b_mask, training=None):
-        """
-        Args:
-            a: First sequence
-            b: Second sequence
-            a_mask: Mask for the first sequence
-            b_mask: Mask for the second sequence
-            training: Whether in training mode
-        Returns:
-            tuple: (output_a, output_b)
-        """
-        x_a = a
-        x_b = b
-        for block in self.attention_blocks:
-            x_a, x_b = block(x_a, x_b, a_mask, b_mask, training=training)
-        return x_a, x_b
-
-    def compute_output_shape(self, a_shape, b_shape):
-        return (a_shape, b_shape)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update(
-            {
-                "num_heads": self.num_heads,
-                "key_dim": self.key_dim,
-                "dropout_rate": self.dropout_rate,
-                "ff_dim": self.ff_dim,
-                "stack_size": self.stack_size,
-                "pre_ln": self.pre_ln,
-                "regularizer": regularizers.serialize(self.regularizer),
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        regularizer_config = config.pop("regularizer", None)
-        if regularizer_config:
-            config["regularizer"] = regularizers.deserialize(regularizer_config)
-        return cls(**config)
 
 
 @keras.utils.register_keras_serializable()

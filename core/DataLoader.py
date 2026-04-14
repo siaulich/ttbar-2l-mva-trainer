@@ -205,7 +205,10 @@ class DataPreprocessor:
     # Data Loading
     # -------------------------------------------------------------------------
     def load_from_npz(
-        self, npz_path: Union[str, List[str]], max_events: Optional[int] = None, event_numbers=None
+        self,
+        npz_path: Union[str, List[str]],
+        max_events: Optional[int] = None,
+        event_numbers: Optional[str] = None,
     ) -> DataConfig:
         """Load preprocessed data from NPZ file or list of files
 
@@ -221,11 +224,17 @@ class DataPreprocessor:
         else:
             # If multiple paths are provided, load and concatenate them
             loaded_list = [np.load(path) for path in npz_path]
-            mask_list = [self._get_event_filter_mask(loaded, event_numbers) for loaded in loaded_list]
+            mask_list = [
+                self._get_event_filter_mask(loaded, event_numbers)
+                for loaded in loaded_list
+            ]
             loaded_data = {}
             for key in loaded_list[0].files:
                 concatenated = np.concatenate(
-                    [self._filter_loaded_data(loaded, mask, max_events)[key] for loaded, mask in zip(loaded_list, mask_list)],
+                    [
+                        self._filter_loaded_data(loaded, mask, max_events)[key]
+                        for loaded, mask in zip(loaded_list, mask_list)
+                    ],
                     axis=0,
                 )
                 loaded_data[key] = concatenated

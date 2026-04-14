@@ -87,6 +87,14 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         raise NotImplementedError("Subclasses must implement build_model method.")
         pass
 
+    def predict(self, data: dict[str : np.ndarray], batch_size=2048, verbose=0):
+        raise NotImplementedError("Subclasses must implement predict method.")
+        pass
+    
+    def complete_forward_pass_dict(self, data: dict[str : np.ndarray]):
+        raise NotImplementedError("Subclasses must implement complete_forward_pass_dict method.")
+        pass
+
     def prepare_training_data(
         self, X, y=None, sample_weights=None, class_weights=None, copy_data=False
     ):
@@ -487,3 +495,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
 
     def compute_sample_weights(self, X):
         return utils.compute_sample_weights(X)
+
+    def evaluate(self, X, y_true):
+        y_pred = self.predict(X)
+        return utils.evaluate(y_true, y_pred)

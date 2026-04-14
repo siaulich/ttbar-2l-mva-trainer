@@ -255,6 +255,27 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
                 self, data
             )
         return assignment_predictions, neutrino_reconstruction
+    
+    def complete_forward_pass_dict(self, data: dict[str : np.ndarray]):
+        if self.model is None:
+            raise ValueError(
+                "Model not built. Please build the model using build_model() method."
+            )
+        predictions = self.predict(data)
+        assignment_predictions = self.generate_one_hot_encoding(
+            predictions["assignment"], exclusive=True
+        )
+        if "regression" in predictions:
+            neutrino_reconstruction = predictions["regression"]
+        else:
+            neutrino_reconstruction = EventReconstructorBase.reconstruct_neutrinos(
+                self, data
+            )
+        return {
+            "assignment": assignment_predictions,
+            "regression": neutrino_reconstruction,
+        }
+
 
     def adapt_output_layer_scales(self, data):
         if (

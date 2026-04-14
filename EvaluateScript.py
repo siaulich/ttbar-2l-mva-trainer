@@ -2,36 +2,22 @@ import sys
 import argparse
 import os
 import numpy as np
-import yaml
-from dacite import from_dict, Config
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Tuple, Any
 import matplotlib.pyplot as plt
 
 plt.rcParams["font.size"] = 18
 import matplotlib as mpl
 
 mpl.rcParams["figure.constrained_layout.use"] = True
-from core import DataConfig, LoadConfig, load_yaml_config, get_load_config_from_yaml
 from core.DataLoader import DataPreprocessor
 from core import evaluation, reconstruction, base_classes
-
-from core.configs import EvaluationConfig
-
-
-def load_evaluation_config(path: str) -> EvaluationConfig:
-    with open(path) as f:
-        raw = yaml.safe_load(f)
-
-    return from_dict(
-        data_class=EvaluationConfig,
-        data=raw,
-        config=Config(cast=[tuple]),  # converts list → tuple for range
-    )
+from core.configs import (
+    get_load_config_from_yaml,
+    load_evaluation_config,
+)
 
 
 def parse_args():
-    #"""Parse command line arguments for running the evaluation script."""
+    # """Parse command line arguments for running the evaluation script."""
     parser = argparse.ArgumentParser(
         description="Evaluate trained models on specified datasets"
     )
@@ -190,9 +176,7 @@ if __name__ == "__main__":
         evaluator.plot_neutrino_deviation_evaluation(
             save_dir=neutrino_deviation_directory
         )
-        print(
-            f"Saved all neutrino deviation evaluation plots"
-        )
+        print(f"Saved all neutrino deviation evaluation plots")
     for idx, binning_cfg in enumerate(evaluation_config.binning_variables):
         binned_variable_output_dir = os.path.join(
             binned_performance_directory, f"{binning_cfg.feature_name}"

@@ -22,7 +22,7 @@ class CrossAttentionAssigner(KerasFFRecoBase):
         dropout_rate=0.1,
         log_variables=False,
         compute_HLF=False,
-        use_global_event_inputs=False,
+        use_global_event_inputs=True,
     ):
         """
         Builds the Assignment Transformer model.
@@ -36,7 +36,8 @@ class CrossAttentionAssigner(KerasFFRecoBase):
         """
         # Input layers
         normed_inputs, masks = self._prepare_inputs(
-            log_variables=log_variables, compute_HLF=True,
+            log_variables=log_variables,
+            compute_HLF=True,
             use_global_event_inputs=use_global_event_inputs,
         )
 
@@ -47,20 +48,23 @@ class CrossAttentionAssigner(KerasFFRecoBase):
         normed_HLF_inputs = normed_inputs["hlf_inputs"]
         jet_mask = masks["jet_mask"]
 
-        global_inputs = keras.layers.Concatenate(axis=-1)(
-            [normed_met_inputs, normed_global_event_inputs]
-        )
-
-        flatted_met_inputs = keras.layers.Flatten()(global_inputs)
+        flatted_global_vector = keras.layers.Flatten()(normed_met_inputs)
+        if use_global_event_inputs:
+            flatted_global_inputs = keras.layers.Flatten()(normed_global_event_inputs)
+            flatted_global_vector = keras.layers.Concatenate(axis=-1)(
+                [flatted_global_inputs, flatted_global_vector]
+            )
 
         # Add met features to jets and leptons
-        met_repeated_jets = keras.layers.RepeatVector(self.max_jets)(flatted_met_inputs)
+        met_repeated_jets = keras.layers.RepeatVector(self.max_jets)(
+            flatted_global_vector
+        )
         jet_inputs = keras.layers.Concatenate(axis=-1)(
             [normed_jet_inputs, met_repeated_jets]
         )
 
         met_repeated_leps = keras.layers.RepeatVector(self.NUM_LEPTONS)(
-            flatted_met_inputs
+            flatted_global_vector
         )
         lep_features = keras.layers.Concatenate(axis=-1)(
             [normed_lep_inputs, met_repeated_leps]
@@ -80,47 +84,57 @@ class CrossAttentionAssigner(KerasFFRecoBase):
         )(lep_features)
 
         # Transformer layers
-        jet_self_attn = jet_embedding
-        lep_self_attn = lep_embedding
-        num_encoder_layers = num_layers // 2
-        num_decoder_layers = num_layers // 2
+        jet_sequence = jet_embedding
+        lep_sequence = lep_embedding
 
-        for i in range(num_encoder_layers):
-            jet_self_attn = components.SelfAttentionBlock(
+        for i in range(num_layers):
+            jet_sequence = components.SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
-                name=f"jets_self_attention_{i}",
-            )(jet_self_attn, mask=jet_mask)
-            lep_self_attn = components.SelfAttentionBlock(
+                name=f"jet_self_attention_{i}",
+            )(jet_sequence, mask=jet_mask)
+
+            lep_sequence = components.MultiHeadAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
-                name=f"leps_self_attention_{i}",
-            )(lep_self_attn)
+                name=f"cross_attention_lep_jet_{i}",
+            )(query=lep_sequence, value=jet_sequence, key=jet_sequence, value_mask=jet_mask, key_mask=jet_mask)
 
-        leptons_attent_jets = lep_self_attn
-        jets_attent_leptons = jet_self_attn
-
-        for i in range(num_decoder_layers):
-            jets_attent_leptons = components.MultiHeadAttentionBlock(
+            lep_sequence = components.SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
-                dropout_rate=dropout_rate if i < num_decoder_layers - 1 else 0.0,
-                name=f"jets_cross_attention_{i}",
-            )(
-                jets_attent_leptons,
-                leptons_attent_jets,
-                key_mask=None,
-                query_mask=jet_mask,
-            )
+                dropout_rate=dropout_rate,
+                name=f"lep_self_attention_{i}",
+            )(lep_sequence)
 
-        # Output layers
-        jet_assignment_probs = components.JetLeptonAssignment(
-            name="assignment", dim=hidden_dim
-        )(jets_attent_leptons, leptons_attent_jets, jet_mask=jet_mask)
+            jet_sequence = components.MultiHeadAttentionBlock(
+                num_heads=num_heads,
+                key_dim=hidden_dim,
+                dropout_rate=dropout_rate,
+                name=f"cross_attention_jet_lep_{i}",
+            )(query=jet_sequence, value=lep_sequence, key=lep_sequence, query_mask=jet_mask)
 
-        self._build_model_base(jet_assignment_probs, name="CrossAttentionModel")
+        # Assignment Head
+        jet_assignment_output = components.MLP(
+            output_dim=hidden_dim,
+            name="jet_assignment_mlp",
+            num_layers=2,
+        )(jet_sequence)
+        lepton_assignment_output = components.MLP(
+            output_dim=hidden_dim,
+            name="lepton_assignment_mlp",
+            num_layers=2,
+        )(lep_sequence)
+        assignment_logits = components.JetLeptonAssignment(
+            dim=hidden_dim, name="assignment"
+        )(
+            jets=jet_assignment_output,
+            leptons=lepton_assignment_output,
+            jet_mask=jet_mask,
+        )
+        self._build_model_base(assignment_logits, name="CrossAttentionModel")
 
 
 class FeatureConcatAssigner(KerasFFRecoBase):

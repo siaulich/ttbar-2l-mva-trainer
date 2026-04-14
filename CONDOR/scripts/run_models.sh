@@ -4,8 +4,8 @@ universe = vanilla
 
 # Resource requirements
 RequestGPUs    = 1
-RequestMemory  = 60000
-+RequestRuntime = 120000
+RequestMemory  = 16000
++RequestRuntime = 36000
 
 # Output files
 output = logs/job_$(Cluster)_$(ModelName)_$(ConfigName).out
