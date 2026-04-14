@@ -1419,7 +1419,7 @@ class ReconstructionPlotter:
         num_plots = len(self.prediction_manager.reconstructors)  # Exclude ground truth
         num_cols = np.ceil(np.sqrt(num_plots)).astype(int)
         num_rows = np.ceil(num_plots / num_cols).astype(int)
-        
+
         figures = {}
 
         for reco_index, reconstructed, name in zip(
@@ -1438,7 +1438,7 @@ class ReconstructionPlotter:
             figures[name] = (fig, ax)
             # Add correlation coefficient to axis
             corr_coeff = np.corrcoef(truth, reconstructed)[0, 1]
-            ampl.draw_tag(text = f"Corr: {corr_coeff:.2f}", ax=ax)
+            ampl.draw_tag(text=f"Corr: {corr_coeff:.2f}", ax=ax)
         return figures
 
     # ==================== Binned Variable Resolution/Deviation Methods ====================

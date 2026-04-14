@@ -100,7 +100,13 @@ class CrossAttentionAssigner(KerasFFRecoBase):
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
                 name=f"cross_attention_lep_jet_{i}",
-            )(query=lep_sequence, value=jet_sequence, key=jet_sequence, value_mask=jet_mask, key_mask=jet_mask)
+            )(
+                query=lep_sequence,
+                value=jet_sequence,
+                key=jet_sequence,
+                value_mask=jet_mask,
+                key_mask=jet_mask,
+            )
 
             lep_sequence = components.SelfAttentionBlock(
                 num_heads=num_heads,
@@ -114,7 +120,12 @@ class CrossAttentionAssigner(KerasFFRecoBase):
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
                 name=f"cross_attention_jet_lep_{i}",
-            )(query=jet_sequence, value=lep_sequence, key=lep_sequence, query_mask=jet_mask)
+            )(
+                query=jet_sequence,
+                value=lep_sequence,
+                key=lep_sequence,
+                query_mask=jet_mask,
+            )
 
         # Assignment Head
         jet_assignment_output = components.MLP(

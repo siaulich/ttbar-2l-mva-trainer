@@ -169,10 +169,11 @@ class BaselineAssigner(EventReconstructorBase):
 
 
 class DeltaRAssigner(BaselineAssigner):
-    def __init__(self,config : DataConfig, name=None, **kwargs):
+    def __init__(self, config: DataConfig, name=None, **kwargs):
         super().__init__(
             config,
-            name=(name if name is not None else r"$\Delta R(\ell,j)$-Method"), **kwargs
+            name=(name if name is not None else r"$\Delta R(\ell,j)$-Method"),
+            **kwargs
         )
         """Initializes the DeltaRAssigner class.
         Args:

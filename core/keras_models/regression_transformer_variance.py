@@ -132,9 +132,9 @@ class CompactReconstructorVariance(KerasFFGaussian):
             num_layers=3,
         )(regression_inputs)
 
-        regression_outputs = keras.layers.Concatenate(name="normalized_regression", axis = -1)(
-            [regression_mean, regression_var]
-        )
+        regression_outputs = keras.layers.Concatenate(
+            name="normalized_regression", axis=-1
+        )([regression_mean, regression_var])
 
         self._build_model_base(
             jet_assignment_probs=assignment_probs,

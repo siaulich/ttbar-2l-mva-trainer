@@ -33,8 +33,9 @@ def parse_args():
         required=True,
         help="Path to the directory containing the pre-trained model and its configuration files",
     )
-    
+
     return parser.parse_args()
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -52,7 +53,10 @@ if __name__ == "__main__":
             model_path = os.path.join(model_dir, file)
             keras_model = keras_models._get_model(model_config.model_type)(data_config)
             keras_model.load_model(model_path)
-            keras_model.export_to_onnx(os.path.join(model_dir, file.replace(".keras", ".onnx")))
-            print(f"Updated model loaded from {model_path} and exported to ONNX format.")
+            keras_model.export_to_onnx(
+                os.path.join(model_dir, file.replace(".keras", ".onnx"))
+            )
+            print(
+                f"Updated model loaded from {model_path} and exported to ONNX format."
+            )
     print("Model update process completed successfully.")
-

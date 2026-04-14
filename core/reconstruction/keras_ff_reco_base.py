@@ -255,7 +255,7 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
                 self, data
             )
         return assignment_predictions, neutrino_reconstruction
-    
+
     def complete_forward_pass_dict(self, data: dict[str : np.ndarray]):
         if self.model is None:
             raise ValueError(
@@ -275,7 +275,6 @@ class KerasFFRecoBase(EventReconstructorBase, KerasMLWrapper):
             "assignment": assignment_predictions,
             "regression": neutrino_reconstruction,
         }
-
 
     def adapt_output_layer_scales(self, data):
         if (

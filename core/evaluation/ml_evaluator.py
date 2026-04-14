@@ -315,7 +315,7 @@ class MLEvaluator:
         }
 
         return results
-    
+
     def evaluate_num_training_epochs_idx(self, reconstructor_idx: int = 0) -> dict:
         """
         Evaluate the number of training epochs for the specified reconstructor.
@@ -324,7 +324,7 @@ class MLEvaluator:
             reconstructor_idx: Index of reconstructor to evaluate (default: 0)
         Returns:
             Dictionary containing number of training epochs
-        """        
+        """
         reconstructor = self.reconstructors[reconstructor_idx]
 
         num_epochs = np.argmin(reconstructor.history.history["loss"])

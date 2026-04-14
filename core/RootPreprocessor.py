@@ -796,19 +796,19 @@ class RootPreprocessor:
         )
 
         truth_c_hel = c_hel(
-                np.stack([top_px, top_py, top_pz, top_e], axis=1),
-                np.stack([tbar_px, tbar_py, tbar_pz, tbar_e], axis=1),
-                np.stack([top_lep_px, top_lep_py, top_lep_pz, lep_top_e], axis=1),
-                np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz, lep_tbar_e], axis=1),
-            )
-        
+            np.stack([top_px, top_py, top_pz, top_e], axis=1),
+            np.stack([tbar_px, tbar_py, tbar_pz, tbar_e], axis=1),
+            np.stack([top_lep_px, top_lep_py, top_lep_pz, lep_top_e], axis=1),
+            np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz, lep_tbar_e], axis=1),
+        )
+
         truth_c_han = c_han(
-                np.stack([top_px, top_py, top_pz, top_e], axis=1),
-                np.stack([tbar_px, tbar_py, tbar_pz, tbar_e], axis=1),
-                np.stack([top_lep_px, top_lep_py, top_lep_pz, lep_top_e], axis=1),
-                np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz, lep_tbar_e], axis=1),
-            )
-        
+            np.stack([top_px, top_py, top_pz, top_e], axis=1),
+            np.stack([tbar_px, tbar_py, tbar_pz, tbar_e], axis=1),
+            np.stack([top_lep_px, top_lep_py, top_lep_pz, lep_top_e], axis=1),
+            np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz, lep_tbar_e], axis=1),
+        )
+
         truth_c_hel = np.clip(truth_c_hel, -1, 1)
         truth_c_han = np.clip(truth_c_han, -1, 1)
 

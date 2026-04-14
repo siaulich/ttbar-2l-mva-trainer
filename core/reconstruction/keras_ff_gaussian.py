@@ -136,7 +136,9 @@ class KerasFFGaussian(EventReconstructorBase, KerasMLWrapper):
                 raise ValueError(
                     "Regression layer is not a Rescaling layer. Cannot prepare regression targets."
                 )
-            regression_std = upscale_layer.scale[..., :3]  # Assuming the first 3 entries correspond to the regression output
+            regression_std = upscale_layer.scale[
+                ..., :3
+            ]  # Assuming the first 3 entries correspond to the regression output
             if isinstance(regression_data, dict):
                 y_train["normalized_regression"] = {}
                 for key in regression_data:
@@ -257,7 +259,9 @@ class KerasFFGaussian(EventReconstructorBase, KerasMLWrapper):
                     loc=neutrino_momenta_mean, scale=np.sqrt(neutrino_momenta_var)
                 )
         else:
-            print("No regression output found in model predictions. Using default neutrino reconstruction.")
+            print(
+                "No regression output found in model predictions. Using default neutrino reconstruction."
+            )
             neutrino_reconstruction = EventReconstructorBase.reconstruct_neutrinos(
                 self, data
             )
@@ -269,7 +273,9 @@ class KerasFFGaussian(EventReconstructorBase, KerasMLWrapper):
             and "normalized_regression" in self.model.output_names
         ):
             denormalisation_layer = keras.layers.Rescaling(
-                scale=np.array([1e5,1e5,1e5,1e10,1e10,1e10]),  # Scale neutrinos to 100 GeV by default
+                scale=np.array(
+                    [1e5, 1e5, 1e5, 1e10, 1e10, 1e10]
+                ),  # Scale neutrinos to 100 GeV by default
                 name="regression",
             )
             outputs = self.model.output

@@ -266,7 +266,7 @@ class ConfusionMatrixPlotter:
                 cmap="Blues",
                 cbar_kws={"label": "Normalized Count" if normalize else "Count"},
             )
-            ampl.draw_tag( tag=name, ax=axes[i])
+            ampl.draw_tag(tag=name, ax=axes[i])
             ampl.set_xlabel("Predicted Label", ax=axes[i])
             ampl.set_ylabel("True Label", ax=axes[i])
             ampl.draw_atlas_label(
@@ -340,7 +340,7 @@ class ConfusionMatrixPlotter:
             x=0.02, y=0.98, ax=axes, status="Simulation Work in Progress"
         )
         ampl.draw_legend(ax=axes)
-        #axes.get_figure().colorbar(mesh, ax=axes, label="Normalized Count" if normalize else "Count")
+        # axes.get_figure().colorbar(mesh, ax=axes, label="Normalized Count" if normalize else "Count")
         return axes
 
 
@@ -501,5 +501,16 @@ class DistributionPlotter:
 
 
 def convert_reco_name(string: str) -> str:
-    """Convert printable latex-like reconstructor name to a file-name.""" 
-    return string.replace(" ", "_").replace("$", "").replace("{", "").replace("}", "").replace("$", "").replace("\\", "").replace("/", "_").replace("(", "").replace(")", "").lower()
+    """Convert printable latex-like reconstructor name to a file-name."""
+    return (
+        string.replace(" ", "_")
+        .replace("$", "")
+        .replace("{", "")
+        .replace("}", "")
+        .replace("$", "")
+        .replace("\\", "")
+        .replace("/", "_")
+        .replace("(", "")
+        .replace(")", "")
+        .lower()
+    )

@@ -14,12 +14,12 @@ from typing import Optional, Dict, List, Tuple, Any
 import numpy as np
 import yaml
 
+
 def load_yaml_config(file_path):
     """Load a YAML configuration file."""
     with open(file_path, "r") as file:
         config = yaml.safe_load(file)
     return config
-
 
 
 @dataclass
@@ -67,6 +67,7 @@ class EvaluationConfig:
         default_factory=list
     )
 
+
 def load_evaluation_config(path: str) -> EvaluationConfig:
     with open(path) as f:
         raw = yaml.safe_load(f)
@@ -83,6 +84,7 @@ class HyperParameter:
     name: str
     values: List[Any]
 
+
 @dataclass
 class HyperParameterModel:
     type: str
@@ -90,11 +92,13 @@ class HyperParameterModel:
     file_name_pattern: str
     options: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class HyperParameterEvaluationConfig:
     model_architecture: HyperParameterModel
     hyperparameters: List[HyperParameter] = field(default_factory=list)
     evaluation_event_numbers: str = "odd"
+
 
 def load_hyperparameter_evaluation_config(path: str) -> HyperParameterEvaluationConfig:
     with open(path) as f:

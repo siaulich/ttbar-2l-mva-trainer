@@ -90,9 +90,11 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
     def predict(self, data: dict[str : np.ndarray], batch_size=2048, verbose=0):
         raise NotImplementedError("Subclasses must implement predict method.")
         pass
-    
+
     def complete_forward_pass_dict(self, data: dict[str : np.ndarray]):
-        raise NotImplementedError("Subclasses must implement complete_forward_pass_dict method.")
+        raise NotImplementedError(
+            "Subclasses must implement complete_forward_pass_dict method."
+        )
         pass
 
     def prepare_training_data(
@@ -485,7 +487,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         for output_name in model_outputs.keys():
             meta = onnx_model.metadata_props.add()
             meta.key = output_name + "_shape"
-            meta.value = ",".join(str(dim) for dim in model_outputs[output_name].shape[1:])
+            meta.value = ",".join(
+                str(dim) for dim in model_outputs[output_name].shape[1:]
+            )
 
         # Save ONNX model
         onnx.save_model(onnx_model, onnx_file_path)

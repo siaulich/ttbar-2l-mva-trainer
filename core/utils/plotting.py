@@ -77,11 +77,15 @@ def evaluate(y_true, y_pred):
     """
     true_assignment = y_true["assignment"]
     predicted_assignment = y_pred["assignment"]
-    evaluate_assignment = np.mean(np.all(true_assignment == predicted_assignment, axis=[1,2]))
+    evaluate_assignment = np.mean(
+        np.all(true_assignment == predicted_assignment, axis=[1, 2])
+    )
 
     regression_true = y_true["regression"]
     regression_pred = y_pred["regression"]
-    evaluate_regression = np.mean(np.square(regression_true - regression_pred).sum(axis=[1,2]))
+    evaluate_regression = np.mean(
+        np.square(regression_true - regression_pred).sum(axis=[1, 2])
+    )
     return {
         "assignment": evaluate_assignment,
         "regression": evaluate_regression,

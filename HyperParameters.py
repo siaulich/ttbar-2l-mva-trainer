@@ -92,7 +92,7 @@ if __name__ == "__main__":
 
     # Create dataframe with multi-index and models column
     model_data_frame = pd.DataFrame(index=multi_index)
-    assignment_accuracy= pd.Series(index=model_data_frame.index, dtype=float)
+    assignment_accuracy = pd.Series(index=model_data_frame.index, dtype=float)
     regression_mse = pd.Series(index=model_data_frame.index, dtype=float)
     num_trainable_parameters = pd.Series(index=model_data_frame.index, dtype=int)
     inference_time_per_event = pd.Series(index=model_data_frame.index, dtype=float)
@@ -127,21 +127,32 @@ if __name__ == "__main__":
         print(f"Loaded model from {file_name} for evaluation.")
         ml_evaluator = evaluation.MLEvaluator([model], X, y)
         evaluation_results = ml_evaluator.evaluate_idx(0)
-        assignment_accuracy.loc[hyperparameter_combination] = evaluation_results["assignment_accuracy"]
-        regression_mse.loc[hyperparameter_combination] = evaluation_results["regression_mse"]
-        num_trainable_parameters.loc[hyperparameter_combination] = ml_evaluator.evaluate_num_parameters_idx(0)["num_trainable_parameters"]
-        inference_time_per_event.loc[hyperparameter_combination] = ml_evaluator.evaluate_inference_time_idx(0)["time_per_sample"]
-        training_epochs.loc[hyperparameter_combination] = ml_evaluator.evaluate_num_training_epochs_idx(0)["num_training_epochs"]
+        assignment_accuracy.loc[hyperparameter_combination] = evaluation_results[
+            "assignment_accuracy"
+        ]
+        regression_mse.loc[hyperparameter_combination] = evaluation_results[
+            "regression_mse"
+        ]
+        num_trainable_parameters.loc[hyperparameter_combination] = (
+            ml_evaluator.evaluate_num_parameters_idx(0)["num_trainable_parameters"]
+        )
+        inference_time_per_event.loc[hyperparameter_combination] = (
+            ml_evaluator.evaluate_inference_time_idx(0)["time_per_sample"]
+        )
+        training_epochs.loc[hyperparameter_combination] = (
+            ml_evaluator.evaluate_num_training_epochs_idx(0)["num_training_epochs"]
+        )
         del ml_evaluator
         del model
-    
+
     model_data_frame["assignment_accuracy"] = assignment_accuracy
     model_data_frame["regression_mse"] = regression_mse
     model_data_frame["num_trainable_parameters"] = num_trainable_parameters
     model_data_frame["inference_time_per_event"] = inference_time_per_event
     model_data_frame["training_epochs"] = training_epochs
     # Save evaluation results to CSV
-    output_csv_path = os.path.join(args.output_dir, "hyperparameter_evaluation_results.csv")
+    output_csv_path = os.path.join(
+        args.output_dir, "hyperparameter_evaluation_results.csv"
+    )
     model_data_frame.to_csv(output_csv_path)
     print(f"Saved hyperparameter evaluation results to {output_csv_path}.")
-    
