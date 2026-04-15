@@ -87,7 +87,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         raise NotImplementedError("Subclasses must implement build_model method.")
         pass
 
-    def predict(self, data: dict[str : np.ndarray], batch_size=2048, verbose=0):
+    def complete_forward_pass(
+        self, data: dict[str : np.ndarray], batch_size=2048, verbose=0
+    ):
         raise NotImplementedError("Subclasses must implement predict method.")
         pass
 
@@ -285,7 +287,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
             np.savez(history_path, **self.history.history)
         print(f"Model saved to {file_path}")
 
-    def load_model(self, file_path, model_id=None):
+    def load_model(self, file_path):
         """
         Loads a pre-trained Keras model from the specified file path.
 
@@ -303,17 +305,14 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
             if isinstance(obj, type) and issubclass(obj, keras.layers.Layer)
         }
         custom_objects.update({"keras.models.Model": keras.models.Model})
-        self.model_id = model_id
 
         self.model = keras.saving.load_model(file_path, custom_objects=custom_objects)
-        print(f"Model loaded from {file_path}")
         history_path = file_path.replace(".keras", "_history.npz")
         if os.path.exists(history_path):
             loaded_history = np.load(history_path, allow_pickle=True)
             history_dict = {key: loaded_history[key].tolist() for key in loaded_history}
             self.history = keras.callbacks.History()
             self.history.history = history_dict
-            print(f"Training history loaded from {history_path}")
         else:
             print(f"WARNING: No training history found at {history_path}")
 

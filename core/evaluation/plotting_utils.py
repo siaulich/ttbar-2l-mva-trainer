@@ -276,72 +276,117 @@ class ConfusionMatrixPlotter:
         # Remove unused subplots
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
-        # fig.suptitle("Confusion Matrix")
 
         return fig, axes[: i + 1]
 
     @staticmethod
-    def plot_variable_confusion_matrix(
-        true_values: np.ndarray,
-        predicted_values: np.ndarray,
+    def plot_variable_confusion_matrices(
+        truth: np.ndarray,
+        reconstructed_list: list[np.ndarray],
+        reconstructor_names: List[str],
         variable_label: str,
-        axes: plt.Axes,
-        bins: np.ndarray,
         normalize: Optional[str] = None,
-        plot_mean=False,
+        bins: int = 10,
+        xlims: Optional[Tuple[float, float]] = None,
+        figsize_per_plot: Tuple[int, int] = (5, 5),
+        plot_mean: bool = False,
         **kwargs,
     ):
         """Plot confusion matrix for a specific variable."""
-
-        hist, xedges, yedges = np.histogram2d(
-            true_values, predicted_values, bins=[bins, bins]
-        )
-
-        if normalize == "true":
-            hist = hist / (hist.sum(axis=1, keepdims=True) + 1e-6)
-        elif normalize == "pred":
-            hist = hist / (hist.sum(axis=0, keepdims=True) + 1e-6)
-        elif normalize == "all":
-            hist = hist / (hist.sum() + 1e-6)
-        else:
-            pass  # No normalization
-
-        mesh, cbar = ampl.plot.plot_2d(
-            xedges,
-            yedges,
-            hist.T,
-            ax=axes,
-            **kwargs,
-        )
-
-        if plot_mean:
-            bin_centers_x = 0.5 * (xedges[:-1] + xedges[1:])
-            avg_y = []
-            for i in range(len(xedges) - 1):
-                mask = (true_values.flatten() >= xedges[i]) & (
-                    true_values.flatten() < xedges[i + 1]
-                )
-                if np.sum(mask) > 0:
-                    avg_y.append(np.mean(predicted_values.flatten()[mask]))
-                else:
-                    avg_y.append(np.nan)
-            axes.plot(
-                bin_centers_x,
-                avg_y,
-                color="red",
-                marker="o",
-                linestyle="--",
-                label=f"Mean Prediction",
+        if xlims is None:
+            xlims = np.min(np.concatenate([*reconstructed_list, truth])), np.max(
+                np.concatenate([*reconstructed_list, truth])
             )
 
-        ampl.set_xlabel(f"True {variable_label}", ax=axes)
-        ampl.set_ylabel(f"Reco {variable_label}", ax=axes)
-        ampl.draw_atlas_label(
-            x=0.02, y=0.98, ax=axes, status="Simulation Work in Progress"
+        # Digitize into bins
+        bin_edges = np.linspace(
+            xlims[0],
+            xlims[1],
+            bins + 1,
         )
-        ampl.draw_legend(ax=axes)
-        # axes.get_figure().colorbar(mesh, ax=axes, label="Normalized Count" if normalize else "Count")
-        return axes
+        num_plots = len(reconstructor_names)  # Exclude ground truth
+        num_cols = np.ceil(np.sqrt(num_plots)).astype(int)
+        num_rows = np.ceil(num_plots / num_cols).astype(int)
+
+        fig, axes = plt.subplots(
+            num_rows,
+            num_cols,
+            figsize=(figsize_per_plot[0] * num_cols, figsize_per_plot[1] * num_rows),
+            constrained_layout=True,
+        )
+        axes = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
+        hist_list = []
+        for i, (reco_name, reconstructed) in enumerate(
+            zip(reconstructor_names, reconstructed_list)
+        ):
+
+            hist, xedges, yedges = np.histogram2d(
+                truth, reconstructed, bins=[bin_edges, bin_edges]
+            )
+
+            if normalize == "true":
+                hist = hist / (hist.sum(axis=1, keepdims=True) + 1e-6)
+            elif normalize == "pred":
+                hist = hist / (hist.sum(axis=0, keepdims=True) + 1e-6)
+            elif normalize == "all":
+                hist = hist / (hist.sum() + 1e-6)
+            else:
+                pass  # No normalization
+            hist_list.append(hist)
+
+        # Create common color scale across all plots
+        all_hist = np.concatenate(hist_list)
+        vmin = np.nanmin(all_hist)
+        vmax = np.nanmax(all_hist)
+        for i, (reco_name, hist, reconstructed) in enumerate(
+            zip(reconstructor_names, hist_list, reconstructed_list)
+        ):
+
+            ax = axes[i]
+            im = ax.imshow(
+                hist.T,
+                origin="lower",
+                aspect="auto",
+                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
+                vmin=vmin,
+                vmax=vmax,
+                **kwargs,
+            )
+
+            if plot_mean:
+                bin_centers_x = 0.5 * (xedges[:-1] + xedges[1:])
+                avg_y = []
+                for i in range(len(xedges) - 1):
+                    mask = (truth.flatten() >= xedges[i]) & (
+                        truth.flatten() < xedges[i + 1]
+                    )
+                    if np.sum(mask) > 0:
+                        avg_y.append(np.mean(reconstructed.flatten()[mask]))
+                    else:
+                        avg_y.append(np.nan)
+                ax.plot(
+                    bin_centers_x,
+                    avg_y,
+                    color="red",
+                    marker="o",
+                    linestyle="--",
+                    label=f"Mean Prediction",
+                )
+
+            ampl.set_xlabel(f"True {variable_label}", ax=ax)
+            ampl.set_ylabel(f"Reco {variable_label}", ax=ax)
+            ampl.draw_atlas_label(
+                x=0.02,
+                y=0.98,
+                ax=ax,
+                status="Simulation Work in Progress",
+                desc=f"Corr. {np.corrcoef(truth.flatten(), reconstructed.flatten())[0, 1]:.2f}",
+            )
+            ax.set_title(reco_name)
+        fig.colorbar(
+            im, ax=axes, label="Normalized Count" if normalize else "Count", shrink=0.6
+        )
+        return fig, axes
 
 
 class ResolutionPlotter:

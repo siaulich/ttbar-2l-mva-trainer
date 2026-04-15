@@ -14,7 +14,7 @@ from .evaluator_utils import (
     SelectionAccuracyCalculator,
     NeutrinoDeviationCalculator,
 )
-from ..reconstruction import KerasFFRecoBase
+from ..base_classes import KerasMLWrapper
 from typing import List, Union
 import time
 import os
@@ -25,7 +25,7 @@ class FeatureImportanceCalculator:
 
     def __init__(
         self,
-        reconstructor: KerasFFRecoBase,
+        reconstructor: KerasMLWrapper,
         X_test: dict,
         y_test: dict,
     ):
@@ -54,12 +54,13 @@ class FeatureImportanceCalculator:
                 "permutation importance."
             )
 
-        assignment_baseline_prediction, regression_baseline_prediction = (
-            self.reconstructor.complete_forward_pass(self.X_test)
-        )
+        (
+            assignment_baseline_complete_forward_passion,
+            regression_baseline_complete_forward_passion,
+        ) = self.reconstructor.complete_forward_pass(self.X_test)
 
         assignment_baseline_performance = AccuracyCalculator.compute_accuracy(
-            assignment_baseline_prediction,
+            assignment_baseline_complete_forward_passion,
             self.y_test["assignment"],
             per_event=False,
         )
@@ -69,7 +70,7 @@ class FeatureImportanceCalculator:
         if evaluate_regression:
             regression_baseline_performance = (
                 NeutrinoDeviationCalculator.compute_relative_deviation(
-                    regression_baseline_prediction,
+                    regression_baseline_complete_forward_passion,
                     self.y_test["regression"],
                 )
             )
@@ -188,7 +189,7 @@ class MLEvaluator:
 
     def __init__(
         self,
-        reconstructor: Union[KerasFFRecoBase, List[KerasFFRecoBase]],
+        reconstructor: Union[KerasMLWrapper, List[KerasMLWrapper]],
         X_test: Union[dict, List[dict]],
         y_test: Union[dict, List[dict]],
     ):
@@ -840,14 +841,16 @@ class MLEvaluator:
             if not reconstructor.perform_regression:
                 model_name = reconstructor.get_assignment_name()
             else:
-                model_name = reconstructor.get_full_reco_name()  # Get predictions
+                model_name = (
+                    reconstructor.get_full_reco_name()
+                )  # Get complete_forward_passions
             assignment_pred, _ = reconstructor.complete_forward_pass(self.X_test[idx])
 
             # Compute accuracy with bootstrap
             acc_mean, acc_lower, acc_upper = BootstrapCalculator.compute_bootstrap_ci(
                 data=AccuracyCalculator.compute_accuracy(
                     true_labels=self.y_test[idx]["assignment"],
-                    predictions=assignment_pred,
+                    complete_forward_passions=assignment_pred,
                     per_event=True,
                 ),
                 n_bootstrap=n_bootstrap,
@@ -857,7 +860,7 @@ class MLEvaluator:
                 BootstrapCalculator.compute_bootstrap_ci(
                     data=SelectionAccuracyCalculator.compute_selection_accuracy(
                         true_labels=self.y_test[idx]["assignment"],
-                        predictions=assignment_pred,
+                        complete_forward_passions=assignment_pred,
                         per_event=True,
                     ),
                     n_bootstrap=n_bootstrap,

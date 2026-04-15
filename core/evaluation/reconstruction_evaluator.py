@@ -1384,7 +1384,7 @@ class ReconstructionPlotter:
         bins: int = 10,
         xlims: Optional[Tuple[float, float]] = None,
         figsize_per_plot: Tuple[int, int] = (7, 7),
-        normalize: str = "all",
+        normalize: str = "true",
         **kwargs,
     ):
         """Plot confusion matrices for all reconstructors for a specific variable."""
@@ -1405,41 +1405,17 @@ class ReconstructionPlotter:
             )
             names.append(reconstructor.get_full_reco_name())
 
-        if xlims is None:
-            xlims = np.min(np.concatenate([*reconstructed_list, truth])), np.max(
-                np.concatenate([*reconstructed_list, truth])
-            )
-
-        # Digitize into bins
-        bin_edges = np.linspace(
-            xlims[0],
-            xlims[1],
-            bins + 1,
+        return ConfusionMatrixPlotter.plot_variable_confusion_matrices(
+            truth,
+            reconstructed_list,
+            names,
+            variable_label=variable_label,
+            normalize=normalize,
+            bins=bins,
+            xlims=xlims,
+            figsize_per_plot=figsize_per_plot,
+            **kwargs,
         )
-        num_plots = len(self.prediction_manager.reconstructors)  # Exclude ground truth
-        num_cols = np.ceil(np.sqrt(num_plots)).astype(int)
-        num_rows = np.ceil(num_plots / num_cols).astype(int)
-
-        figures = {}
-
-        for reco_index, reconstructed, name in zip(
-            range(len(reconstructed_list)), reconstructed_list, names
-        ):
-            fig, ax = plt.subplots(figsize=figsize_per_plot)
-            ConfusionMatrixPlotter.plot_variable_confusion_matrix(
-                truth,
-                reconstructed,
-                variable_label,
-                ax,
-                bin_edges,
-                normalize=normalize,
-                **kwargs,
-            )
-            figures[name] = (fig, ax)
-            # Add correlation coefficient to axis
-            corr_coeff = np.corrcoef(truth, reconstructed)[0, 1]
-            ampl.draw_tag(text=f"Corr: {corr_coeff:.2f}", ax=ax)
-        return figures
 
     # ==================== Binned Variable Resolution/Deviation Methods ====================
 
@@ -2029,18 +2005,16 @@ class ReconstructionPlotter:
             config = self.variable_configs[variable_key]
             variable_label = config["label"]
 
-            figs = self.plot_variable_confusion_matrix_for_all_reconstructors(
+            fig, axes = self.plot_variable_confusion_matrix_for_all_reconstructors(
                 variable_name=variable_key,
                 variable_label=variable_label,
                 **kwargs,
             )
             if save_dir is not None:
-                for reco_name in figs:
-                    fig, ax = figs[reco_name]
-                    file_name = f"{variable_key}_{convert_reco_name(reco_name)}_confusion_matrix.pdf"
-                    file_path = os.path.join(save_dir, file_name)
-                    fig.savefig(file_path)
-                    plt.close(fig)
+                file_name = f"{variable_key}_confusion_matrices.pdf"
+                file_path = os.path.join(save_dir, file_name)
+                fig.savefig(file_path)
+            plt.close(fig)
 
     def plot_accuracy_evaluation(self, save_dir: Optional[str] = None, **kwargs):
         """
@@ -2135,25 +2109,25 @@ class ReconstructionPlotter:
         if accuracy_only:
             return
 
-        for variable_key in self.variable_configs.keys():
+        # for variable_key in self.variable_configs.keys():
 
-            fig, ax = self.plot_binned_variable(
-                variable_key=variable_key,
-                metric_type="deviation",
-                feature_data_type=feature_type,
-                feature_name=feature_name,
-                fancy_feature_label=fancy_feature_label,
-                **kwargs,
-            )
-            if rescale_factor is not None:
-                scale_axis_tick_labels(ax, rescale_factor)
-            if center_bins:
-                center_axis_ticks(ax)
-            if save_dir is not None:
-                file_name = f"binned_deviation_{variable_key}_{feature_name}.pdf"
-                file_path = os.path.join(save_dir, file_name)
-                fig.savefig(file_path)
-            plt.close(fig)
+        #     fig, ax = self.plot_binned_variable(
+        #         variable_key=variable_key,
+        #         metric_type="deviation",
+        #         feature_data_type=feature_type,
+        #         feature_name=feature_name,
+        #         fancy_feature_label=fancy_feature_label,
+        #         **kwargs,
+        #     )
+        #     if rescale_factor is not None:
+        #         scale_axis_tick_labels(ax, rescale_factor)
+        #     if center_bins:
+        #         center_axis_ticks(ax)
+        #     if save_dir is not None:
+        #         file_name = f"binned_deviation_{variable_key}_{feature_name}.pdf"
+        #         file_path = os.path.join(save_dir, file_name)
+        #         fig.savefig(file_path)
+        #     plt.close(fig)
 
     def plot_2d_binned_performance_evaluation(
         self,

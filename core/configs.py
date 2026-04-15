@@ -84,6 +84,13 @@ class HyperParameter:
     name: str
     values: List[Any]
 
+@dataclass
+class HyperParamGridPlotConfig:
+    x_variable: str
+    y_variable: str
+    x_label: str
+    y_label: str
+    params: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class HyperParameterModel:
@@ -91,12 +98,13 @@ class HyperParameterModel:
     name: str
     file_name_pattern: str
     options: Dict[str, Any] = field(default_factory=dict)
+    hyperparameters: List[HyperParameter] = field(default_factory=list)
+    plots_2d: List[HyperParamGridPlotConfig] = field(default_factory=list[HyperParamGridPlotConfig])
 
 
 @dataclass
 class HyperParameterEvaluationConfig:
-    model_architecture: HyperParameterModel
-    hyperparameters: List[HyperParameter] = field(default_factory=list)
+    models: List[HyperParameterModel] = field(default_factory=list)
     evaluation_event_numbers: str = "odd"
 
 

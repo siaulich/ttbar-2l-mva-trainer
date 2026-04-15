@@ -137,6 +137,33 @@ if __name__ == "__main__":
     os.makedirs(distributions_directory, exist_ok=True)
     binned_performance_directory = os.path.join(output_dir, "binned_performance")
     os.makedirs(binned_performance_directory, exist_ok=True)
+    evaluator.plot_all_confusion_matrices(save_dir=confusion_matrix_directory)
+    print(f"Saved all confusion matrix plots")
+    evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
+    print(f"Saved all accuracy evaluation plots")
+    if not args.accuracy:
+        evaluator.plot_all_deviations(save_dir=deviation_directory)
+        print(f"Saved all deviation evaluation plots")
+        evaluator.plot_all_distributions(save_dir=distributions_directory)
+        print(f"Saved all distribution plots")
+        evaluator.plot_neutrino_deviation_evaluation(
+            save_dir=neutrino_deviation_directory
+        )
+        print(f"Saved all neutrino deviation evaluation plots")
+    for idx, binning_cfg in enumerate(evaluation_config.binning_variables):
+        binned_variable_output_dir = os.path.join(
+            binned_performance_directory, f"{binning_cfg.feature_name}"
+        )
+        os.makedirs(binned_variable_output_dir, exist_ok=True)
+        evaluator.plot_binned_performance_evaluation(
+            **binning_cfg.__dict__,
+            save_dir=binned_variable_output_dir,
+            accuracy_only=args.accuracy,
+        )
+        print(
+            f"Saved binned evaluation plots for {binning_cfg.feature_name} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
+        )
+
     if evaluation_config.binned_2d_binning_variables:
         binned_2d_performance_directory = os.path.join(
             output_dir, "binned_2d_performance"
@@ -162,33 +189,6 @@ if __name__ == "__main__":
         )
         print(
             f"Saved binned 2D evaluation plots for {binning_cfg1.feature_name} vs. {binning_cfg2.feature_name} [{idx + 1}/{len(evaluation_config.binned_2d_binning_variables)}]"
-        )
-
-    evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
-    print(f"Saved all accuracy evaluation plots")
-    if not args.accuracy:
-        evaluator.plot_all_deviations(save_dir=deviation_directory)
-        print(f"Saved all deviation evaluation plots")
-        evaluator.plot_all_distributions(save_dir=distributions_directory)
-        print(f"Saved all distribution plots")
-        evaluator.plot_all_confusion_matrices(save_dir=confusion_matrix_directory)
-        print(f"Saved all confusion matrix plots")
-        evaluator.plot_neutrino_deviation_evaluation(
-            save_dir=neutrino_deviation_directory
-        )
-        print(f"Saved all neutrino deviation evaluation plots")
-    for idx, binning_cfg in enumerate(evaluation_config.binning_variables):
-        binned_variable_output_dir = os.path.join(
-            binned_performance_directory, f"{binning_cfg.feature_name}"
-        )
-        os.makedirs(binned_variable_output_dir, exist_ok=True)
-        evaluator.plot_binned_performance_evaluation(
-            **binning_cfg.__dict__,
-            save_dir=binned_variable_output_dir,
-            accuracy_only=args.accuracy,
-        )
-        print(
-            f"Saved binned evaluation plots for {binning_cfg.feature_name} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
         )
 
     print(f"Saved all evaluation plots to {output_dir}")
