@@ -84,6 +84,7 @@ class HyperParameter:
     name: str
     values: List[Any]
 
+
 @dataclass
 class HyperParamGridPlotConfig:
     x_variable: str
@@ -92,14 +93,23 @@ class HyperParamGridPlotConfig:
     y_label: str
     params: Dict[str, Any] = field(default_factory=dict)
 
+
 @dataclass
 class HyperParameterModel:
     type: str
     name: str
-    file_name_pattern: str
+    dir_name_pattern: str
     options: Dict[str, Any] = field(default_factory=dict)
     hyperparameters: List[HyperParameter] = field(default_factory=list)
-    plots_2d: List[HyperParamGridPlotConfig] = field(default_factory=list[HyperParamGridPlotConfig])
+    plots_2d: List[HyperParamGridPlotConfig] = field(
+        default_factory=list[HyperParamGridPlotConfig]
+    )
+
+
+@dataclass
+class HyperParameterEvaluationVariableConfig:
+    feature_name: str
+    axis_scale: str = "linear"
 
 
 @dataclass

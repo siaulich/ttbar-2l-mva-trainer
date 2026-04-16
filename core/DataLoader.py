@@ -15,6 +15,7 @@ Configuration:
 import numpy as np
 import pandas as pd
 import yaml
+import copy
 
 from typing import Optional, Dict, List, Tuple, Union
 
@@ -189,7 +190,7 @@ class DataPreprocessor:
             "assignment": X["assignment"],
             "regression": X.get("regression", None),
         }
-        return X, y
+        return copy.deepcopy(X), copy.deepcopy(y)
 
     def _apply_mask_to_features(self, mask: np.ndarray) -> None:
         """Apply a boolean mask to all feature data.
@@ -613,6 +614,45 @@ class DataPreprocessor:
 
     def get_data(self):
         return self._create_xy_dict(self.feature_data)
+
+    def get_k_fold(self, n_folds: int = 5, k_fold_idx: int = 0) -> Tuple[Dict[str, np.ndarray], np.ndarray]:
+        """
+        Get a specific fold for k-fold cross-validation.
+
+        Args:
+            n_folds: Total number of folds
+            k_fold_idx: Index of the fold to retrieve (0-based)
+        Returns:
+            X_fold, y_fold for the specified fold
+        """
+        if self.feature_data is None:
+            raise ValueError("Data not prepared. Call load_data() first.")
+
+
+        # Create folds
+        folds = []
+        start = 0
+        end = self.data_length - (self.data_length % n_folds)  # Exclude leftover events
+        fold_size = end // n_folds
+
+        test_start = start + k_fold_idx * fold_size
+        test_end = test_start + fold_size if k_fold_idx < n_folds - 1 else end
+
+        # Training data: everything except test fold
+        train_indices = np.concatenate(
+            [np.arange(start, test_start), np.arange(test_end, end)]
+        )
+        test_indices = np.arange(test_start, test_end)
+
+        X_train = {
+            k: self.feature_data[k][train_indices] for k in self.feature_data
+        }
+        X_test = {
+            k: self.feature_data[k][test_indices] for k in self.feature_data
+        }
+
+
+        return *self._create_xy_dict(X_train), *self._create_xy_dict(X_test)
 
     def create_k_folds(
         self, n_folds: int = 5, n_splits: int = 1, random_state: int = 42
