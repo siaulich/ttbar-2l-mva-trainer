@@ -40,7 +40,7 @@ The training step can be run using the `scripts/TrainScript.py` script.
 python scripts/TrainScript.py \
 --load_config examples/load_nominal_config.yaml \
 --model_config examples/compact_assigner.yaml \
---training_config examples/training_config.yaml \
+--train_config examples/train_config.yaml \
 --output_dir models \
 --event_numbers even \
 --num_events 1000000 \
