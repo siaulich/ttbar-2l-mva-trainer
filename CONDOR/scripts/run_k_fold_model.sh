@@ -20,8 +20,8 @@ arguments = python3 ../scripts/TrainKFoldScript.py \
 --train_config training/train_config.yaml \
 --model_config models/$(ModelName).yaml \
 --event_numbers even \
---k_fold 5 \
---k_fold_index $(KFoldIndex)
+--k_fold_index $(KFoldIndex) \
+--k_fold 5
 
 queue ModelName, ConfigName, KFoldIndex from (
 EOF
