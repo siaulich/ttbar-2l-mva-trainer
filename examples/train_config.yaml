@@ -1,6 +1,6 @@
 TrainConfig:
   batch_size: 4096
-  epochs: 100
+  epochs: 20
   callbacks:
     EarlyStopping:
       monitor: val_loss

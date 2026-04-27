@@ -319,6 +319,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         unpadded_jet_data = jet_data[jet_mask]
         num_jets = unpadded_jet_data.shape[0]
         num_events = num_jets // self.max_jets
+        print(f"Adapting normalization layers using {num_events} events with unpadded jet data shape: {unpadded_jet_data.shape}")
         unpadded_jet_data = unpadded_jet_data[: num_events * self.max_jets, :].reshape(
             (num_events, self.max_jets, self.n_jets)
         )
@@ -368,6 +369,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
                         )
                     submodel_input_data[input_name] = input_data[input_name]
                 # Get transformed data from submodel
+
                 transformed_data = submodel.predict(
                     submodel_input_data,
                     batch_size=1024,

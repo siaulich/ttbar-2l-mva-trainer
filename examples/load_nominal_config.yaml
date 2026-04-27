@@ -28,13 +28,13 @@ LoadConfig:
     - truth_tbar_neutrino_py
     - truth_tbar_neutrino_pz
   nu_flows_neutrino_momentum_features:
-    - nu_flows_neutrino_px
-    - nu_flows_neutrino_py
-    - nu_flows_neutrino_pz
+    - nu_flows_nu_px
+    - nu_flows_nu_py
+    - nu_flows_nu_pz
   nu_flows_antineutrino_momentum_features:
-    - nu_flows_antineutrino_px
-    - nu_flows_antineutrino_py
-    - nu_flows_antineutrino_pz
+    - nu_flows_nubar_px
+    - nu_flows_nubar_py
+    - nu_flows_nubar_pz
   top_truth_features:
     - truth_top_pt
     - truth_top_eta

@@ -147,22 +147,17 @@ class RootPreprocessor:
         # Basic multiplicity cuts
         mask = n_leptons == self.config.n_leptons_required
         mask = mask & (n_jets >= self.config.n_jets_min)
-        # Truth information requirements
-        n_jet_truth = ak.num(
+
+        # Check valid truth indices for b-jets
+        parton_match = ak.pad_none(
             events.__getitem__(
                 self.config.root_ntuple_config.MatchingConfig.jet_parton_match_branch
-            )
+            ),
+            6,
         )
-        mask = mask & (n_jet_truth >= 6)
-        # Check valid truth indices for b-jets
         jet_truth_0 = ak.fill_none(
-            ak.pad_none(
-                events.__getitem__(
-                    self.config.root_ntuple_config.MatchingConfig.jet_parton_match_branch
-                ),
-                6,
-            )[
-                ...,
+            parton_match[
+                :,
                 self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[
                     0
                 ],
@@ -170,13 +165,8 @@ class RootPreprocessor:
             -1,
         )
         jet_truth_3 = ak.fill_none(
-            ak.pad_none(
-                events.__getitem__(
-                    self.config.root_ntuple_config.MatchingConfig.jet_parton_match_branch
-                ),
-                6,
-            )[
-                ...,
+            parton_match[
+                :,
                 self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[
                     1
                 ],
@@ -589,7 +579,7 @@ class RootPreprocessor:
         jet_truth_padded = ak.fill_none(
             ak.pad_none(
                 events.__getitem__(
-                    self.config.root_ntuple_config.MatchingConfig.electron_parton_match_branch
+                    self.config.root_ntuple_config.MatchingConfig.jet_parton_match_branch
                 ),
                 6,
             ),
@@ -600,21 +590,28 @@ class RootPreprocessor:
             events.__getitem__(self.config.root_ntuple_config.JetConfig.pt)
         )
         jet_truth_0 = ak.broadcast_arrays(
-            jet_truth_padded[:, 0],
+            jet_truth_padded[
+                :,
+                self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[
+                    0
+                ],
+            ],
             events.__getitem__(self.config.root_ntuple_config.JetConfig.pt),
         )[0]
         jet_truth_3 = ak.broadcast_arrays(
-            jet_truth_padded[:, 3],
+            jet_truth_padded[
+                :,
+                self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[
+                    1
+                ],
+            ],
             events.__getitem__(self.config.root_ntuple_config.JetConfig.pt),
         )[0]
-        jet_truth_idx = ak.where(
-            jet_idx == jet_truth_0, 1, ak.where(jet_idx == jet_truth_3, -1, 0)
-        )
-
         sort_idx = ak.argsort(
             events.__getitem__(self.config.root_ntuple_config.JetConfig.pt),
             ascending=False,
         )
+
         jet_pt = events.__getitem__(self.config.root_ntuple_config.JetConfig.pt)[
             sort_idx
         ]
@@ -630,8 +627,9 @@ class RootPreprocessor:
         jet_btag = events.__getitem__(self.config.root_ntuple_config.JetConfig.btag)[
             sort_idx
         ]
-        jet_truth = jet_truth_idx[sort_idx]
-
+        jet_truth = ak.where(
+            jet_idx == jet_truth_0, 1, ak.where(jet_idx == jet_truth_3, -1, 0)
+        )[sort_idx]
         n_jets = ak.num(jet_pt)
         max_jets = self.config.max_saved_jets
 
@@ -1165,12 +1163,13 @@ class RootPreprocessor:
                 raise ValueError(
                     f"Invalid neutrino reconstruction configuration: {reco_config}"
                 )
-            output[f"{reco_config.name}_nu_px"] = nu_px
-            output[f"{reco_config.name}_nu_py"] = nu_py
-            output[f"{reco_config.name}_nu_pz"] = nu_pz
-            output[f"{reco_config.name}_nubar_px"] = nubar_px
-            output[f"{reco_config.name}_nubar_py"] = nubar_py
-            output[f"{reco_config.name}_nubar_pz"] = nubar_pz
+            output[f"{reco_config.name}_nu_px"] = nu_px * 1e3
+            output[f"{reco_config.name}_nu_py"] = nu_py * 1e3
+            output[f"{reco_config.name}_nu_pz"] = nu_pz * 1e3
+            output[f"{reco_config.name}_nubar_px"] = nubar_px * 1e3
+            output[f"{reco_config.name}_nubar_py"] = nubar_py * 1e3
+            output[f"{reco_config.name}_nubar_pz"] = nubar_pz * 1e3
+        return output
 
     def save_to_npz(self, output_path: str):
         """Save data to NPZ format."""
@@ -1278,20 +1277,31 @@ def preprocess_root_directory(
     output_file = os.path.join(config.output_dir, config.name + ".npz")
     num_events = config.num_events
 
-    num_files = len(os.listdir(input_dir))
-    print(f"Found {num_files} files in {input_dir}.\nStarting processing...\n\n")
     num_total_events = 0
     preprocessor = RootPreprocessor(config.preprocessor_config)
-    for file_index, filename in enumerate(os.listdir(input_dir)):
+
+    root_files = (
+        [
+            os.path.join(input_dir, filename)
+            for filename in sorted(os.listdir(input_dir))
+            if filename.endswith(".root")
+        ]
+        if os.path.isdir(input_dir)
+        else [input_dir]
+    )
+    num_files = len(root_files)
+    print(f"Found {num_files} files in {input_dir}.\nStarting processing...\n\n")
+
+
+    for file_index, input_path in enumerate(root_files):
         print(f"Processing file {file_index + 1} of {num_files}...\n")
-        if filename.endswith(".root"):
-            input_path = os.path.join(input_dir, filename)
+        if input_path.endswith(".root"):
 
             data_collected.append(preprocessor.process(input_path))
             num_events = preprocessor.get_num_events()
             num_total_events += num_events
             print(
-                f"Processed {num_events} events from {filename}. Total events so far: {num_total_events}\n\n"
+                f"Processed {num_events} events. Total events so far: {num_total_events}\n\n"
             )
         if num_events is not None and num_total_events >= num_events:
             print(
