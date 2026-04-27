@@ -1,0 +1,24 @@
+# Ignore model checkpoint files
+**.keras
+**.pdf
+**.out
+**.onnx
+**.yaml
+**.npz
+**.log
+
+# Ignore directories for outputs, logs, and temporary files
+**logs/
+**plots/
+**/models/
+**config/
+**.vscode/
+**__pycache__/
+**venv/
+**env/
+**.DS_Store
+notebooks/
+
+
+# Ignore specific files and directories
+CONDOR/submit_params

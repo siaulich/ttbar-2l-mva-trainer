@@ -1,0 +1,5 @@
+*.ipynb filter=nbstripout
+*.ipynb filter=black
+*.zpln filter=nbstripout
+*.ipynb diff=ipynb
+*.py filter=black

@@ -1,0 +1,355 @@
+import tensorflow as tf
+import keras as keras
+import numpy as np
+from abc import ABC, abstractmethod
+from src.DataLoader import DataConfig
+from src.base_classes import KerasMLWrapper
+from src.utils import losses
+from ..base_classes.reconstruction_base import EventReconstructorBase
+from src.components import (
+    GenerateMask,
+    ComputeHighLevelFeatures_from_PtEtaPhiE,
+    InputNuFlowsPriors,
+    InputMetLayer,
+    ProcessPtEtaPhiELayer,
+)
+
+from copy import deepcopy
+
+
+class KerasNuPriorAssigner(EventReconstructorBase, KerasMLWrapper):
+    def __init__(
+        self,
+        config: DataConfig,
+        name="KerasNuPriorAssigner",
+        perform_regression=False,
+        use_nu_flows=True,
+        load_model_path=None,
+    ):
+        EventReconstructorBase.__init__(
+            self,
+            config=config,
+            assignment_name=name,
+            full_reco_name=(
+                name
+                if perform_regression
+                else name + (r" + $\nu^2$-Flows" if use_nu_flows else r" + True $\nu$")
+            ),
+            neutrino_name=name,
+            perform_regression=perform_regression,
+            use_nu_flows=use_nu_flows,
+        )
+        KerasMLWrapper.__init__(
+            self, config=config, perform_regression=perform_regression
+        )
+        if load_model_path is not None:
+            self.load_model(load_model_path)
+        self.predict_confidence = False
+
+    def _prepare_inputs(
+        self, log_variables=True, compute_HLF=False, use_global_event_inputs=False
+    ):
+        jet_inputs = keras.Input(shape=(self.max_jets, self.n_jets), name="jet_inputs")
+        lep_inputs = keras.Input(
+            shape=(self.NUM_LEPTONS, self.n_leptons), name="lep_inputs"
+        )
+        met_inputs = keras.Input(
+            shape=(
+                1,
+                self.n_met,
+            ),
+            name="met_inputs",
+        )
+
+        nu_flows_nu_inputs = keras.Input(
+            shape=(self.NUM_LEPTONS, 3), name="nu_flows_neutrino_regression"
+        )
+        inputs = {
+            "jet_inputs": jet_inputs,
+            "lep_inputs": lep_inputs,
+            "met_inputs": met_inputs,
+            "nu_flows_neutrino_regression": nu_flows_nu_inputs,
+        }
+        # Generate jet mask
+        jet_mask = GenerateMask(padding_value=-999, name="jet_mask")(jet_inputs)
+
+        if self.config.has_global_event_inputs:
+            global_event_inputs = keras.Input(
+                shape=(
+                    1,
+                    self.n_global,
+                ),
+                name="global_event_inputs",
+            )
+            inputs["global_event_inputs"] = global_event_inputs
+
+        transformed_inputs = {
+            "jet_inputs": ProcessPtEtaPhiELayer(
+                name="jet_input_transform",
+                padding_value=self.padding_value,
+                log_variables=log_variables,
+            )(jet_inputs),
+            "lepton_inputs": ProcessPtEtaPhiELayer(
+                name="lep_input_transform",
+                padding_value=self.padding_value,
+                log_variables=log_variables,
+            )(lep_inputs),
+            "met_inputs": InputMetLayer(
+                name="met_input_transform",
+                log_variables=log_variables,
+            )(met_inputs),
+            "nu_flows_neutrino_regression": InputNuFlowsPriors(
+                name="nu_flows_neutrino_regression_transform",
+                log_variables=log_variables,
+            )(nu_flows_nu_inputs),
+        }
+
+        if self.config.has_global_event_inputs and use_global_event_inputs:
+            print("Adding normalization for global event features")
+            transformed_inputs["global_event_inputs"] = global_event_inputs
+
+        normed_inputs = {}
+        for key in transformed_inputs:
+            normed_inputs[key] = keras.layers.Normalization(
+                name=f"{key}_input_normalization", axis=(-1)
+            )(transformed_inputs[key])
+
+        if compute_HLF:
+            high_level_features = ComputeHighLevelFeatures_from_PtEtaPhiE(
+                name="compute_high_level_features",
+                padding_value=self.padding_value,
+            )(
+                jet_input=jet_inputs,
+                lepton_input=lep_inputs,
+                jet_mask=jet_mask,
+            )
+            normed_hlf_inputs = keras.layers.Normalization(
+                name="hlf_input_normalization", axis=(-1, -2)
+            )(high_level_features)
+            transformed_inputs["hlf_inputs"] = high_level_features
+            normed_inputs["hlf_inputs"] = normed_hlf_inputs
+
+        self.masks = {"jet_mask": jet_mask}
+        self.inputs = inputs
+        self.transformed_inputs = transformed_inputs
+        self.normed_inputs = normed_inputs
+
+        return self.normed_inputs, self.masks
+
+    def _build_model_base(
+        self,
+        jet_assignment_probs,
+        regression_output=None,
+        **kwargs,
+    ):
+        trainable_outputs = {}
+        outputs = {}
+        outputs["assignment"] = jet_assignment_probs
+        trainable_outputs["assignment"] = jet_assignment_probs
+
+        if self.perform_regression and regression_output is None:
+            raise ValueError(
+                "perform_regression is True but no regression_output provided to build_model."
+            )
+        if self.perform_regression and regression_output is not None:
+            outputs["normalized_regression"] = regression_output
+            trainable_outputs["normalized_regression"] = regression_output
+        self.model = keras.models.Model(
+            inputs=self.inputs,
+            outputs=outputs,
+            name=kwargs.get("name", "reco_model"),
+        )
+        self.trainable_model = keras.models.Model(
+            inputs=self.inputs,
+            outputs=trainable_outputs,
+            name=kwargs.get("name", "reco_trainable_model"),
+        )
+
+    def prepare_labels(self, X, y=None, copy_data=True):
+        y_train = {}
+
+        if y is None:
+            y_train["assignment"] = X["assignment"]
+            y_train["regression"] = X["regression"] if "regression" in y else None
+        else:
+            y_train = y.copy() if not copy_data else deepcopy(y)
+
+        if not self.perform_regression:
+            y_train.pop("regression")
+
+        if "regression" in y_train:
+            regression_data = y_train.pop("regression")
+            upscale_layer = self.model.get_layer("regression")
+            if upscale_layer is None:
+                raise ValueError(
+                    "Regression layer not found in model. Cannot prepare regression targets."
+                )
+            if not isinstance(upscale_layer, keras.layers.Rescaling):
+                raise ValueError(
+                    "Regression layer is not a Rescaling layer. Cannot prepare regression targets."
+                )
+            regression_std = upscale_layer.scale
+            if isinstance(regression_data, dict):
+                y_train["normalized_regression"] = {}
+                for key in regression_data:
+                    if regression_data[key] is not None:
+                        y_train["normalized_regression"][key] = (
+                            regression_data[key] / regression_std
+                        )
+                    else:
+                        y_train["normalized_regression"][key] = None
+            else:
+                y_train["normalized_regression"] = regression_data / regression_std
+
+        if "reco_mass_deviation" in self.trainable_model.output:
+            y_train["reco_mass_deviation"] = np.zeros(
+                (y_train["assignment"].shape[0], 1), dtype=np.float32
+            )
+        if "confidence_loss_output" in self.trainable_model.output:
+            y_train["confidence_loss_output"] = y_train["assignment"]
+        return y_train
+
+    def compile_model(
+        self, loss, optimizer, metrics=None, add_physics_informed_loss=False, **kwargs
+    ):
+        if self.trainable_model is None:
+            raise ValueError(
+                "Model has not been built yet. Call build_model() before compile_model()."
+            )
+        if self.predict_confidence:
+            loss["confidence_loss_output"] = losses.ConfidenceScoreLoss()
+        if add_physics_informed_loss:
+            self.add_reco_mass_deviation_loss()
+            print(
+                "Compiling model with physics informed loss. Ensure that the loss dictionary includes 'reco_mass_deviation'."
+            )
+            if "reco_mass_deviation" not in loss:
+                loss["reco_mass_deviation"] = lambda y_true, y_pred: y_pred
+        self.trainable_model.compile(
+            loss=loss, optimizer=optimizer, metrics=metrics, **kwargs
+        )
+
+    def generate_one_hot_encoding(self, predictions, exclusive):
+        prediction_product_matrix = (
+            predictions[..., 0][:, :, np.newaxis]
+            + predictions[..., 1][:, np.newaxis, ...]
+        )  # shape (batch_size, max_jets, max_jets)
+        if exclusive:
+            prediction_product_matrix[
+                :, np.arange(predictions.shape[1]), np.arange(predictions.shape[1])
+            ] = 0  # set diagonal to zero to enforce exclusivity
+        one_hot = np.zeros(
+            (predictions.shape[0], self.max_jets, self.NUM_LEPTONS), dtype=int
+        )
+        idx = np.argmax(
+            prediction_product_matrix.reshape(predictions.shape[0], -1), axis=1
+        )
+        one_hot[
+            np.arange(predictions.shape[0]),
+            np.unravel_index(idx, prediction_product_matrix.shape[1:])[0],
+            0,
+        ] = 1
+        one_hot[
+            np.arange(predictions.shape[0]),
+            np.unravel_index(idx, prediction_product_matrix.shape[1:])[1],
+            1,
+        ] = 1
+
+        return one_hot
+
+    def predict_indices(self, data: dict[str : np.ndarray], exclusive=True):
+        if self.model is None:
+            raise ValueError(
+                "Model not built. Please build the model using build_model() method."
+            )
+
+        return self.complete_forward_pass(data)[0]
+
+    def reconstruct_neutrinos(self, data: dict[str : np.ndarray]):
+        if self.model is None:
+            raise ValueError(
+                "Model not built. Please build the model using build_model() method."
+            )
+
+        return self.complete_forward_pass(data)[1]
+
+    def predict(self, data: dict[str : np.ndarray], batch_size=2048, verbose=0):
+        inputs = {}
+        for key in self.model.input:
+            if hasattr(key, "name"):
+                input_name = key.name.split(":")[0]
+            elif isinstance(key, str):
+                input_name = key
+            else:
+                raise ValueError(
+                    f"Unexpected input key type: {type(key)}. Expected a Keras tensor or string."
+                )
+            if input_name in data:
+                inputs[input_name] = data[input_name]
+            else:
+                raise ValueError(
+                    f"Expected input '{input_name}' not found in data dictionary."
+                )
+        predictions = self.model.predict(inputs, batch_size=batch_size, verbose=verbose)
+        return predictions
+
+    def complete_forward_pass(self, data: dict[str : np.ndarray]):
+        if self.model is None:
+            raise ValueError(
+                "Model not built. Please build the model using build_model() method."
+            )
+        predictions = self.predict(data)
+        assignment_predictions = self.generate_one_hot_encoding(
+            predictions["assignment"], exclusive=True
+        )
+        if "regression" in predictions:
+            neutrino_reconstruction = predictions["regression"]
+        else:
+            neutrino_reconstruction = EventReconstructorBase.reconstruct_neutrinos(
+                self, data
+            )
+        return assignment_predictions, neutrino_reconstruction
+
+    def complete_forward_pass_dict(self, data: dict[str : np.ndarray]):
+        if self.model is None:
+            raise ValueError(
+                "Model not built. Please build the model using build_model() method."
+            )
+        predictions = self.predict(data)
+        assignment_predictions = self.generate_one_hot_encoding(
+            predictions["assignment"], exclusive=True
+        )
+        if "regression" in predictions:
+            neutrino_reconstruction = predictions["regression"]
+        else:
+            neutrino_reconstruction = EventReconstructorBase.reconstruct_neutrinos(
+                self, data
+            )
+        return {
+            "assignment": assignment_predictions,
+            "regression": neutrino_reconstruction,
+        }
+
+    def adapt_output_layer_scales(self, data):
+        if (
+            self.perform_regression
+            and "normalized_regression" in self.model.output_names
+        ):
+            denormalisation_layer = keras.layers.Rescaling(
+                scale=1e5,  # Scale neutrinos to 100 GeV by default
+                name="regression",
+            )
+            outputs = self.model.output
+            outputs["regression"] = denormalisation_layer(
+                self.model.get_layer("normalized_regression").output
+            )
+            outputs.pop("normalized_regression")
+            self.model = keras.models.Model(
+                inputs=self.model.inputs,
+                outputs=outputs,
+            )
+            print("Set regression denormalization layer with computed mean and std.")
+        else:
+            print(
+                "No regression output found in model outputs to adapt scales for. Skipping output layer scale adaptation."
+            )

@@ -1,0 +1,76 @@
+LoadConfig: 
+  data_path: dilep_data/nominal.npz
+  jet_inputs:
+    - jet_pt
+    - jet_eta
+    - jet_phi
+    - jet_e
+    - jet_b_tag
+  lepton_inputs:
+    - lep_pt
+    - lep_eta
+    - lep_phi
+    - lep_e
+    - lep_charge
+  met_inputs:
+    - met_met
+    - met_phi
+  global_event_inputs:
+    - N_jets
+    - N_bjets
+    - dR_l1l2
+  neutrino_momentum_features:
+    - truth_top_neutrino_px
+    - truth_top_neutrino_py
+    - truth_top_neutrino_pz
+  antineutrino_momentum_features:
+    - truth_tbar_neutrino_px
+    - truth_tbar_neutrino_py
+    - truth_tbar_neutrino_pz
+  nu_flows_neutrino_momentum_features:
+    - nu_flows_neutrino_px
+    - nu_flows_neutrino_py
+    - nu_flows_neutrino_pz
+  nu_flows_antineutrino_momentum_features:
+    - nu_flows_antineutrino_px
+    - nu_flows_antineutrino_py
+    - nu_flows_antineutrino_pz
+  top_truth_features:
+    - truth_top_pt
+    - truth_top_eta
+    - truth_top_phi
+    - truth_top_e
+  tbar_truth_features:
+    - truth_tbar_pt
+    - truth_tbar_eta
+    - truth_tbar_phi
+    - truth_tbar_e
+  top_lepton_truth_features:
+    - truth_top_lepton_px
+    - truth_top_lepton_py
+    - truth_top_lepton_pz
+    - truth_top_lepton_e
+  tbar_lepton_truth_features:
+    - truth_tbar_lepton_px
+    - truth_tbar_lepton_py
+    - truth_tbar_lepton_pz
+    - truth_tbar_lepton_e
+  non_training_features:
+    - N_jets
+    - dR_l1l2
+    - truth_c_hel
+    - truth_c_han
+    - truth_ttbar_mass
+    - truth_ttbar_pt
+    - truth_tt_boost_parameter
+    - truth_ttbar_e
+    - truth_ttbar_p
+    - truth_top_mass
+    - truth_tbar_mass
+    - reco_mllbb
+  padding_value: -999.0
+  max_jets: 6
+  jet_truth_label: event_jet_truth_idx
+  lepton_truth_label: event_lepton_truth_idx
+  event_weight: weight_mc
+  mc_event_number: mc_event_number

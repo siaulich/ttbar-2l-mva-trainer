@@ -1,0 +1,74 @@
+PreprocessorConfig:
+  tree_name: reco
+  save_mc_truth: true
+  root_ntuple_config:
+
+    JetConfig:
+      pt: jet_pt_NOSYS
+      eta: jet_eta
+      phi: jet_phi
+      energy: jet_e_NOSYS
+      btag: jet_GN2v01_Continuous_quantile
+      btag_threshold: 2
+
+    ElectronConfig:
+      pt: el_pt_NOSYS
+      eta: el_eta
+      phi: el_phi
+      energy: el_e_NOSYS
+      charge: el_charge
+
+    MuonConfig:
+      pt: mu_pt_NOSYS
+      eta: mu_eta
+      phi: mu_phi
+      energy: mu_e_NOSYS
+      charge: mu_charge
+
+    METConfig:
+      pt: met_met_NOSYS
+      phi: met_phi_NOSYS
+
+    TruthConfig:
+      top_pt: Ttbar_MC_t_afterFSR_pt
+      top_eta: Ttbar_MC_t_afterFSR_eta
+      top_phi: Ttbar_MC_t_afterFSR_phi
+      top_mass: Ttbar_MC_t_afterFSR_m
+
+      tbar_pt: Ttbar_MC_tbar_afterFSR_pt
+      tbar_eta: Ttbar_MC_tbar_afterFSR_eta
+      tbar_phi: Ttbar_MC_tbar_afterFSR_phi
+      tbar_mass: Ttbar_MC_tbar_afterFSR_m
+
+      top_neutrino_pt: Ttbar_MC_Wdecay2_afterFSR_from_t_pt
+      top_neutrino_eta: Ttbar_MC_Wdecay2_afterFSR_from_t_eta
+      top_neutrino_phi: Ttbar_MC_Wdecay2_afterFSR_from_t_phi
+      top_neutrino_mass: Ttbar_MC_Wdecay2_afterFSR_from_t_m
+
+      tbar_neutrino_pt: Ttbar_MC_Wdecay2_afterFSR_from_tbar_pt
+      tbar_neutrino_eta: Ttbar_MC_Wdecay2_afterFSR_from_tbar_eta
+      tbar_neutrino_phi: Ttbar_MC_Wdecay2_afterFSR_from_tbar_phi
+      tbar_neutrino_mass: Ttbar_MC_Wdecay2_afterFSR_from_tbar_m
+
+      top_lepton_pt: Ttbar_MC_Wdecay1_afterFSR_from_t_pt
+      top_lepton_eta: Ttbar_MC_Wdecay1_afterFSR_from_t_eta
+      top_lepton_phi: Ttbar_MC_Wdecay1_afterFSR_from_t_phi
+      top_lepton_mass: Ttbar_MC_Wdecay1_afterFSR_from_t_m
+      top_lepton_charge: Ttbar_MC_Wdecay1_afterFSR_from_t_charge
+
+      tbar_lepton_pt: Ttbar_MC_Wdecay1_afterFSR_from_tbar_pt
+      tbar_lepton_eta: Ttbar_MC_Wdecay1_afterFSR_from_tbar_eta
+      tbar_lepton_phi: Ttbar_MC_Wdecay1_afterFSR_from_tbar_phi
+      tbar_lepton_mass: Ttbar_MC_Wdecay1_afterFSR_from_tbar_m
+      tbar_lepton_charge: Ttbar_MC_Wdecay1_afterFSR_from_tbar_charge
+    NeutrinoRecoConfig:
+      - name: nu_flows
+        branch_name: nuflows_nu_out_NOSYS
+        nu_px: 0
+        nu_py: 1
+        nu_pz: 2
+        nubar_px: 3
+        nubar_py: 4
+        nubar_pz: 5
+    event_weight: weight_mc_NOSYS
+    mc_event_number: eventNumber

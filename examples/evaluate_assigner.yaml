@@ -1,0 +1,80 @@
+reconstructors:
+  - type: "DeltaRAssigner"
+    options:
+      use_nu_flows: True
+  - type: "ChiSquareAssigner"
+    options:
+      use_nu_flows: True
+  - type: "KerasFFRecoBase"
+    options:
+      name: "CompactAssigner"
+      use_nu_flows: True
+      perform_regression: False
+      load_model_path: "models/compact_assigner/odd_model.keras"
+
+
+evaluation_event_numbers: "odd"
+binning_variables:
+  - feature_type: "non_training"
+    feature_name: "N_jets"
+    fancy_feature_label: $N_{jets}$
+    bins: 5
+    xlims: [2, 7]
+    center_bins : True
+  - feature_type: "non_training"
+    feature_name: "dR_l1l2"
+    fancy_feature_label: $\Delta R(\ell_1,\ell_2)$
+    bins: 10
+    xlims: [0, 5]
+  - feature_type: "non_training"
+    feature_name: "truth_ttbar_mass"
+    fancy_feature_label: $m_{t\bar{t}}^{truth}$ [GeV]
+    bins: 10
+    xlims: [340000, 800000]
+    rescale_factor: 0.001
+  - feature_type: "non_training"
+    feature_name: "truth_ttbar_pt"
+    fancy_feature_label: $p_{T,t\bar{t}}^{truth}$ [GeV]
+    bins: 10
+    xlims: [0, 600000]
+    rescale_factor: 0.001
+  - feature_type: "non_training"
+    feature_name: "truth_tt_boost_parameter"
+    fancy_feature_label: $\beta_{t\bar{t}}^{truth}$
+    bins: 10
+    xlims: [0, 1]
+  - feature_type: "non_training"
+    feature_name: "truth_c_hel"
+    fancy_feature_label: $c_{hel}^{truth}$
+    bins: 10
+    xlims: [-1, 1]
+  - feature_type: "non_training"
+    feature_name: "truth_c_han"
+    fancy_feature_label: $c_{han}^{truth}$
+    bins: 10
+    xlims: [-1, 1]
+
+binned_2d_binning_variables:
+  - 
+    - feature_type: "non_training"
+      feature_name: "truth_ttbar_mass"
+      fancy_feature_label: $m_{t\bar{t}}^{truth}$ [GeV]
+      bins: 5
+      xlims: [340000, 800000]
+      rescale_factor: 0.001
+    - feature_type: "non_training"
+      feature_name: "dR_l1l2"
+      fancy_feature_label: $\Delta R(\ell_1,\ell_2)$
+      bins: 3
+      xlims: [0, 5]
+  - 
+    - feature_type: "non_training"
+      feature_name: "truth_c_hel"
+      fancy_feature_label: $c_{hel}^{truth}$
+      bins: 3
+      xlims: [-1, 1]
+    - feature_type: "non_training"
+      feature_name: "truth_c_han"
+      fancy_feature_label: $c_{han}^{truth}$
+      bins: 3
+      xlims: [-1, 1]
