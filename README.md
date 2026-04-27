@@ -1,5 +1,5 @@
 # ttbar-2l-mva-trainer
-A standalone framework for training and evaluating machine learning models for reconstruction of dileptonic ttbar events. The framework includes data-preprocessing, data loading and model training using TensorFlow, and integration with the Condor job scheduler for distributed training and evaluation.
+A standalone framework for training and evaluating machine learning models for reconstruction of dileptonic ttbar events. The framework includes data-preprocessing, model training using TensorFlow, evaluation and integration with the Condor job scheduler for distributed training and evaluation.
 
 The framework is designed to provide models, that can be directly used for evaluation or ntuple production via [TopCPToolKit](https://topcptoolkit.docs.cern.ch/latest/settings/reconstruction/#dilepassigner). 
 
@@ -8,9 +8,9 @@ The framework is designed to provide models, that can be directly used for evalu
 The code can be run in a virtual environment. To set up the virtual environment, you can run the following commands:
 
 ```bash
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+python -m venv venv \
+source venv/bin/activate \
+pip install -r requirements.txt \
 ```
 Note, that the default installation of TensorFlow might not support GPU acceleration.
 
@@ -18,11 +18,11 @@ Note, that the default installation of TensorFlow might not support GPU accelera
 The preprocessing step is responsible for converting `.root` files into `.npz` files, which can be used for training and evaluation. The preprocessing step is configured using the `examples/preprocessing.yaml` file, which specifies the name of the tree and branches to be read from the `.root` files, as well as the name of the output `.npz` file. The preprocessing step can be run using the `scripts/PreprocessScript.py` script.
 
 ```
-python scripts/PreprocessScript.py 
---name nominal 
---config examples/preprocessing.yaml 
---input_dir /path/to/root/files 
---output_dir dilep_data/nominal.npz
+python scripts/PreProcessing.py \
+--name nominal \
+--config examples/preprocessing.yaml \
+--input_dir /path/to/root/files \
+--output_dir dilep_data \
 ```
 
 
@@ -37,13 +37,13 @@ The training step is responsible for training machine learning models using the 
 The training step can be run using the `scripts/TrainScript.py` script.
 
 ```
-python scripts/TrainScript.py 
---load_config examples/load_nominal_config.yaml 
---model_config examples/compact_assigner.yaml 
---training_config examples/training_config.yaml 
---output_dir models/
---event_numbers even
---num_events 1000000
+python scripts/TrainScript.py \
+--load_config examples/load_nominal_config.yaml \
+--model_config examples/compact_assigner.yaml \
+--training_config examples/training_config.yaml \
+--output_dir models \
+--event_numbers even \
+--num_events 1000000 \
 ```
 
 ## Evaluation
@@ -55,12 +55,12 @@ The evaluation step is responsible for evaluating the performance of the trained
 The evaluation step can be run using the `scripts/EvaluateScript.py` script.
 
 ```
-python scripts/EvaluateScript.py 
---load_config examples/load_nominal_config.yaml 
---evaluation_config examples/evaluation_config.yaml 
---output_dir /path/to/output/evaluation
---event_numbers odd
---num_events 1000000
+python scripts/EvaluateScript.py \
+--load_config examples/load_nominal_config.yaml \
+--evaluation_config examples/evaluation_config.yaml \
+--output_dir plots/evaluation \
+--event_numbers odd \
+--num_events 1000000 \
 ```
 
 

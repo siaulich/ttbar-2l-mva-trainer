@@ -2,7 +2,7 @@ numpy
 tensorflow
 keras
 tf2onnx>=1.14
-onnxruntime>=1.25.0
+onnxruntime
 scikit-learn
 sympy
 matplotlib

@@ -4,6 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
+import os
 from src.RootPreprocessor import (
     RootPreprocessor,
     preprocess_root_file,
@@ -63,6 +64,7 @@ if __name__ == "__main__":
         data_class=PreprocessorConfig,
         data=preprocessor_config["PreprocessorConfig"],
     )
+    os.makedirs(args.output_dir, exist_ok=True)
 
     # Initialize the preprocessor
     data_sample_config = DataSampleConfig(
