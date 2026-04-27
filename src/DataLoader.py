@@ -84,21 +84,12 @@ class LabelBuilder:
             (n_events, self.config.max_jets, self.config.NUM_LEPTONS), dtype=np.float32
         )
 
-        for evt_idx in range(n_events):
-            for lep_idx in range(self.config.NUM_LEPTONS):
-                for jet_idx in range(self.config.max_jets):
-                    # Check both possible pairings
-                    if (
-                        jet_truth[evt_idx, 0] == jet_idx
-                        and lepton_truth[evt_idx, 0] == lep_idx
-                    ):
-                        pair_truth[evt_idx, jet_idx, lep_idx] = 1
-                    elif (
-                        jet_truth[evt_idx, 1] == jet_idx
-                        and lepton_truth[evt_idx, 1] == lep_idx
-                    ):
-                        pair_truth[evt_idx, jet_idx, lep_idx] = 1
-
+        for lep_idx in range(self.config.NUM_LEPTONS):
+            jet_idx_for_lep = jet_truth[:, lep_idx]          # (n_events,)
+            lep_idx_for_lep = lepton_truth[:, lep_idx]       # (n_events,)
+            valid = (jet_idx_for_lep >= 0)
+            evt = np.where(valid)[0]
+            pair_truth[evt, jet_idx_for_lep[evt], lep_idx_for_lep[evt]] = 1        
         return pair_truth
 
 
@@ -817,23 +808,3 @@ def combine_train_datasets(
 
     return combined_X, combined_y
 
-
-def train_test_split(X, y, test_size: float = 0.1):
-    X_train = {}
-    X_test = {}
-    y_train = {}
-    y_test = {}
-    if 0 < test_size < 1:
-        raise ValueError("Test size should be a float number between 0 and 1.")
-
-    event_count = len(X[X.keys()[0]])
-    train_set_slice_index = int(event_count * (1 - 0.1))
-    for key in X.keys():
-        X_train[key] = X[key][:train_set_slice_index]
-        X_test[key] = X[key][train_set_slice_index:]
-
-    for key in y.keys():
-        y_train[key] = y[key][:train_set_slice_index]
-        y_test[key] = y[key][train_set_slice_index:]
-
-    return X_train, y_train, X_test, y_test

@@ -4,12 +4,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from src.DataLoader import DataConfig
 from src.base_classes import KerasMLWrapper
-from src.components import (
-    OutputUpScaleLayer,
-    PhysicsInformedLoss,
-    ConfidenceLossOutputLayer,
-    UnbinRegressionOutput,
-)
+from src.components import UnbinRegressionOutput
 from src.utils import losses
 from ..base_classes.reconstruction_base import EventReconstructorBase
 
