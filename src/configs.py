@@ -497,37 +497,37 @@ class PartonHistoryConfig:
     This class defines how to extract and organize truth features from the ROOT files during loading. It specifies the names of truth features for tops, leptons, and neutrinos.
     """
 
-    top_pt: Optional[str] = "Ttbar_MC_t_afterFSR_pt"
-    top_eta: Optional[str] = "Ttbar_MC_t_afterFSR_eta"
-    top_phi: Optional[str] = "Ttbar_MC_t_afterFSR_phi"
-    top_mass: Optional[str] = "Ttbar_MC_t_afterFSR_m"
+    top_pt: Optional[str] = None
+    top_eta: Optional[str] = None
+    top_phi: Optional[str] = None
+    top_mass: Optional[str] = None
 
-    tbar_pt: Optional[str] = "Ttbar_MC_tbar_afterFSR_pt"
-    tbar_eta: Optional[str] = "Ttbar_MC_tbar_afterFSR_eta"
-    tbar_phi: Optional[str] = "Ttbar_MC_tbar_afterFSR_phi"
-    tbar_mass: Optional[str] = "Ttbar_MC_tbar_afterFSR_m"
+    tbar_pt: Optional[str] = None
+    tbar_eta: Optional[str] = None
+    tbar_phi: Optional[str] = None
+    tbar_mass: Optional[str] = None
 
-    top_neutrino_pt: str = "Ttbar_MC_Wdecay2_afterFSR_from_t_pt"
-    top_neutrino_eta: str = "Ttbar_MC_Wdecay2_afterFSR_from_t_eta"
-    top_neutrino_phi: str = "Ttbar_MC_Wdecay2_afterFSR_from_t_phi"
-    top_neutrino_mass: str = "Ttbar_MC_Wdecay2_afterFSR_from_t_m"
+    top_neutrino_pt: str = None
+    top_neutrino_eta: str =  None
+    top_neutrino_phi: str =  None
+    top_neutrino_mass: str = None
 
-    tbar_neutrino_pt: str = "Ttbar_MC_Wdecay2_afterFSR_from_tbar_pt"
-    tbar_neutrino_eta: str = "Ttbar_MC_Wdecay2_afterFSR_from_tbar_eta"
-    tbar_neutrino_phi: str = "Ttbar_MC_Wdecay2_afterFSR_from_tbar_phi"
-    tbar_neutrino_mass: str = "Ttbar_MC_Wdecay2_afterFSR_from_tbar_m"
+    tbar_neutrino_pt: str = None
+    tbar_neutrino_eta: str = None
+    tbar_neutrino_phi: str =  None
+    tbar_neutrino_mass: str = None
 
-    top_lepton_pt: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_t_pt"
-    top_lepton_eta: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_t_eta"
-    top_lepton_phi: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_t_phi"
-    top_lepton_mass: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_t_m"
-    top_lepton_charge: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_t_charge"
+    top_lepton_pt: Optional[str] = None
+    top_lepton_eta: Optional[str] = None
+    top_lepton_phi: Optional[str] = None
+    top_lepton_mass: Optional[str] = None
+    top_lepton_charge: Optional[str] = None
 
-    tbar_lepton_pt: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_tbar_pt"
-    tbar_lepton_eta: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_tbar_eta"
-    tbar_lepton_phi: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_tbar_phi"
-    tbar_lepton_mass: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_tbar_m"
-    tbar_lepton_charge: Optional[str] = "Ttbar_MC_Wdecay1_afterFSR_from_tbar_charge"
+    tbar_lepton_pt: Optional[str] = None
+    tbar_lepton_eta: Optional[str] = None
+    tbar_lepton_phi: Optional[str] = None
+    tbar_lepton_mass: Optional[str] = None
+    tbar_lepton_charge: Optional[str] = None
 
 
 from dataclasses import dataclass, field

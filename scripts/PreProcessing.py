@@ -37,7 +37,7 @@ def parse_args():
     parser.add_argument(
         "--num_events",
         type=int,
-        default=5_000_000,
+        default=None,
         help="Number of events to preprocess (default: 5,000,000)",
     )
     parser.add_argument(
