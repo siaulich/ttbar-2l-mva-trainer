@@ -100,14 +100,14 @@ if __name__ == "__main__":
 
     model = keras_models._get_model(model_config.model_type)(data_config)
 
-    build_options = model_config.model_options
+    build_options = deepcopy(model_config.model_options)
     build_options.update(**model_config.model_params)
 
     model.build_model(**(build_options))
 
     model.adapt_normalization_layers(X)
 
-    compile_options = model_config.compile_options
+    compile_options = deepcopy(model_config.compile_options)
 
     losses = {
         key: getattr(utils, value["class_name"])(**value.get("config", {}))

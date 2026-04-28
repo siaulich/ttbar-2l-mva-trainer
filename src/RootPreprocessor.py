@@ -1262,20 +1262,12 @@ def preprocess_root_directory(
     Process all ROOT files in a directory.
 
     Args:
-        input_dir: Directory containing input ROOT files
-        output_dir: Directory to save processed files
-        tree_name: Name of tree in ROOT files
-        output_format: Output format ('root' or 'npz')
-        save_nu_flows: Whether to save NuFlow results
-        save_initial_parton_info: Whether to save initial parton info
-        verbose: Whether to print progress
-        max_jets: Maximum number of jets to save
-        num_events: Maximum number of events to process (None for all)
+        config: DataSampleConfig with input_dir, output_dir, name, num_events, and preprocessor_config
     """
     data_collected = []
     input_dir = config.input_dir
     output_file = os.path.join(config.output_dir, config.name + ".npz")
-    num_events = config.num_events
+    max_events = config.num_events
 
     num_total_events = 0
     preprocessor = RootPreprocessor(config.preprocessor_config)
@@ -1303,9 +1295,9 @@ def preprocess_root_directory(
             print(
                 f"Processed {num_events} events. Total events so far: {num_total_events}\n\n"
             )
-        if num_events is not None and num_total_events >= num_events:
+        if max_events is not None and num_total_events >= max_events:
             print(
-                f"Reached maximum number of events: {num_events}. Stopping processing."
+                f"Reached maximum number of events: {num_total_events} of {max_events}. Stopping processing."
             )
             break
     print(f"Finished processing files. Total events processed: {num_total_events}")

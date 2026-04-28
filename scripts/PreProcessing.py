@@ -37,8 +37,8 @@ def parse_args():
     parser.add_argument(
         "--num_events",
         type=int,
-        default=2_000_000,
-        help="Number of events to preprocess (default: 2,000,000)",
+        default=5_000_000,
+        help="Number of events to preprocess (default: 5,000,000)",
     )
     parser.add_argument(
         "--input_dir",

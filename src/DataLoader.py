@@ -84,9 +84,9 @@ class LabelBuilder:
             (n_events, self.config.max_jets, self.config.NUM_LEPTONS), dtype=np.float32
         )
 
-        for lep_idx in range(self.config.NUM_LEPTONS):
-            jet_idx_for_lep = jet_truth[:, lep_idx]          # (n_events,)
-            lep_idx_for_lep = lepton_truth[:, lep_idx]       # (n_events,)
+        for top_idx in range(self.config.NUM_LEPTONS):
+            jet_idx_for_lep = jet_truth[:, top_idx]          # (n_events,)
+            lep_idx_for_lep = lepton_truth[:, top_idx]       # (n_events,)
             valid = (jet_idx_for_lep >= 0)
             evt = np.where(valid)[0]
             pair_truth[evt, jet_idx_for_lep[evt], lep_idx_for_lep[evt]] = 1        

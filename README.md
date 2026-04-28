@@ -12,7 +12,7 @@ python -m venv venv \
 source venv/bin/activate \
 pip install -r requirements.txt \
 ```
-Note, that the default installation of TensorFlow might not support GPU acceleration.
+Note, that the default installation of TensorFlow might not support GPU acceleration on your device. For more information on how to install TensorFlow with GPU support, please refer to the [TensorFlow installation guide](https://www.tensorflow.org/install/pip).
 
 ## Preprocessing 
 The preprocessing step is responsible for converting `.root` files into `.npz` files, which can be used for training and evaluation. The preprocessing step is configured using the `examples/preprocessing.yaml` file, which specifies the name of the tree and branches to be read from the `.root` files, as well as the name of the output `.npz` file. The preprocessing step can be run using the `scripts/PreprocessScript.py` script.
@@ -22,7 +22,7 @@ python scripts/PreProcessing.py \
 --name nominal \
 --config examples/preprocessing.yaml \
 --input_dir /path/to/root/files \
---output_dir dilep_data \
+--output_dir dilep_data 
 ```
 
 
@@ -41,9 +41,9 @@ python scripts/TrainScript.py \
 --load_config examples/load_nominal_config.yaml \
 --model_config examples/compact_assigner.yaml \
 --train_config examples/train_config.yaml \
---output_dir models \
+--output_dir models/compact_assigner \
 --event_numbers even \
---num_events 1000000 \
+--num_events 1000000 
 ```
 
 ## Evaluation
@@ -57,12 +57,11 @@ The evaluation step can be run using the `scripts/EvaluateScript.py` script.
 ```
 python scripts/EvaluateScript.py \
 --load_config examples/load_nominal_config.yaml \
---evaluation_config examples/evaluation_config.yaml \
+--evaluation_config examples/evaluate_assigner.yaml \
 --output_dir plots/evaluation \
---event_numbers odd \
---num_events 1000000 \
+--num_events 1000000 
 ```
 
 
 ## Export to ONNX
-The trained machine learning models can be exported to the ONNX format for deployment and inference. When running the training script, the trained model will be automatically exported to the ONNX format and saved in the specified output directory. To use the exported ONNX model for inference, it is recommended to train two separate models, one for even and one for odd event numbers. This allows to avoid any potential bias in the training data.
+The trained machine learning models can be exported to the ONNX format for deployment and inference. When running the training script, the trained model will be automatically exported to the ONNX format and saved in the specified output directory. To use the exported ONNX model for inference, it is recommended to train two separate models, one for even and one for odd event numbers.

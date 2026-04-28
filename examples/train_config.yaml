@@ -1,6 +1,6 @@
 TrainConfig:
   batch_size: 4096
-  epochs: 20
+  epochs: 10
   callbacks:
     EarlyStopping:
       monitor: val_loss
@@ -14,4 +14,4 @@ TrainConfig:
       patience: 5
     TerminateOnNaN: {}
   validation_split: 0.1
-  verbose: 0
+  verbose: 1
