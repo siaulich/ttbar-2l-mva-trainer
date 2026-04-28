@@ -204,7 +204,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         y,
         epochs,
         batch_size,
-        validation_split=0.2,
+        validation_split=0.1,
         callbacks=[],
         **kwargs,
     ):

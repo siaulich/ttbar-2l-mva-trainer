@@ -458,7 +458,7 @@ class JetVariableConfig:
     eta: str = "jet_eta"
     phi: str = "jet_phi"
     energy: Optional[str] = "jet_e_NOSYS"
-    btag: Optional[str] = "jet_GN2v01_Continuous_quantile"
+    btag: Optional[Union[str, List[str]]] = "jet_GN2v01_Continuous_quantile"
     btag_threshold: Optional[float] = 2  # Corresponds to 77% efficiency working point
 
 
@@ -511,11 +511,13 @@ class PartonHistoryConfig:
     top_neutrino_eta: str =  None
     top_neutrino_phi: str =  None
     top_neutrino_mass: str = None
+    top_neutrino_e: str = None
 
     tbar_neutrino_pt: str = None
     tbar_neutrino_eta: str = None
     tbar_neutrino_phi: str =  None
     tbar_neutrino_mass: str = None
+    tbar_neutrino_e: str = None
 
     top_lepton_pt: Optional[str] = None
     top_lepton_eta: Optional[str] = None
@@ -596,11 +598,9 @@ class ROOTNtupleConfig:
     METConfig: METVariableConfig = field(default_factory=METVariableConfig)
     TruthConfig: PartonHistoryConfig = field(default_factory=PartonHistoryConfig)
     MatchingConfig: PartonMatchConfig = field(default_factory=PartonMatchConfig)
-    NeutrinoReco: Optional[List[NeutrinoRecoConfig]] = field(
-        default_factory=lambda: [NeutrinoRecoConfig()]
-    )
-    event_weight: Optional[str] = "weight_mc_NOSYS"
-    mc_event_number: Optional[str] = "eventNumber"
+    NeutrinoReco: Optional[List[NeutrinoRecoConfig]] = field(default_factory=list)
+    event_weight: Optional[str] = None
+    mc_event_number: Optional[str] = None
     additional_branches: Optional[Dict[str, str]] = None
 
 

@@ -148,6 +148,10 @@ class RootPreprocessor:
         mask = n_leptons == self.config.n_leptons_required
         mask = mask & (n_jets >= self.config.n_jets_min)
 
+        print(
+            f"Events with {self.config.n_leptons_required} leptons and >= {self.config.n_jets_min} jets: {ak.mean(mask)}"
+        )
+
         # Check valid truth indices for b-jets
         parton_match = ak.pad_none(
             events.__getitem__(
@@ -176,6 +180,7 @@ class RootPreprocessor:
         mask = mask & (jet_truth_0 != -1) & (jet_truth_3 != -1)
         mask = mask & (jet_truth_0 <= self.config.max_jets_for_truth)
         mask = mask & (jet_truth_3 <= self.config.max_jets_for_truth)
+        print(f"Events with valid truth indices for leading jets: {ak.mean(mask)}")
         # Check lepton truth indices
         electron_truth_0 = ak.fill_none(
             ak.pad_none(
@@ -237,8 +242,9 @@ class RootPreprocessor:
         has_truth_lep_0 = (electron_truth_0 != -1) | (muon_truth_0 != -1)
         has_truth_lep_1 = (electron_truth_1 != -1) | (muon_truth_1 != -1)
         mask = mask & has_truth_lep_0 & has_truth_lep_1
+        print(f"Events with valid truth indices for leptons: {ak.mean(mask)}")
         # Charge requirements
-        mask = mask #& self._check_charge_requirements(events)
+        mask = mask  # & self._check_charge_requirements(events)
 
         return ak.to_numpy(mask)
 
@@ -499,9 +505,9 @@ class RootPreprocessor:
         )
         lep_pid = ak.concatenate(
             [
-                events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge)
+                ak.ones_like(events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge) * events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge))
                 * 11,
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge)
+                ak.ones_like(events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge) * events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge))
                 * 13,
             ],
             axis=1,
@@ -586,15 +592,24 @@ class RootPreprocessor:
             -1,
         )
 
-        jet_truth_0 = jet_truth_padded[..., self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[0]]
-        jet_truth_1 = jet_truth_padded[..., self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[1]]
-
+        jet_truth_0 = jet_truth_padded[
+            ...,
+            self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[
+                0
+            ],
+        ]
+        jet_truth_1 = jet_truth_padded[
+            ...,
+            self.config.root_ntuple_config.MatchingConfig.jet_parton_match_index_positions[
+                1
+            ],
+        ]
 
         jet_pt = events.__getitem__(self.config.root_ntuple_config.JetConfig.pt)
         jet_eta = events.__getitem__(self.config.root_ntuple_config.JetConfig.eta)
         jet_phi = events.__getitem__(self.config.root_ntuple_config.JetConfig.phi)
         jet_e = events.__getitem__(self.config.root_ntuple_config.JetConfig.energy)
-        jet_btag = events.__getitem__(self.config.root_ntuple_config.JetConfig.btag)
+
         n_jets = ak.num(jet_pt)
         max_jets = self.config.max_saved_jets
 
@@ -618,16 +633,30 @@ class RootPreprocessor:
                 ak.pad_none(jet_e, max_jets, clip=True), self.config.padding_value
             )
         )
-        jet_btag_np = ak.to_numpy(
-            ak.fill_none(
-                ak.pad_none(jet_btag, max_jets, clip=True), self.config.padding_value
-            )
-        )
+        if self.config.root_ntuple_config.JetConfig.btag is not None:
+            if isinstance(self.config.root_ntuple_config.JetConfig.btag, str):
+                jet_btag = events.__getitem__(
+                    self.config.root_ntuple_config.JetConfig.btag
+                )
+            elif isinstance(self.config.root_ntuple_config.JetConfig.btag, list):
+                btag_arrays_np = []
+                for btag_branch in self.config.root_ntuple_config.JetConfig.btag:
+                    btag_array = events.__getitem__(btag_branch)
+                    btag_array_padded = ak.fill_none(
+                        ak.pad_none(btag_array, max_jets, clip=True),
+                        self.config.padding_value,
+                    )
+                    btag_arrays_np.append(ak.to_numpy(btag_array_padded))
+                jet_btag_np = np.stack(btag_arrays_np, axis=-1)
+                jet_btag_np = np.sum(
+                    jet_btag_np, axis=-1
+                )  # Simple sum of multiple b-tag scores
+            else:
+                raise ValueError("Invalid btag configuration")
 
         event_jet_truth_idx = np.full((n_events, 6), -1, dtype=np.int32)
         event_jet_truth_idx[:, 0] = ak.to_numpy(jet_truth_0)
         event_jet_truth_idx[:, 3] = ak.to_numpy(jet_truth_1)
-
 
         n_jets = ak.to_numpy(n_jets).astype(np.int32)
 
@@ -840,7 +869,7 @@ class RootPreprocessor:
             Dictionary of truth features
         """
 
-                # Extract neutrino information
+        # Extract neutrino information
         nu_top_pt = ak.to_numpy(
             events.__getitem__(
                 self.config.root_ntuple_config.TruthConfig.top_neutrino_pt
@@ -856,11 +885,24 @@ class RootPreprocessor:
                 self.config.root_ntuple_config.TruthConfig.top_neutrino_phi
             )
         )
-        nu_top_mass = ak.to_numpy(
-            events.__getitem__(
-                self.config.root_ntuple_config.TruthConfig.top_neutrino_mass
+        if self.config.root_ntuple_config.TruthConfig.top_neutrino_mass is not None:
+            nu_top_mass = ak.to_numpy(
+                events.__getitem__(
+                    self.config.root_ntuple_config.TruthConfig.top_neutrino_mass
+                )
             )
-        )
+            nu_top_e = np.sqrt(nu_top_pt**2 * np.cosh(nu_top_eta) ** 2 + nu_top_mass**2)
+        elif self.config.root_ntuple_config.TruthConfig.top_neutrino_e is not None:
+            nu_top_e = ak.to_numpy(
+                events.__getitem__(
+                    self.config.root_ntuple_config.TruthConfig.top_neutrino_e
+                )
+            )
+            nu_top_mass = np.sqrt(nu_top_e**2 - (nu_top_pt * np.cosh(nu_top_eta)) ** 2)
+        else:
+            raise ValueError(
+                "Must provide either top neutrino mass or energy in config"
+            )
 
         nu_tbar_pt = ak.to_numpy(
             events.__getitem__(
@@ -877,24 +919,37 @@ class RootPreprocessor:
                 self.config.root_ntuple_config.TruthConfig.tbar_neutrino_phi
             )
         )
-        nu_tbar_mass = ak.to_numpy(
-            events.__getitem__(
-                self.config.root_ntuple_config.TruthConfig.tbar_neutrino_mass
+        if self.config.root_ntuple_config.TruthConfig.tbar_neutrino_mass is not None:
+            nu_tbar_mass = ak.to_numpy(
+                events.__getitem__(
+                    self.config.root_ntuple_config.TruthConfig.tbar_neutrino_mass
+                )
             )
-        )
+            nu_tbar_e = np.sqrt(
+                nu_tbar_pt**2 * np.cosh(nu_tbar_eta) ** 2 + nu_tbar_mass**2
+            )
+        elif self.config.root_ntuple_config.TruthConfig.tbar_neutrino_e is not None:
+            nu_tbar_e = ak.to_numpy(
+                events.__getitem__(
+                    self.config.root_ntuple_config.TruthConfig.tbar_neutrino_e
+                )
+            )
+            nu_tbar_mass = np.sqrt(
+                nu_tbar_e**2 - (nu_tbar_pt * np.cosh(nu_tbar_eta)) ** 2
+            )
+        else:
+            raise ValueError(
+                "Must provide either tbar neutrino mass or energy in config"
+            )
 
         # Compute neutrino px, py, pz
         nu_top_px = nu_top_pt * np.cos(nu_top_phi)
         nu_top_py = nu_top_pt * np.sin(nu_top_phi)
         nu_top_pz = nu_top_pt * np.sinh(nu_top_eta)
-        nu_top_e = np.sqrt(nu_top_mass**2 + nu_top_px**2 + nu_top_py**2 + nu_top_pz**2)
 
         nu_tbar_px = nu_tbar_pt * np.cos(nu_tbar_phi)
         nu_tbar_py = nu_tbar_pt * np.sin(nu_tbar_phi)
         nu_tbar_pz = nu_tbar_pt * np.sinh(nu_tbar_eta)
-        nu_tbar_e = np.sqrt(
-            nu_tbar_mass**2 + nu_tbar_px**2 + nu_tbar_py**2 + nu_tbar_pz**2
-        )
         output = {
             "truth_top_neutino_mass": nu_top_mass,
             "truth_top_neutino_pt": nu_top_pt,
@@ -913,24 +968,25 @@ class RootPreprocessor:
             "truth_tbar_neutrino_py": nu_tbar_py,
             "truth_tbar_neutrino_pz": nu_tbar_pz,
         }
-        
-        check_variables = self.config.root_ntuple_config.TruthConfig.top_pt is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_eta is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_phi is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_mass is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_pt is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_eta is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_phi is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_mass is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_lepton_pt is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_lepton_eta is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_lepton_phi is not None \
-        & self.config.root_ntuple_config.TruthConfig.top_lepton_mass is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_lepton_pt is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_lepton_eta is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_lepton_phi is not None \
-        & self.config.root_ntuple_config.TruthConfig.tbar_lepton_mass is not None 
 
+        check_variables = (
+             (self.config.root_ntuple_config.TruthConfig.top_pt is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_eta is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_mass is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_phi is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_pt is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_eta is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_phi is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_mass is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_lepton_pt is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_lepton_eta is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_lepton_phi is not None)
+            and (self.config.root_ntuple_config.TruthConfig.top_lepton_mass is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_pt is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_eta is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_phi is not None)
+            and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_mass is not None)
+        )
 
         if check_variables:
 
@@ -977,14 +1033,18 @@ class RootPreprocessor:
             ttbar_py = top_py + tbar_py
             ttbar_pz = top_pz + tbar_pz
 
-            truth_ttbar_mass = np.sqrt(ttbar_e**2 - ttbar_px**2 - ttbar_py**2 - ttbar_pz**2)
+            truth_ttbar_mass = np.sqrt(
+                ttbar_e**2 - ttbar_px**2 - ttbar_py**2 - ttbar_pz**2
+            )
             truth_ttbar_pt = np.sqrt(ttbar_px**2 + ttbar_py**2)
             ttbar_p = np.sqrt(ttbar_px**2 + ttbar_py**2 + ttbar_pz**2)
             truth_tt_boost_parameter = ttbar_p / ttbar_e
 
             # Lepton 4-vectors from W decay
             lep_top_pt = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.top_lepton_pt)
+                events.__getitem__(
+                    self.config.root_ntuple_config.TruthConfig.top_lepton_pt
+                )
             )
             lep_top_eta = ak.to_numpy(
                 events.__getitem__(
@@ -1001,7 +1061,9 @@ class RootPreprocessor:
                     self.config.root_ntuple_config.TruthConfig.top_lepton_mass
                 )
             )
-            lep_top_e = np.sqrt(lep_top_mass**2 + lep_top_pt**2 * np.cosh(lep_top_eta) ** 2)
+            lep_top_e = np.sqrt(
+                lep_top_mass**2 + lep_top_pt**2 * np.cosh(lep_top_eta) ** 2
+            )
 
             # Lepton from anti-top
             lep_tbar_pt = ak.to_numpy(
@@ -1052,42 +1114,44 @@ class RootPreprocessor:
             truth_c_hel = np.clip(truth_c_hel, -1, 1)
             truth_c_han = np.clip(truth_c_han, -1, 1)
 
-            output.update({
-                # ttbar system
-                "truth_ttbar_mass": truth_ttbar_mass,
-                "truth_ttbar_pt": truth_ttbar_pt,
-                "truth_tt_boost_parameter": truth_tt_boost_parameter,
-                "truth_ttbar_px": ttbar_px,
-                "truth_ttbar_py": ttbar_py,
-                "truth_ttbar_pz": ttbar_pz,
-                "truth_ttbar_e": ttbar_e,
-                "truth_ttbar_p": ttbar_p,
-                # Top quark
-                "truth_top_mass": truth_top_mass,
-                "truth_top_pt": truth_top_pt,
-                "truth_top_eta": truth_top_eta,
-                "truth_top_phi": truth_top_phi,
-                "truth_top_e": top_e,
-                # Anti-top quark
-                "truth_tbar_mass": truth_tbar_mass,
-                "truth_tbar_pt": truth_tbar_pt,
-                "truth_tbar_eta": truth_tbar_eta,
-                "truth_tbar_phi": truth_tbar_phi,
-                "truth_tbar_e": tbar_e,
-                # Neutrinos
-                # Leptons from W decays
-                "truth_top_lepton_e": lep_top_e,
-                "truth_tbar_lepton_e": lep_tbar_e,
-                "truth_top_lepton_px": top_lep_px,
-                "truth_top_lepton_py": top_lep_py,
-                "truth_top_lepton_pz": top_lep_pz,
-                "truth_tbar_lepton_px": tbar_lep_px,
-                "truth_tbar_lepton_py": tbar_lep_py,
-                "truth_tbar_lepton_pz": tbar_lep_pz,
-                # Truth c_han, c_hel
-                "truth_c_hel": truth_c_hel,
-                "truth_c_han": truth_c_han,
-            })
+            output.update(
+                {
+                    # ttbar system
+                    "truth_ttbar_mass": truth_ttbar_mass,
+                    "truth_ttbar_pt": truth_ttbar_pt,
+                    "truth_tt_boost_parameter": truth_tt_boost_parameter,
+                    "truth_ttbar_px": ttbar_px,
+                    "truth_ttbar_py": ttbar_py,
+                    "truth_ttbar_pz": ttbar_pz,
+                    "truth_ttbar_e": ttbar_e,
+                    "truth_ttbar_p": ttbar_p,
+                    # Top quark
+                    "truth_top_mass": truth_top_mass,
+                    "truth_top_pt": truth_top_pt,
+                    "truth_top_eta": truth_top_eta,
+                    "truth_top_phi": truth_top_phi,
+                    "truth_top_e": top_e,
+                    # Anti-top quark
+                    "truth_tbar_mass": truth_tbar_mass,
+                    "truth_tbar_pt": truth_tbar_pt,
+                    "truth_tbar_eta": truth_tbar_eta,
+                    "truth_tbar_phi": truth_tbar_phi,
+                    "truth_tbar_e": tbar_e,
+                    # Neutrinos
+                    # Leptons from W decays
+                    "truth_top_lepton_e": lep_top_e,
+                    "truth_tbar_lepton_e": lep_tbar_e,
+                    "truth_top_lepton_px": top_lep_px,
+                    "truth_top_lepton_py": top_lep_py,
+                    "truth_top_lepton_pz": top_lep_pz,
+                    "truth_tbar_lepton_px": tbar_lep_px,
+                    "truth_tbar_lepton_py": tbar_lep_py,
+                    "truth_tbar_lepton_pz": tbar_lep_pz,
+                    # Truth c_han, c_hel
+                    "truth_c_hel": truth_c_hel,
+                    "truth_c_han": truth_c_han,
+                }
+            )
         return output
 
     def _extract_neutrino_reco(self, events: ak.Array) -> Dict[str, np.ndarray]:
@@ -1264,7 +1328,6 @@ def preprocess_root_directory(
     )
     num_files = len(root_files)
     print(f"Found {num_files} files in {input_dir}.\nStarting processing...\n\n")
-
 
     for file_index, input_path in enumerate(root_files):
         print(f"Processing file {file_index + 1} of {num_files}...\n")
