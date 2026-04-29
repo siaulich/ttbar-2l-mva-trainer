@@ -15,8 +15,8 @@ from typing import Optional, List, Dict, Tuple
 from copy import deepcopy
 
 from src import keras_models, utils
-from src.DataLoader import (
-    DataPreprocessor,
+from src.preprocessing.training_data_loader import (
+    TrainingDataLoader,
     DataConfig,
     LoadConfig,
 )
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     if args.num_events is not None:
         num_events = args.num_events
 
-    data_preprocessor = DataPreprocessor(load_config)
+    data_preprocessor = TrainingDataLoader(load_config)
     data_config = data_preprocessor.load_from_npz(
         load_config.data_path,
         event_numbers=args.event_numbers,

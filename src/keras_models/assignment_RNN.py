@@ -2,9 +2,9 @@ import keras as keras
 import tensorflow as tf
 from keras.layers import LSTM, GRU, RNN, LSTMCell, Bidirectional, GRUCell
 
-from src.reconstruction import KerasFFRecoBase
-from src.configs import DataConfig
-from src.components import (
+from ..reconstruction import KerasFFRecoBase
+from ..configs import DataConfig
+from ..components import (
     MLP,
     TemporalSoftmax,
 )

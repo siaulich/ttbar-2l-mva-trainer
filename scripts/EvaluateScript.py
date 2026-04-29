@@ -11,7 +11,7 @@ plt.rcParams["font.size"] = 18
 import matplotlib as mpl
 
 mpl.rcParams["figure.constrained_layout.use"] = True
-from src.DataLoader import DataPreprocessor
+from src.preprocessing.training_data_loader import TrainingDataLoader
 from src import evaluation, reconstruction, base_classes
 from src.configs import (
     get_load_config_from_yaml,
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     evaluation_config = load_evaluation_config(args.evaluation_config)
 
     # Load data
-    data_processor = DataPreprocessor(load_config)
+    data_processor = TrainingDataLoader(load_config)
     data_config = data_processor.load_from_npz(
         npz_path=load_config.data_path,
         num_events=args.num_events,

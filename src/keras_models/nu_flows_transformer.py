@@ -3,10 +3,18 @@ import tensorflow as tf
 import numpy as np
 
 
-from src.reconstruction import KerasNuPriorAssigner
-import src.components as components
+from ..reconstruction import KerasNuPriorAssigner
+from ..components import (
+    SelfAttentionBlock,
+    MLP,
+    TemporalSoftmax,
+    ExpandJetMask,
+    SplitTransformerOutput,
+    JetLeptonAssignment,
+    EmbeddingMLP,
+)
 
-from src import DataConfig
+from .. import DataConfig
 
 
 class NuFlowsPriorAssigner(KerasNuPriorAssigner):
@@ -51,19 +59,19 @@ class NuFlowsPriorAssigner(KerasNuPriorAssigner):
         )
 
         # Embed jets, leptons, and global event features
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(normed_jet_inputs)
 
-        lep_embedding = components.EmbeddingMLP(
+        lep_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="lep_embedding",
         )(normed_lep_inputs)
 
-        global_embedding = components.EmbeddingMLP(
+        global_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="global_embedding",
@@ -73,7 +81,7 @@ class NuFlowsPriorAssigner(KerasNuPriorAssigner):
         sequence = keras.layers.Concatenate(axis=1)(
             [jet_embedding, lep_embedding, global_embedding]
         )
-        sequence_mask = components.ExpandJetMask(
+        sequence_mask = ExpandJetMask(
             name="expand_jet_mask",
             extra_sequence_length=self.NUM_LEPTONS
             + 1,  # leptons + neutrino priors + global features
@@ -82,7 +90,7 @@ class NuFlowsPriorAssigner(KerasNuPriorAssigner):
         # Transformer layers
         x = sequence
         for i in range(num_layers):
-            x = components.SelfAttentionBlock(
+            x = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -90,24 +98,24 @@ class NuFlowsPriorAssigner(KerasNuPriorAssigner):
             )(x, sequence_mask)
 
         # Split outputs
-        jet_outputs, lepton_outputs, _ = components.SplitTransformerOutput(
+        jet_outputs, lepton_outputs, _ = SplitTransformerOutput(
             name="split_transformer_output",
             max_jets=self.max_jets,
             max_leptons=self.NUM_LEPTONS,
         )(x)
 
         # Assignment Head
-        jet_assignment_output = components.MLP(
+        jet_assignment_output = MLP(
             output_dim=hidden_dim,
             name="jet_assignment_mlp",
             num_layers=2,
         )(jet_outputs)
-        lepton_assignment_output = components.MLP(
+        lepton_assignment_output = MLP(
             output_dim=hidden_dim,
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_logits = components.JetLeptonAssignment(
+        assignment_logits = JetLeptonAssignment(
             dim=hidden_dim, name="assignment"
         )(
             jets=jet_assignment_output,

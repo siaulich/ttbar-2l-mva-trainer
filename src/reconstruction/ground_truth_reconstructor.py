@@ -1,7 +1,7 @@
 from ..base_classes.reconstruction_base import EventReconstructorBase
 from .keras_ff_reco_base import KerasFFRecoBase
 import numpy as np
-from src.DataLoader import DataConfig
+from ..preprocessing.training_data_loader import DataConfig
 from typing import Union
 
 

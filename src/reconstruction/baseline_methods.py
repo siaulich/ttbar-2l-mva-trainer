@@ -1,7 +1,7 @@
 from ..base_classes.reconstruction_base import EventReconstructorBase
-from src.DataLoader import DataConfig
+from ..preprocessing.training_data_loader import DataConfig
 import numpy as np
-from src.utils.four_vector_arithmetics import (
+from ..utils.four_vector_arithmetics import (
     lorentz_vector_from_pt_eta_phi_e,
     compute_mass_from_lorentz_vector,
 )

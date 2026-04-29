@@ -9,7 +9,7 @@ from .physics_calculations import (
     c_hel,
     c_han,
 )
-from src.utils import (
+from ..utils import (
     compute_pt_from_lorentz_vector_array,
     compute_eta_from_lorentz_vector_array,
     compute_phi_from_lorentz_vector_array,

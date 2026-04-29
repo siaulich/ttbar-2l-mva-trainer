@@ -5,9 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
 import os
-from src.RootPreprocessor import (
-    RootPreprocessor,
-    preprocess_root_file,
+from src.preprocessing import (
     preprocess_root_directory,
     DataSampleConfig,
 )

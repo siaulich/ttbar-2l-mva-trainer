@@ -3,8 +3,8 @@ import tensorflow as tf
 import numpy as np
 
 
-from src.reconstruction import KerasBinnedRegressor
-from src.components import (
+from ..reconstruction import KerasBinnedRegressor
+from ..components import (
     SelfAttentionBlock,
     MLP,
     TemporalSoftmax,

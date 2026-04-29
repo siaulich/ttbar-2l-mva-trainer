@@ -37,6 +37,7 @@ class ModelConfig:
 @dataclass
 class RecontructorConfig:
     type: str = "KerasFFRecoBase"
+    name: Optional[str] = None
     options: Dict[str, Any] = field(default_factory=dict)
 
 
@@ -119,7 +120,7 @@ class LoadConfig:
     Contains all options needed during the data loading phase, including
     feature names, truth labels, cuts, and preprocessing options.
 
-    This config is used by the DataPreprocessor during loading.
+    This config is used by the TrainingDataLoader during loading.
     After loading, a DataConfig is created to describe the loaded data structure.
     """
 
@@ -508,14 +509,14 @@ class PartonHistoryConfig:
     tbar_mass: Optional[str] = None
 
     top_neutrino_pt: str = None
-    top_neutrino_eta: str =  None
-    top_neutrino_phi: str =  None
+    top_neutrino_eta: str = None
+    top_neutrino_phi: str = None
     top_neutrino_mass: str = None
     top_neutrino_e: str = None
 
     tbar_neutrino_pt: str = None
     tbar_neutrino_eta: str = None
-    tbar_neutrino_phi: str =  None
+    tbar_neutrino_phi: str = None
     tbar_neutrino_mass: str = None
     tbar_neutrino_e: str = None
 
@@ -625,22 +626,40 @@ class PreprocessorConfig:
 
     padding_value: float = -999.0  # Padding value for missing data
 
+    scale_by: Dict[str, float] = field(default_factory=lambda: {"jet_pt": 1e-3, "el_pt": 1e-3, "mu_pt": 1e-3})
+
     data_cuts: Dict[str, Tuple[float, float]] = (
         None  # Optional cuts on features (min, max)
     )
 
 
-def load_yaml_config(file_path):
+@dataclass
+class InferenceConfig:
+    reconstructors: List[RecontructorConfig] = field(default_factory=list)
+
+def load_yaml_config(file_path) -> dict:
     """Load a YAML configuration file."""
     with open(file_path, "r") as file:
         config = yaml.safe_load(file)
     return config
 
+def load_load_config(file_path) -> LoadConfig:
+    """Load a LoadConfig from a YAML file."""
+    yaml_dict = load_yaml_config(file_path)
+    load_config_dict = yaml_dict.get("LoadConfig", {})
+    return LoadConfig(**load_config_dict)
+
+def load_inference_config(path: str) -> InferenceConfig:
+    raw = load_yaml_config(path)
+    return from_dict(
+        data_class=InferenceConfig,
+        data=raw,
+        config=Config(cast=[tuple]),  # converts list → tuple for range
+    )
+
 
 def load_evaluation_config(path: str) -> EvaluationConfig:
-    with open(path) as f:
-        raw = yaml.safe_load(f)
-
+    raw = load_yaml_config(path)
     return from_dict(
         data_class=EvaluationConfig,
         data=raw,
@@ -649,11 +668,9 @@ def load_evaluation_config(path: str) -> EvaluationConfig:
 
 
 def load_preprocessing_config(path: str) -> PreprocessorConfig:
-    with open(path) as f:
-        raw = yaml.safe_load(f)
-
+    raw = load_yaml_config(path)
     return from_dict(
         data_class=PreprocessorConfig,
-        data=raw,
+        data=raw["PreprocessorConfig"],
         config=Config(cast=[tuple]),  # converts list → tuple for range
     )

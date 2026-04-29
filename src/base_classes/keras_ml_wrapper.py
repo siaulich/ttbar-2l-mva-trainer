@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from . import BaseUtilityModel
-from src.DataLoader import DataConfig
+from ..configs import DataConfig
 import keras as keras
 import numpy as np
 import tensorflow as tf
@@ -56,7 +56,7 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         """
         Initializes the AssignmentBaseModel class.
         Args:
-            data_preprocessor (DataPreprocessor): An instance of the DataPreprocessor class
+            data_preprocessor (TrainingDataLoader): An instance of the TrainingDataLoader class
                 that provides preprocessed data and metadata required for model initialization.
         """
         self.model: keras.models.Model = None
@@ -319,7 +319,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         unpadded_jet_data = jet_data[jet_mask]
         num_jets = unpadded_jet_data.shape[0]
         num_events = num_jets // self.max_jets
-        print(f"Adapting normalization layers using {num_events} events with unpadded jet data shape: {unpadded_jet_data.shape}")
+        print(
+            f"Adapting normalization layers using {num_events} events with unpadded jet data shape: {unpadded_jet_data.shape}"
+        )
         unpadded_jet_data = unpadded_jet_data[: num_events * self.max_jets, :].reshape(
             (num_events, self.max_jets, self.n_jets)
         )

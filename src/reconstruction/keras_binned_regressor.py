@@ -2,10 +2,10 @@ import tensorflow as tf
 import keras as keras
 import numpy as np
 from abc import ABC, abstractmethod
-from src.DataLoader import DataConfig
-from src.base_classes import KerasMLWrapper
-from src.components import UnbinRegressionOutput
-from src.utils import losses
+from ..preprocessing.training_data_loader import DataConfig
+from ..base_classes import KerasMLWrapper
+from ..components import UnbinRegressionOutput
+from ..utils import losses
 from ..base_classes.reconstruction_base import EventReconstructorBase
 
 from copy import deepcopy

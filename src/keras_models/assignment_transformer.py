@@ -4,7 +4,18 @@ import numpy as np
 
 
 from src.reconstruction import KerasFFRecoBase
-import src.components as components
+from ..components import (
+    MLP,
+    SelfAttentionBlock,
+    MultiHeadAttentionBlock,
+    JetLeptonAssignment,
+    EmbeddingMLP,
+    TemporalSoftmax,
+    ExpandJetMask,
+    SplitTransformerOutput,
+    StopGradientLayer,
+    PoolingAttentionBlock,
+)
 
 from src import DataConfig
 
@@ -71,13 +82,13 @@ class CrossAttentionAssigner(KerasFFRecoBase):
         )
 
         # Input embedding layers
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(jet_inputs)
 
-        lep_embedding = components.EmbeddingMLP(
+        lep_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="lep_embedding",
@@ -88,14 +99,14 @@ class CrossAttentionAssigner(KerasFFRecoBase):
         lep_sequence = lep_embedding
 
         for i in range(num_layers):
-            jet_sequence = components.SelfAttentionBlock(
+            jet_sequence = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
                 name=f"jet_self_attention_{i}",
             )(jet_sequence, mask=jet_mask)
 
-            lep_sequence = components.MultiHeadAttentionBlock(
+            lep_sequence = MultiHeadAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -108,14 +119,14 @@ class CrossAttentionAssigner(KerasFFRecoBase):
                 key_mask=jet_mask,
             )
 
-            lep_sequence = components.SelfAttentionBlock(
+            lep_sequence = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
                 name=f"lep_self_attention_{i}",
             )(lep_sequence)
 
-            jet_sequence = components.MultiHeadAttentionBlock(
+            jet_sequence = MultiHeadAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -128,17 +139,17 @@ class CrossAttentionAssigner(KerasFFRecoBase):
             )
 
         # Assignment Head
-        jet_assignment_output = components.MLP(
+        jet_assignment_output = MLP(
             output_dim=hidden_dim,
             name="jet_assignment_mlp",
             num_layers=2,
         )(jet_sequence)
-        lepton_assignment_output = components.MLP(
+        lepton_assignment_output = MLP(
             output_dim=hidden_dim,
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lep_sequence)
-        assignment_logits = components.JetLeptonAssignment(
+        assignment_logits = JetLeptonAssignment(
             dim=hidden_dim, name="assignment"
         )(
             jets=jet_assignment_output,
@@ -220,7 +231,7 @@ class FeatureConcatAssigner(KerasFFRecoBase):
         )
 
         # Input embedding layers
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
@@ -229,7 +240,7 @@ class FeatureConcatAssigner(KerasFFRecoBase):
         # Transformer layers
         jets_transformed = jet_embedding
         for i in range(num_layers):
-            jets_transformed = components.SelfAttentionBlock(
+            jets_transformed = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -238,36 +249,36 @@ class FeatureConcatAssigner(KerasFFRecoBase):
             )(jets_transformed, mask=jet_mask)
 
         # Output layers
-        jet_output_embedding = components.EmbeddingMLP(
+        jet_output_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_output_embedding",
         )(jets_transformed)
 
-        jet_assignment_embedding = components.MLP(
+        jet_assignment_embedding = MLP(
             output_dim=2,
             name="jet_assignment_mlp",
             num_layers=3,
         )(jet_output_embedding)
 
-        jet_assignment_probs = components.TemporalSoftmax(axis=1, name="assignment")(
+        jet_assignment_probs = TemporalSoftmax(axis=1, name="assignment")(
             jet_assignment_embedding, mask=jet_mask
         )
 
         confidence_score = None
         # Confidence score output (optional)
         if predict_confidence:
-            confidence_extraction = components.StopGradientLayer(
+            confidence_extraction = StopGradientLayer(
                 name="confidence_extraction"
             )(jets_transformed)
-            pooling = components.PoolingAttentionBlock(
+            pooling = PoolingAttentionBlock(
                 num_heads=num_heads,
                 num_seeds=1,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
                 name="confidence_pooling",
             )(confidence_extraction, mask=jet_mask)
-            confidence_score = components.MLP(
+            confidence_score = MLP(
                 1,
                 num_layers=2,
                 activation="sigmoid",
@@ -321,19 +332,19 @@ class CompactAssigner(KerasFFRecoBase):
         )
 
         # Embed jets, leptons, and global event features
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(normed_jet_inputs)
 
-        lep_embedding = components.EmbeddingMLP(
+        lep_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="lep_embedding",
         )(normed_lep_inputs)
 
-        global_embedding = components.EmbeddingMLP(
+        global_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="global_embedding",
@@ -343,7 +354,7 @@ class CompactAssigner(KerasFFRecoBase):
         sequence = keras.layers.Concatenate(axis=1)(
             [jet_embedding, lep_embedding, global_embedding]
         )
-        sequence_mask = components.ExpandJetMask(
+        sequence_mask = ExpandJetMask(
             name="expand_jet_mask",
             extra_sequence_length=self.NUM_LEPTONS + 1,
         )(jet_mask)
@@ -351,7 +362,7 @@ class CompactAssigner(KerasFFRecoBase):
         # Transformer layers
         x = sequence
         for i in range(num_layers):
-            x = components.SelfAttentionBlock(
+            x = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -359,24 +370,24 @@ class CompactAssigner(KerasFFRecoBase):
             )(x, sequence_mask)
 
         # Split outputs
-        jet_outputs, lepton_outputs, _ = components.SplitTransformerOutput(
+        jet_outputs, lepton_outputs, _ = SplitTransformerOutput(
             name="split_transformer_output",
             max_jets=self.max_jets,
             max_leptons=self.NUM_LEPTONS,
         )(x)
 
         # Assignment Head
-        jet_assignment_output = components.MLP(
+        jet_assignment_output = MLP(
             output_dim=hidden_dim,
             name="jet_assignment_mlp",
             num_layers=2,
         )(jet_outputs)
-        lepton_assignment_output = components.MLP(
+        lepton_assignment_output = MLP(
             output_dim=hidden_dim,
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_logits = components.JetLeptonAssignment(
+        assignment_logits = JetLeptonAssignment(
             dim=hidden_dim, name="assignment"
         )(
             jets=jet_assignment_output,

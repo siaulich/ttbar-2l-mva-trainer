@@ -15,8 +15,8 @@ from typing import Optional, List, Dict, Tuple
 from copy import deepcopy
 
 from src import keras_models, utils
-from src.DataLoader import (
-    DataPreprocessor,
+from src.preprocessing.training_data_loader import (
+    TrainingDataLoader,
     DataConfig,
     LoadConfig,
 )

@@ -19,7 +19,7 @@ ampl.set_color_cycle("ATLAS")
 plt.rcParams["font.size"] = 18
 mpl.rcParams["figure.constrained_layout.use"] = True
 
-from src.DataLoader import DataPreprocessor
+from src.preprocessing.training_data_loader import TrainingDataLoader
 from src import evaluation, keras_models
 from src.configs import (
     DataConfig,
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     os.makedirs(args.output_dir, exist_ok=True)
 
     models = dict()
-    data_processor = DataPreprocessor(load_config)
+    data_processor = TrainingDataLoader(load_config)
     data_config = data_processor.load_from_npz(
         npz_path=load_config.data_path,
         num_events=args.num_events,

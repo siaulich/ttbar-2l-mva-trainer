@@ -3,9 +3,21 @@ import tensorflow as tf
 import numpy as np
 
 
-from src.reconstruction import KerasFFRecoBase
-import src.components as components
-from src import DataConfig
+import keras as keras
+from ..reconstruction import KerasFFRecoBase
+from .. import DataConfig
+from ..components import (
+    SelfAttentionBlock,
+    MLP,
+    PoolingAttentionBlock,
+    TemporalSoftmax,
+    ExpandJetMask,
+    SplitTransformerOutput,
+    JetLeptonAssignment,
+    EmbeddingMLP,
+    StopGradientLayer,
+)
+
 
 
 class FeatureConcatReconstructor(KerasFFRecoBase):
@@ -85,7 +97,7 @@ class FeatureConcatReconstructor(KerasFFRecoBase):
         )
 
         # Input embedding layers
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
@@ -93,7 +105,7 @@ class FeatureConcatReconstructor(KerasFFRecoBase):
         # Transformer layers
         jets_transformed = jet_embedding
         for i in range(num_layers):
-            jets_transformed = components.SelfAttentionBlock(
+            jets_transformed = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -102,13 +114,13 @@ class FeatureConcatReconstructor(KerasFFRecoBase):
             )(jets_transformed, mask=jet_mask)
 
         # Output layers
-        jet_output_embedding = components.EmbeddingMLP(
+        jet_output_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_output_embedding",
         )(jets_transformed)
 
-        attention_pooling = components.PoolingAttentionBlock(
+        attention_pooling = PoolingAttentionBlock(
             num_heads=num_heads,
             key_dim=hidden_dim,
             num_seeds=1,
@@ -120,12 +132,12 @@ class FeatureConcatReconstructor(KerasFFRecoBase):
             [attention_pooling]
         )
 
-        regression_outputs = components.EmbeddingMLP(
+        regression_outputs = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="regression_embedding",
         )(regression_outputs)
-        regression_outputs = components.MLP(
+        regression_outputs = MLP(
             output_dim=3,
             name="regression_embedding_mlp",
             num_layers=3,
@@ -135,13 +147,13 @@ class FeatureConcatReconstructor(KerasFFRecoBase):
             (-1, 3), name="normalized_regression"
         )(regression_outputs)
 
-        jet_assignment_embedding = components.MLP(
+        jet_assignment_embedding = MLP(
             output_dim=2,
             name="jet_assignment_mlp",
             num_layers=3,
         )(jet_output_embedding)
 
-        jet_assignment_probs = components.TemporalSoftmax(axis=1, name="assignment")(
+        jet_assignment_probs = TemporalSoftmax(axis=1, name="assignment")(
             jet_assignment_embedding, mask=jet_mask
         )
 
@@ -190,19 +202,19 @@ class CompactReconstructor(KerasFFRecoBase):
         )
 
         # Embed jets, leptons, and global event features
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(normed_jet_inputs)
 
-        lep_embedding = components.EmbeddingMLP(
+        lep_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="lep_embedding",
         )(normed_lep_inputs)
 
-        global_embedding = components.EmbeddingMLP(
+        global_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="global_embedding",
@@ -212,7 +224,7 @@ class CompactReconstructor(KerasFFRecoBase):
         sequence = keras.layers.Concatenate(axis=1)(
             [jet_embedding, lep_embedding, global_embedding]
         )
-        sequence_mask = components.ExpandJetMask(
+        sequence_mask = ExpandJetMask(
             name="expand_jet_mask",
             extra_sequence_length=self.NUM_LEPTONS + 1,
         )(jet_mask)
@@ -220,7 +232,7 @@ class CompactReconstructor(KerasFFRecoBase):
         # Transformer layers
         x = sequence
         for i in range(num_layers):
-            x = components.SelfAttentionBlock(
+            x = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -228,24 +240,24 @@ class CompactReconstructor(KerasFFRecoBase):
             )(x, sequence_mask)
 
         # Split outputs
-        jet_outputs, lepton_outputs, global_outputs = components.SplitTransformerOutput(
+        jet_outputs, lepton_outputs, global_outputs = SplitTransformerOutput(
             name="split_transformer_output",
             max_jets=self.max_jets,
             max_leptons=self.NUM_LEPTONS,
         )(x)
 
         # Assignment Head
-        jet_assignment_output = components.MLP(
+        jet_assignment_output = MLP(
             output_dim=hidden_dim,
             name="jet_assignment_mlp",
             num_layers=2,
         )(jet_outputs)
-        lepton_assignment_output = components.MLP(
+        lepton_assignment_output = MLP(
             output_dim=hidden_dim,
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_probs = components.JetLeptonAssignment(
+        assignment_probs = JetLeptonAssignment(
             dim=hidden_dim, name="assignment"
         )(
             jets=jet_assignment_output,
@@ -260,7 +272,7 @@ class CompactReconstructor(KerasFFRecoBase):
 
         jet_attention = assignment_probs
         if stop_gradient_assignment_probs:
-            jet_attention = components.StopGradientLayer(
+            jet_attention = StopGradientLayer(
                 name="stop_gradient_assignment"
             )(assignment_probs)
         assosciated_jets = keras.layers.Dot(axes=(1, 1))([jet_attention, jet_outputs])
@@ -268,7 +280,7 @@ class CompactReconstructor(KerasFFRecoBase):
             [assosciated_jets, per_lepton_repeated_global]
         )
 
-        regression_outputs = components.MLP(
+        regression_outputs = MLP(
             output_dim=3,
             name="normalized_regression",
             num_layers=3,

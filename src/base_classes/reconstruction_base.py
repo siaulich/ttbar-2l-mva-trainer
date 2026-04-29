@@ -1,7 +1,7 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from src.DataLoader import DataConfig
-from src.base_classes import BaseUtilityModel
+from .. import DataConfig
+from . import BaseUtilityModel
 
 
 class EventReconstructorBase(BaseUtilityModel, ABC):

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.configs import DataConfig
+from ..configs import DataConfig
 
 
 class BaseUtilityModel(ABC):

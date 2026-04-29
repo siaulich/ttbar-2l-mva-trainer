@@ -1,8 +1,16 @@
 import keras as keras
-from src.reconstruction import KerasFFGaussian
-import src.components as components
-from src import DataConfig
-
+from ..reconstruction import KerasFFGaussian
+from .. import DataConfig
+from ..components import (
+    SelfAttentionBlock,
+    MLP,
+    TemporalSoftmax,
+    ExpandJetMask,
+    SplitTransformerOutput,
+    JetLeptonAssignment,
+    EmbeddingMLP,
+    StopGradientLayer,
+)
 
 class CompactReconstructorVariance(KerasFFGaussian):
     def __init__(self, config: DataConfig, name="CrossAttentionModel"):
@@ -41,19 +49,19 @@ class CompactReconstructorVariance(KerasFFGaussian):
         )
 
         # Embed jets, leptons, and global event features
-        jet_embedding = components.EmbeddingMLP(
+        jet_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="jet_embedding",
         )(normed_jet_inputs)
 
-        lep_embedding = components.EmbeddingMLP(
+        lep_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="lep_embedding",
         )(normed_lep_inputs)
 
-        global_embedding = components.EmbeddingMLP(
+        global_embedding = EmbeddingMLP(
             output_dim=hidden_dim,
             dropout_rate=dropout_rate,
             name="global_embedding",
@@ -63,7 +71,7 @@ class CompactReconstructorVariance(KerasFFGaussian):
         sequence = keras.layers.Concatenate(axis=1)(
             [jet_embedding, lep_embedding, global_embedding]
         )
-        sequence_mask = components.ExpandJetMask(
+        sequence_mask = ExpandJetMask(
             name="expand_jet_mask",
             extra_sequence_length=self.NUM_LEPTONS + 1,
         )(jet_mask)
@@ -71,7 +79,7 @@ class CompactReconstructorVariance(KerasFFGaussian):
         # Transformer layers
         x = sequence
         for i in range(num_layers):
-            x = components.SelfAttentionBlock(
+            x = SelfAttentionBlock(
                 num_heads=num_heads,
                 key_dim=hidden_dim,
                 dropout_rate=dropout_rate,
@@ -79,24 +87,24 @@ class CompactReconstructorVariance(KerasFFGaussian):
             )(x, sequence_mask)
 
         # Split outputs
-        jet_outputs, lepton_outputs, global_outputs = components.SplitTransformerOutput(
+        jet_outputs, lepton_outputs, global_outputs = SplitTransformerOutput(
             name="split_transformer_output",
             max_jets=self.max_jets,
             max_leptons=self.NUM_LEPTONS,
         )(x)
 
         # Assignment Head
-        jet_assignment_output = components.MLP(
+        jet_assignment_output = MLP(
             output_dim=hidden_dim,
             name="jet_assignment_mlp",
             num_layers=2,
         )(jet_outputs)
-        lepton_assignment_output = components.MLP(
+        lepton_assignment_output = MLP(
             output_dim=hidden_dim,
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_probs = components.JetLeptonAssignment(
+        assignment_probs = JetLeptonAssignment(
             dim=hidden_dim, name="assignment"
         )(
             jets=jet_assignment_output,
@@ -111,7 +119,7 @@ class CompactReconstructorVariance(KerasFFGaussian):
 
         jet_attention = assignment_probs
         if stop_gradient_assignment_probs:
-            jet_attention = components.StopGradientLayer(
+            jet_attention = StopGradientLayer(
                 name="stop_gradient_assignment"
             )(assignment_probs)
         assosciated_jets = keras.layers.Dot(axes=(1, 1))([jet_attention, jet_outputs])
@@ -119,13 +127,13 @@ class CompactReconstructorVariance(KerasFFGaussian):
             [assosciated_jets, per_lepton_repeated_global]
         )
 
-        regression_mean = components.MLP(
+        regression_mean = MLP(
             output_dim=3,  # variance for all three regression targets
             name="regression_mean",
             num_layers=3,
         )(regression_inputs)
 
-        regression_var = components.MLP(
+        regression_var = MLP(
             output_dim=3,  # variance for all three regression targets
             activation="softplus",  # ensure positivity of variance
             name="regression_var",

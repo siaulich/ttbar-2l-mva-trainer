@@ -15,7 +15,7 @@ mpl.rcParams["figure.constrained_layout.use"] = True
 import os
 import timeit
 import keras as keras
-from src.reconstruction import (
+from ..reconstruction import (
     GroundTruthReconstructor,
     KerasFFRecoBase,
 )

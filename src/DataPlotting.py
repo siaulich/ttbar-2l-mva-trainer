@@ -1,8 +1,8 @@
-from .DataLoader import DataPreprocessor, DataConfig
+from .preprocessing.training_data_loader import TrainingDataLoader, DataConfig
 import numpy as np
 import matplotlib.pyplot as plt
 import atlas_mpl_style as ampl
-from src.utils import lorentz_vector_from_neutrino_momenta_array
+from .utils import lorentz_vector_from_neutrino_momenta_array
 
 ampl.use_atlas_style()
 ampl.set_color_cycle("ATLAS")
@@ -10,7 +10,7 @@ import os
 
 
 class DataPlotter:
-    def __init__(self, data_processor: DataPreprocessor, plots_dir: str):
+    def __init__(self, data_processor: TrainingDataLoader, plots_dir: str):
         self.data_processor = data_processor
         self.plots_dir = plots_dir
         self.padding_value = data_processor.data_config.padding_value

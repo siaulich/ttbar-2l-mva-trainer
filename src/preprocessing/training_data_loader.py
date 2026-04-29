@@ -19,7 +19,7 @@ import copy
 
 from typing import Optional, Dict, List, Tuple, Union
 
-from .configs import LoadConfig, DataConfig
+from ..configs import LoadConfig, DataConfig
 
 
 class LabelBuilder:
@@ -85,11 +85,11 @@ class LabelBuilder:
         )
 
         for top_idx in range(self.config.NUM_LEPTONS):
-            jet_idx_for_lep = jet_truth[:, top_idx]          # (n_events,)
-            lep_idx_for_lep = lepton_truth[:, top_idx]       # (n_events,)
-            valid = (jet_idx_for_lep >= 0)
+            jet_idx_for_lep = jet_truth[:, top_idx]  # (n_events,)
+            lep_idx_for_lep = lepton_truth[:, top_idx]  # (n_events,)
+            valid = jet_idx_for_lep >= 0
             evt = np.where(valid)[0]
-            pair_truth[evt, jet_idx_for_lep[evt], lep_idx_for_lep[evt]] = 1        
+            pair_truth[evt, jet_idx_for_lep[evt], lep_idx_for_lep[evt]] = 1
         return pair_truth
 
 
@@ -98,17 +98,15 @@ class LabelBuilder:
 # =============================================================================
 
 
-class DataPreprocessor:
+class TrainingDataLoader:
     """
     Main class for loading and preprocessing particle physics data.
 
     Handles:
-    - Loading ROOT files
-    - Applying cuts
+    - Loading from NPZ files
     - Building feature arrays
-    - Creating labels
-    - Splitting data for training
-    - Data normalization
+    - Building labels
+
 
     After loading, provides a DataConfig that describes the loaded data
     structure for downstream components (e.g., ML models).
@@ -807,4 +805,3 @@ def combine_train_datasets(
         combined_y[key] = combined_y[key][permutation]
 
     return combined_X, combined_y
-

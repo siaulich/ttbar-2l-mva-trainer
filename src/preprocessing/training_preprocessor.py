@@ -18,20 +18,19 @@ from typing import Optional, Dict, List, Tuple
 from dataclasses import dataclass, field
 import os
 from tqdm import tqdm
-from src.utils import (
+from ..utils import (
     lorentz_vector_array_from_pt_eta_phi_e,
     compute_mass_from_lorentz_vector_array,
 )
-from src.evaluation.physics_calculations import c_han, c_hel
+from ..evaluation.physics_calculations import c_han, c_hel
 
-import src.configs as configs
-
+from ..configs import PreprocessorConfig, LoadConfig
 
 @dataclass
 class DataSampleConfig:
     """Configuration for data sample preprocessing."""
 
-    preprocessor_config: configs.PreprocessorConfig
+    preprocessor_config: PreprocessorConfig
     name: str
     output_dir: str
     input_dir: str
@@ -39,15 +38,16 @@ class DataSampleConfig:
     k_fold: Optional[int] = None  # For cross-validation splits
 
 
-class RootPreprocessor:
+class RootTrainingTrainingDataLoader:
     """
-    Python implementation of ROOT file preprocessing (previously in C++).
+    Python implementation of ROOT file preprocessing.
 
     Performs event selection, particle ordering, and feature computation
     on particle physics event data.
     """
 
-    def __init__(self, config: configs.PreprocessorConfig):
+
+    def __init__(self, config: PreprocessorConfig):
         """
         Initialize preprocessor.
 
@@ -59,7 +59,15 @@ class RootPreprocessor:
         self.n_events_processed = 0
         self.n_events_passed = 0
 
-    def process(self, input_path: str):
+    def extract_event_data(self, events, feature):
+        scale_factor = 1.0
+        if feature in self.config.scale_by:
+            print(f"Applying scale factor of {self.config.scale_by[feature]} to feature '{feature}'")
+            scale_factor = self.config.scale_by[feature]
+        return events.__getitem__(feature) * scale_factor
+
+
+    def process_train_data(self, input_path: str):
         """Main processing method."""
         if self.config.verbose:
             print(f"Processing ROOT file: {input_path}")
@@ -85,9 +93,30 @@ class RootPreprocessor:
         # Process events
         self.processed_data = self._process_events(events)
 
-        self.clean_event_data()
+        #self.clean_event_data()
 
         return self.processed_data
+
+    def process(self, input_path: str):
+        """Main processing method."""
+        if self.config.verbose:
+            print(f"Processing ROOT file: {input_path}")
+
+        # Load data
+        with uproot.open(input_path) as file:
+            tree = file[self.config.tree_name]
+            events = tree.arrays(library="ak")
+
+        self.n_events_processed = len(events)
+
+        if self.config.verbose:
+            print(f"Total events in file: {self.n_events_processed}")
+
+        if self.config.verbose:
+            print(f"Events passing pre-selection: {self.n_events_passed}")
+
+        # Process events
+        self.processed_data = self._process_events(events)
 
     def clean_event_data(self):
         valid_mask = np.ones(self.n_events_passed, dtype=bool)
@@ -134,15 +163,15 @@ class RootPreprocessor:
         """
         # Count leptons
         n_electrons = ak.num(
-            events.__getitem__(self.config.root_ntuple_config.ElectronConfig.pt)
+            self.extract_event_data(events, self.config.root_ntuple_config.ElectronConfig.pt)
         )
         n_muons = ak.num(
-            events.__getitem__(self.config.root_ntuple_config.MuonConfig.pt)
+            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt)
         )
         n_leptons = n_electrons + n_muons
 
         # Count jets
-        n_jets = ak.num(events.__getitem__(self.config.root_ntuple_config.JetConfig.pt))
+        n_jets = ak.num(self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.pt))
 
         # Basic multiplicity cuts
         mask = n_leptons == self.config.n_leptons_required
@@ -154,7 +183,7 @@ class RootPreprocessor:
 
         # Check valid truth indices for b-jets
         parton_match = ak.pad_none(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.MatchingConfig.jet_parton_match_branch
             ),
             6,
@@ -184,7 +213,7 @@ class RootPreprocessor:
         # Check lepton truth indices
         electron_truth_0 = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.electron_parton_match_branch
                 ),
                 6,
@@ -198,7 +227,7 @@ class RootPreprocessor:
         )
         electron_truth_1 = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.electron_parton_match_branch
                 ),
                 6,
@@ -212,7 +241,7 @@ class RootPreprocessor:
         )
         muon_truth_0 = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.muon_parton_match_branch
                 ),
                 6,
@@ -226,7 +255,7 @@ class RootPreprocessor:
         )
         muon_truth_1 = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.muon_parton_match_branch
                 ),
                 6,
@@ -259,10 +288,10 @@ class RootPreprocessor:
             Boolean mask
         """
         n_electrons = ak.num(
-            events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge)
+            self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.charge)
         )
         n_muons = ak.num(
-            events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge)
+            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge)
         )
 
         # Initialize mask
@@ -273,7 +302,7 @@ class RootPreprocessor:
         # Pad arrays to avoid index errors
         el_charge_padded = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.ElectronConfig.charge
                 ),
                 2,
@@ -289,7 +318,7 @@ class RootPreprocessor:
         mumu_mask = n_muons == 2
         mu_charge_padded = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge), 2
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge), 2
             ),
             0,
         )
@@ -302,7 +331,7 @@ class RootPreprocessor:
         emu_mask = (n_electrons == 1) & (n_muons == 1)
         el_charge_first = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.ElectronConfig.charge
                 ),
                 1,
@@ -311,7 +340,7 @@ class RootPreprocessor:
         )
         mu_charge_first = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge), 1
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge), 1
             )[..., 0],
             0,
         )
@@ -320,11 +349,11 @@ class RootPreprocessor:
 
         # Total charge must be zero
         el_charge_sum = ak.sum(
-            events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge),
+            self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.charge),
             axis=-1,
         )
         mu_charge_sum = ak.sum(
-            events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge),
+            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge),
             axis=-1,
         )
         total_charge = el_charge_sum + mu_charge_sum
@@ -363,7 +392,7 @@ class RootPreprocessor:
         # Process event weights
         if self.config.root_ntuple_config.event_weight is not None:
             event_weight = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.event_weight)
+                self.extract_event_data(events,self.config.root_ntuple_config.event_weight)
             )
             processed.update({"weight_mc": event_weight})
 
@@ -382,7 +411,7 @@ class RootPreprocessor:
 
         if self.config.root_ntuple_config.mc_event_number is not None:
             event_number = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.mc_event_number)
+                self.extract_event_data(events,self.config.root_ntuple_config.mc_event_number)
             )
             processed.update({"mc_event_number": event_number})
 
@@ -405,7 +434,7 @@ class RootPreprocessor:
 
         el_truth_padded = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.electron_parton_match_branch
                 ),
                 6,
@@ -414,7 +443,7 @@ class RootPreprocessor:
         )
         mu_truth_padded = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.muon_parton_match_branch
                 ),
                 6,
@@ -433,15 +462,15 @@ class RootPreprocessor:
         # Create lepton arrays with truth matching - use broadcasting that works with jagged arrays
         # For electrons - expand truth indices to match electron array shape
         el_idx = ak.local_index(
-            events.__getitem__(self.config.root_ntuple_config.ElectronConfig.pt)
+            self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.pt)
         )
         el_truth_0 = ak.broadcast_arrays(
             el_truth_padded[:, 0],
-            events.__getitem__(self.config.root_ntuple_config.ElectronConfig.pt),
+            self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.pt),
         )[0]
         el_truth_1 = ak.broadcast_arrays(
             el_truth_padded[:, 1],
-            events.__getitem__(self.config.root_ntuple_config.ElectronConfig.pt),
+            self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.pt),
         )[0]
         el_truth_idx = ak.where(
             el_idx == el_truth_0, 1, ak.where(el_idx == el_truth_1, -1, -1)
@@ -449,15 +478,15 @@ class RootPreprocessor:
 
         # For muons - expand truth indices to match muon array shape
         mu_idx = ak.local_index(
-            events.__getitem__(self.config.root_ntuple_config.MuonConfig.pt)
+            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt)
         )
         mu_truth_1 = ak.broadcast_arrays(
             mu_truth_padded[:, 1],
-            events.__getitem__(self.config.root_ntuple_config.MuonConfig.pt),
+            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt),
         )[0]
         mu_truth_0 = ak.broadcast_arrays(
             mu_truth_padded[:, 0],
-            events.__getitem__(self.config.root_ntuple_config.MuonConfig.pt),
+            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt),
         )[0]
         mu_truth_idx = ak.where(
             mu_idx == mu_truth_0, 1, ak.where(mu_idx == mu_truth_1, -1, -1)
@@ -466,48 +495,54 @@ class RootPreprocessor:
         # Combine electrons and muons
         lep_pt = ak.concatenate(
             [
-                events.__getitem__(self.config.root_ntuple_config.ElectronConfig.pt),
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.pt),
+                self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.pt),
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt),
             ],
             axis=1,
         )
         lep_eta = ak.concatenate(
             [
-                events.__getitem__(self.config.root_ntuple_config.ElectronConfig.eta),
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.eta),
+                self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.eta),
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.eta),
             ],
             axis=1,
         )
         lep_phi = ak.concatenate(
             [
-                events.__getitem__(self.config.root_ntuple_config.ElectronConfig.phi),
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.phi),
+                self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.phi),
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.phi),
             ],
             axis=1,
         )
         lep_e = ak.concatenate(
             [
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.ElectronConfig.energy
                 ),
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.energy),
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.energy),
             ],
             axis=1,
         )
         lep_charge = ak.concatenate(
             [
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.ElectronConfig.charge
                 ),
-                events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge),
+                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge),
             ],
             axis=1,
         )
         lep_pid = ak.concatenate(
             [
-                ak.ones_like(events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge) * events.__getitem__(self.config.root_ntuple_config.ElectronConfig.charge))
+                ak.ones_like(
+                    self.extract_event_data(events,
+                        self.config.root_ntuple_config.ElectronConfig.charge
+                    )
+                )
                 * 11,
-                ak.ones_like(events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge) * events.__getitem__(self.config.root_ntuple_config.MuonConfig.charge))
+                ak.ones_like(
+                    self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge)
+                )
                 * 13,
             ],
             axis=1,
@@ -584,7 +619,7 @@ class RootPreprocessor:
 
         jet_truth_padded = ak.fill_none(
             ak.pad_none(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.MatchingConfig.jet_parton_match_branch
                 ),
                 6,
@@ -605,10 +640,10 @@ class RootPreprocessor:
             ],
         ]
 
-        jet_pt = events.__getitem__(self.config.root_ntuple_config.JetConfig.pt)
-        jet_eta = events.__getitem__(self.config.root_ntuple_config.JetConfig.eta)
-        jet_phi = events.__getitem__(self.config.root_ntuple_config.JetConfig.phi)
-        jet_e = events.__getitem__(self.config.root_ntuple_config.JetConfig.energy)
+        jet_pt = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.pt)
+        jet_eta = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.eta)
+        jet_phi = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.phi)
+        jet_e = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.energy)
 
         n_jets = ak.num(jet_pt)
         max_jets = self.config.max_saved_jets
@@ -635,13 +670,13 @@ class RootPreprocessor:
         )
         if self.config.root_ntuple_config.JetConfig.btag is not None:
             if isinstance(self.config.root_ntuple_config.JetConfig.btag, str):
-                jet_btag = events.__getitem__(
+                jet_btag = self.extract_event_data(events,
                     self.config.root_ntuple_config.JetConfig.btag
                 )
             elif isinstance(self.config.root_ntuple_config.JetConfig.btag, list):
                 btag_arrays_np = []
                 for btag_branch in self.config.root_ntuple_config.JetConfig.btag:
-                    btag_array = events.__getitem__(btag_branch)
+                    btag_array = self.extract_event_data(events,btag_branch)
                     btag_array_padded = ak.fill_none(
                         ak.pad_none(btag_array, max_jets, clip=True),
                         self.config.padding_value,
@@ -678,10 +713,10 @@ class RootPreprocessor:
 
     def _process_met(self, events: ak.Array) -> Dict[str, np.ndarray]:
         met_met = ak.to_numpy(
-            events.__getitem__(self.config.root_ntuple_config.METConfig.met_met)
+            self.extract_event_data(events,self.config.root_ntuple_config.METConfig.met_met)
         )
         met_phi = ak.to_numpy(
-            events.__getitem__(self.config.root_ntuple_config.METConfig.met_phi)
+            self.extract_event_data(events,self.config.root_ntuple_config.METConfig.met_phi)
         )
 
         return {
@@ -871,71 +906,76 @@ class RootPreprocessor:
 
         # Extract neutrino information
         nu_top_pt = ak.to_numpy(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.TruthConfig.top_neutrino_pt
             )
         )
         nu_top_eta = ak.to_numpy(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.TruthConfig.top_neutrino_eta
             )
         )
         nu_top_phi = ak.to_numpy(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.TruthConfig.top_neutrino_phi
             )
         )
         if self.config.root_ntuple_config.TruthConfig.top_neutrino_mass is not None:
             nu_top_mass = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.top_neutrino_mass
                 )
             )
-            nu_top_e = np.sqrt(nu_top_pt**2 * np.cosh(nu_top_eta) ** 2 + nu_top_mass**2)
+            nu_top_e = np.sqrt(
+                np.maximum(nu_top_pt**2 * np.cosh(nu_top_eta) ** 2 + nu_top_mass**2, 0)
+            )
         elif self.config.root_ntuple_config.TruthConfig.top_neutrino_e is not None:
             nu_top_e = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.top_neutrino_e
                 )
             )
-            nu_top_mass = np.sqrt(nu_top_e**2 - (nu_top_pt * np.cosh(nu_top_eta)) ** 2)
+            nu_top_mass = np.sqrt(
+                np.maximum(nu_top_e**2 - (nu_top_pt * np.cosh(nu_top_eta)) ** 2, 0)
+            )
+
         else:
             raise ValueError(
                 "Must provide either top neutrino mass or energy in config"
             )
 
         nu_tbar_pt = ak.to_numpy(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.TruthConfig.tbar_neutrino_pt
             )
         )
         nu_tbar_eta = ak.to_numpy(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.TruthConfig.tbar_neutrino_eta
             )
         )
         nu_tbar_phi = ak.to_numpy(
-            events.__getitem__(
+            self.extract_event_data(events,
                 self.config.root_ntuple_config.TruthConfig.tbar_neutrino_phi
             )
         )
         if self.config.root_ntuple_config.TruthConfig.tbar_neutrino_mass is not None:
             nu_tbar_mass = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.tbar_neutrino_mass
                 )
             )
             nu_tbar_e = np.sqrt(
-                nu_tbar_pt**2 * np.cosh(nu_tbar_eta) ** 2 + nu_tbar_mass**2
+                np.maximum(nu_tbar_pt**2 * np.cosh(nu_tbar_eta) ** 2 + nu_tbar_mass**2, 0)
             )
         elif self.config.root_ntuple_config.TruthConfig.tbar_neutrino_e is not None:
             nu_tbar_e = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.tbar_neutrino_e
                 )
             )
             nu_tbar_mass = np.sqrt(
-                nu_tbar_e**2 - (nu_tbar_pt * np.cosh(nu_tbar_eta)) ** 2
+                np.maximum(nu_tbar_e**2 - (nu_tbar_pt * np.cosh(nu_tbar_eta)) ** 2, 0)
             )
         else:
             raise ValueError(
@@ -970,7 +1010,7 @@ class RootPreprocessor:
         }
 
         check_variables = (
-             (self.config.root_ntuple_config.TruthConfig.top_pt is not None)
+            (self.config.root_ntuple_config.TruthConfig.top_pt is not None)
             and (self.config.root_ntuple_config.TruthConfig.top_eta is not None)
             and (self.config.root_ntuple_config.TruthConfig.top_mass is not None)
             and (self.config.root_ntuple_config.TruthConfig.top_phi is not None)
@@ -985,36 +1025,38 @@ class RootPreprocessor:
             and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_pt is not None)
             and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_eta is not None)
             and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_phi is not None)
-            and (self.config.root_ntuple_config.TruthConfig.tbar_lepton_mass is not None)
+            and (
+                self.config.root_ntuple_config.TruthConfig.tbar_lepton_mass is not None
+            )
         )
 
         if check_variables:
 
             # Extract truth top/anti-top 4-vectors
             truth_top_pt = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.top_pt)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.top_pt)
             )
             truth_top_eta = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.top_eta)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.top_eta)
             )
             truth_top_phi = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.top_phi)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.top_phi)
             )
             truth_top_mass = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.top_mass)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.top_mass)
             )
 
             truth_tbar_pt = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.tbar_pt)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.tbar_pt)
             )
             truth_tbar_eta = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.tbar_eta)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.tbar_eta)
             )
             truth_tbar_phi = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.tbar_phi)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.tbar_phi)
             )
             truth_tbar_mass = ak.to_numpy(
-                events.__getitem__(self.config.root_ntuple_config.TruthConfig.tbar_mass)
+                self.extract_event_data(events,self.config.root_ntuple_config.TruthConfig.tbar_mass)
             )
 
             # Compute ttbar system
@@ -1042,22 +1084,22 @@ class RootPreprocessor:
 
             # Lepton 4-vectors from W decay
             lep_top_pt = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.top_lepton_pt
                 )
             )
             lep_top_eta = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.top_lepton_eta
                 )
             )
             lep_top_phi = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.top_lepton_phi
                 )
             )
             lep_top_mass = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.top_lepton_mass
                 )
             )
@@ -1067,22 +1109,22 @@ class RootPreprocessor:
 
             # Lepton from anti-top
             lep_tbar_pt = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.tbar_lepton_pt
                 )
             )
             lep_tbar_eta = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.tbar_lepton_eta
                 )
             )
             lep_tbar_phi = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.tbar_lepton_phi
                 )
             )
             lep_tbar_mass = ak.to_numpy(
-                events.__getitem__(
+                self.extract_event_data(events,
                     self.config.root_ntuple_config.TruthConfig.tbar_lepton_mass
                 )
             )
@@ -1170,37 +1212,37 @@ class RootPreprocessor:
         for reco_config in self.config.root_ntuple_config.NeutrinoReco:
 
             if isinstance(reco_config.nu_px, str):
-                nu_px = ak.to_numpy(events.__getitem__(reco_config.nu_px))
-                nu_py = ak.to_numpy(events.__getitem__(reco_config.nu_py))
-                nu_pz = ak.to_numpy(events.__getitem__(reco_config.nu_pz))
-                nubar_px = ak.to_numpy(events.__getitem__(reco_config.nubar_px))
-                nubar_py = ak.to_numpy(events.__getitem__(reco_config.nubar_py))
-                nubar_pz = ak.to_numpy(events.__getitem__(reco_config.nubar_pz))
+                nu_px = ak.to_numpy(self.extract_event_data(events,reco_config.nu_px))
+                nu_py = ak.to_numpy(self.extract_event_data(events,reco_config.nu_py))
+                nu_pz = ak.to_numpy(self.extract_event_data(events,reco_config.nu_pz))
+                nubar_px = ak.to_numpy(self.extract_event_data(events,reco_config.nubar_px))
+                nubar_py = ak.to_numpy(self.extract_event_data(events,reco_config.nubar_py))
+                nubar_pz = ak.to_numpy(self.extract_event_data(events,reco_config.nubar_pz))
             elif (
                 isinstance(reco_config.nu_px, int)
                 and reco_config.branch_name is not None
             ):
                 nu_px = ak.to_numpy(
-                    events.__getitem__(reco_config.branch_name)[..., reco_config.nu_px]
+                    self.extract_event_data(events,reco_config.branch_name)[..., reco_config.nu_px]
                 )
                 nu_py = ak.to_numpy(
-                    events.__getitem__(reco_config.branch_name)[..., reco_config.nu_py]
+                    self.extract_event_data(events,reco_config.branch_name)[..., reco_config.nu_py]
                 )
                 nu_pz = ak.to_numpy(
-                    events.__getitem__(reco_config.branch_name)[..., reco_config.nu_pz]
+                    self.extract_event_data(events,reco_config.branch_name)[..., reco_config.nu_pz]
                 )
                 nubar_px = ak.to_numpy(
-                    events.__getitem__(reco_config.branch_name)[
+                    self.extract_event_data(events,reco_config.branch_name)[
                         ..., reco_config.nubar_px
                     ]
                 )
                 nubar_py = ak.to_numpy(
-                    events.__getitem__(reco_config.branch_name)[
+                    self.extract_event_data(events,reco_config.branch_name)[
                         ..., reco_config.nubar_py
                     ]
                 )
                 nubar_pz = ak.to_numpy(
-                    events.__getitem__(reco_config.branch_name)[
+                    self.extract_event_data(events,reco_config.branch_name)[
                         ..., reco_config.nubar_pz
                     ]
                 )
@@ -1282,7 +1324,7 @@ def preprocess_root_file(
     Returns:
         Dictionary of processed data
     """
-    config = configs.PreprocessorConfig(
+    config = PreprocessorConfig(
         input_path=input_path,
         tree_name=tree_name,
         save_initial_parton_info=save_initial_parton_info,
@@ -1290,8 +1332,8 @@ def preprocess_root_file(
         max_saved_jets=max_jets,
     )
 
-    preprocessor = RootPreprocessor(config)
-    preprocessor.process()
+    preprocessor = RootTrainingTrainingDataLoader(config)
+    preprocessor.process_train_data()
     if output_format == "npz":
         preprocessor.save_to_npz(output_path)
     elif output_format == "root":
@@ -1315,7 +1357,7 @@ def preprocess_root_directory(
     max_events = config.num_events
 
     num_total_events = 0
-    preprocessor = RootPreprocessor(config.preprocessor_config)
+    preprocessor = RootTrainingTrainingDataLoader(config.preprocessor_config)
 
     root_files = (
         [
@@ -1333,7 +1375,7 @@ def preprocess_root_directory(
         print(f"Processing file {file_index + 1} of {num_files}...\n")
         if input_path.endswith(".root"):
 
-            data_collected.append(preprocessor.process(input_path))
+            data_collected.append(preprocessor.process_train_data(input_path))
             num_events = preprocessor.get_num_events()
             num_total_events += num_events
             print(
