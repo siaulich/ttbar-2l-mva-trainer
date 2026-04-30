@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 
-from src.reconstruction import KerasFFRecoBase
+from ..reconstruction import KerasFFRecoBase
 from ..components import (
     MLP,
     SelfAttentionBlock,
@@ -17,7 +17,7 @@ from ..components import (
     PoolingAttentionBlock,
 )
 
-from src import DataConfig
+from ..configs import DataConfig
 
 
 class CrossAttentionAssigner(KerasFFRecoBase):
@@ -149,9 +149,7 @@ class CrossAttentionAssigner(KerasFFRecoBase):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lep_sequence)
-        assignment_logits = JetLeptonAssignment(
-            dim=hidden_dim, name="assignment"
-        )(
+        assignment_logits = JetLeptonAssignment(dim=hidden_dim, name="assignment")(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
@@ -268,9 +266,9 @@ class FeatureConcatAssigner(KerasFFRecoBase):
         confidence_score = None
         # Confidence score output (optional)
         if predict_confidence:
-            confidence_extraction = StopGradientLayer(
-                name="confidence_extraction"
-            )(jets_transformed)
+            confidence_extraction = StopGradientLayer(name="confidence_extraction")(
+                jets_transformed
+            )
             pooling = PoolingAttentionBlock(
                 num_heads=num_heads,
                 num_seeds=1,
@@ -387,9 +385,7 @@ class CompactAssigner(KerasFFRecoBase):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_logits = JetLeptonAssignment(
-            dim=hidden_dim, name="assignment"
-        )(
+        assignment_logits = JetLeptonAssignment(dim=hidden_dim, name="assignment")(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,

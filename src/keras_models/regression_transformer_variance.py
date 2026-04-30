@@ -1,6 +1,6 @@
 import keras as keras
 from ..reconstruction import KerasFFGaussian
-from .. import DataConfig
+from ..configs import DataConfig
 from ..components import (
     SelfAttentionBlock,
     MLP,
@@ -11,6 +11,7 @@ from ..components import (
     EmbeddingMLP,
     StopGradientLayer,
 )
+
 
 class CompactReconstructorVariance(KerasFFGaussian):
     def __init__(self, config: DataConfig, name="CrossAttentionModel"):
@@ -104,9 +105,7 @@ class CompactReconstructorVariance(KerasFFGaussian):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_probs = JetLeptonAssignment(
-            dim=hidden_dim, name="assignment"
-        )(
+        assignment_probs = JetLeptonAssignment(dim=hidden_dim, name="assignment")(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
@@ -119,9 +118,9 @@ class CompactReconstructorVariance(KerasFFGaussian):
 
         jet_attention = assignment_probs
         if stop_gradient_assignment_probs:
-            jet_attention = StopGradientLayer(
-                name="stop_gradient_assignment"
-            )(assignment_probs)
+            jet_attention = StopGradientLayer(name="stop_gradient_assignment")(
+                assignment_probs
+            )
         assosciated_jets = keras.layers.Dot(axes=(1, 1))([jet_attention, jet_outputs])
         regression_inputs = keras.layers.Concatenate(axis=-1)(
             [assosciated_jets, per_lepton_repeated_global]

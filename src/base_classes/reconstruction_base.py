@@ -1,6 +1,6 @@
 import numpy as np
 from abc import ABC, abstractmethod
-from .. import DataConfig
+from ..configs import DataConfig
 from . import BaseUtilityModel
 
 

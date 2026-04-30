@@ -3,7 +3,7 @@
 import numpy as np
 from typing import Tuple, Optional, Callable
 
-from src.utils import (
+from ..utils import (
     lorentz_vector_from_PtEtaPhiE_array,
     lorentz_vector_from_neutrino_momenta_array,
     compute_mass_from_lorentz_vector_array,

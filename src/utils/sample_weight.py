@@ -1,5 +1,5 @@
 import numpy as np
-from .. import DataConfig
+from ..configs import DataConfig
 
 
 def compute_sample_weights(X_train: dict, data_config: DataConfig) -> np.ndarray:

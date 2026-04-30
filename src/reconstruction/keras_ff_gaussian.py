@@ -2,7 +2,7 @@ import tensorflow as tf
 import keras as keras
 import numpy as np
 from abc import ABC, abstractmethod
-from ..preprocessing.training_data_loader import DataConfig
+from ..configs import DataConfig
 from ..base_classes import KerasMLWrapper
 from ..components import (
     OutputUpScaleLayer,

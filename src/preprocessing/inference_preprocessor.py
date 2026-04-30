@@ -26,6 +26,7 @@ from ..evaluation.physics_calculations import c_han, c_hel
 
 from ..configs import PreprocessorConfig, LoadConfig
 
+
 @dataclass
 class InferenceDataConfig:
     """Configuration for data sample preprocessing."""
@@ -52,17 +53,16 @@ class RootInferencePreprocessor:
         """
         self.config = config
         self.processed_data = {}
+        self.loaded_data = None
         self.mask = None
         self.n_events_processed = 0
         self.n_events_passed = 0
-
 
     def extract_event_data(self, events, feature):
         scale_factor = 1.0
         if feature in self.config.scale_by:
             scale_factor = self.config.scale_by[feature]
-        return self.extract_event_data(events,feature) * scale_factor
-
+        return events[feature] * scale_factor
 
     def process(self, input_path: str):
         """Main processing method."""
@@ -74,6 +74,7 @@ class RootInferencePreprocessor:
             tree = file[self.config.tree_name]
             events = tree.arrays(library="ak")
 
+        self.loaded_data = events
         self.n_events_processed = len(events)
         self.mask = self._preselection(events)
 
@@ -85,6 +86,104 @@ class RootInferencePreprocessor:
 
         # Process events
         self.processed_data = self._process_events(events)
+
+    def _check_charge_requirements(self, events: ak.Array) -> ak.Array:
+        """
+        Check that leptons have opposite charges and total charge is zero.
+
+        Args:
+            events: Awkward array of events
+
+        Returns:
+            Boolean mask
+        """
+        n_electrons = ak.num(
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.ElectronConfig.charge
+            )
+        )
+        n_muons = ak.num(
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.MuonConfig.charge
+            )
+        )
+
+        # Initialize mask
+        mask = ak.ones_like(n_electrons, dtype=bool)
+
+        # ee channel: check that two electrons have opposite charge
+        ee_mask = n_electrons == 2
+        # Pad arrays to avoid index errors
+        el_charge_padded = ak.fill_none(
+            ak.pad_none(
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.charge
+                ),
+                2,
+            ),
+            0,
+        )
+        ee_same_charge = (
+            el_charge_padded[..., 0] == el_charge_padded[..., 1]
+        ) & ee_mask
+        mask = mask & ~ee_same_charge
+
+        # mumu channel: check that two muons have opposite charge
+        mumu_mask = n_muons == 2
+        mu_charge_padded = ak.fill_none(
+            ak.pad_none(
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.charge
+                ),
+                2,
+            ),
+            0,
+        )
+        mumu_same_charge = (
+            mu_charge_padded[:, 0] == mu_charge_padded[:, 1]
+        ) & mumu_mask
+        mask = mask & ~mumu_same_charge
+
+        # emu channel: check that electron and muon have opposite charge
+        emu_mask = (n_electrons == 1) & (n_muons == 1)
+        el_charge_first = ak.fill_none(
+            ak.pad_none(
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.charge
+                ),
+                1,
+            )[..., 0],
+            0,
+        )
+        mu_charge_first = ak.fill_none(
+            ak.pad_none(
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.charge
+                ),
+                1,
+            )[..., 0],
+            0,
+        )
+        emu_same_charge = (el_charge_first == mu_charge_first) & emu_mask
+        mask = mask & ~emu_same_charge
+
+        # Total charge must be zero
+        el_charge_sum = ak.sum(
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.ElectronConfig.charge
+            ),
+            axis=-1,
+        )
+        mu_charge_sum = ak.sum(
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.MuonConfig.charge
+            ),
+            axis=-1,
+        )
+        total_charge = el_charge_sum + mu_charge_sum
+        mask = mask & (total_charge == 0)
+
+        return mask
 
     def _preselection(self, events: ak.Array) -> np.ndarray:
         """
@@ -98,22 +197,27 @@ class RootInferencePreprocessor:
         """
         # Count leptons
         n_electrons = ak.num(
-            self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.pt)
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.ElectronConfig.pt
+            )
         )
         n_muons = ak.num(
-            self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt)
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.MuonConfig.pt
+            )
         )
         n_leptons = n_electrons + n_muons
 
         # Count jets
-        n_jets = ak.num(self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.pt))
+        n_jets = ak.num(
+            self.extract_event_data(events, self.config.root_ntuple_config.JetConfig.pt)
+        )
 
         # Basic multiplicity cuts
         mask = n_leptons == self.config.n_leptons_required
         mask = mask & (n_jets >= self.config.n_jets_min)
 
-        mask = mask
-
+        mask = mask & self._check_charge_requirements(events)
         return ak.to_numpy(mask)
 
     def _process_events(self, events: ak.Array) -> Dict[str, np.ndarray]:
@@ -150,7 +254,9 @@ class RootInferencePreprocessor:
 
         if self.config.root_ntuple_config.mc_event_number is not None:
             event_number = ak.to_numpy(
-                self.extract_event_data(events,self.config.root_ntuple_config.mc_event_number)
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.mc_event_number
+                )
             )
             processed.update({"mc_event_number": event_number})
 
@@ -171,53 +277,71 @@ class RootInferencePreprocessor:
         # Combine electrons and muons
         lep_pt = ak.concatenate(
             [
-                self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.pt),
-                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.pt),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.pt
+                ),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.pt
+                ),
             ],
             axis=1,
         )
         lep_eta = ak.concatenate(
             [
-                self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.eta),
-                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.eta),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.eta
+                ),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.eta
+                ),
             ],
             axis=1,
         )
         lep_phi = ak.concatenate(
             [
-                self.extract_event_data(events,self.config.root_ntuple_config.ElectronConfig.phi),
-                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.phi),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.phi
+                ),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.phi
+                ),
             ],
             axis=1,
         )
         lep_e = ak.concatenate(
             [
-                self.extract_event_data(events,
-                    self.config.root_ntuple_config.ElectronConfig.energy
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.energy
                 ),
-                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.energy),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.energy
+                ),
             ],
             axis=1,
         )
         lep_charge = ak.concatenate(
             [
-                self.extract_event_data(events,
-                    self.config.root_ntuple_config.ElectronConfig.charge
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.ElectronConfig.charge
                 ),
-                self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge),
+                self.extract_event_data(
+                    events, self.config.root_ntuple_config.MuonConfig.charge
+                ),
             ],
             axis=1,
         )
         lep_pid = ak.concatenate(
             [
                 ak.ones_like(
-                    self.extract_event_data(events,
-                        self.config.root_ntuple_config.ElectronConfig.charge
+                    self.extract_event_data(
+                        events, self.config.root_ntuple_config.ElectronConfig.charge
                     )
                 )
                 * 11,
                 ak.ones_like(
-                    self.extract_event_data(events,self.config.root_ntuple_config.MuonConfig.charge)
+                    self.extract_event_data(
+                        events, self.config.root_ntuple_config.MuonConfig.charge
+                    )
                 )
                 * 13,
             ],
@@ -225,13 +349,13 @@ class RootInferencePreprocessor:
         )
 
         # Sort by charge (positive first) - argsort in descending order
-        # sort_idx = ak.argsort(lep_charge, ascending=False)
-        # lep_pt = lep_pt[sort_idx]
-        # lep_eta = lep_eta[sort_idx]
-        # lep_phi = lep_phi[sort_idx]
-        # lep_e = lep_e[sort_idx]
-        # lep_charge = lep_charge[sort_idx]
-        # lep_pid = lep_pid[sort_idx]
+        sort_idx = ak.argsort(lep_charge, ascending=False)
+        lep_pt = lep_pt[sort_idx]
+        lep_eta = lep_eta[sort_idx]
+        lep_phi = lep_phi[sort_idx]
+        lep_e = lep_e[sort_idx]
+        lep_charge = lep_charge[sort_idx]
+        lep_pid = lep_pid[sort_idx]
 
         # Pad to 2 leptons and convert to numpy
         max_leptons = 2
@@ -278,10 +402,18 @@ class RootInferencePreprocessor:
 
     def _process_jets(self, events: ak.Array) -> Dict[str, np.ndarray]:
         n_events = len(events)
-        jet_pt = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.pt)
-        jet_eta = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.eta)
-        jet_phi = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.phi)
-        jet_e = self.extract_event_data(events,self.config.root_ntuple_config.JetConfig.energy)
+        jet_pt = self.extract_event_data(
+            events, self.config.root_ntuple_config.JetConfig.pt
+        )
+        jet_eta = self.extract_event_data(
+            events, self.config.root_ntuple_config.JetConfig.eta
+        )
+        jet_phi = self.extract_event_data(
+            events, self.config.root_ntuple_config.JetConfig.phi
+        )
+        jet_e = self.extract_event_data(
+            events, self.config.root_ntuple_config.JetConfig.energy
+        )
 
         n_jets = ak.num(jet_pt)
         max_jets = self.config.max_saved_jets
@@ -308,13 +440,13 @@ class RootInferencePreprocessor:
         )
         if self.config.root_ntuple_config.JetConfig.btag is not None:
             if isinstance(self.config.root_ntuple_config.JetConfig.btag, str):
-                jet_btag = self.extract_event_data(events,
-                    self.config.root_ntuple_config.JetConfig.btag
+                jet_btag = self.extract_event_data(
+                    events, self.config.root_ntuple_config.JetConfig.btag
                 )
             elif isinstance(self.config.root_ntuple_config.JetConfig.btag, list):
                 btag_arrays_np = []
                 for btag_branch in self.config.root_ntuple_config.JetConfig.btag:
-                    btag_array = self.extract_event_data(events,btag_branch)
+                    btag_array = self.extract_event_data(events, btag_branch)
                     btag_array_padded = ak.fill_none(
                         ak.pad_none(btag_array, max_jets, clip=True),
                         self.config.padding_value,
@@ -346,10 +478,14 @@ class RootInferencePreprocessor:
 
     def _process_met(self, events: ak.Array) -> Dict[str, np.ndarray]:
         met_met = ak.to_numpy(
-            self.extract_event_data(events,self.config.root_ntuple_config.METConfig.met_met)
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.METConfig.met_met
+            )
         )
         met_phi = ak.to_numpy(
-            self.extract_event_data(events,self.config.root_ntuple_config.METConfig.met_phi)
+            self.extract_event_data(
+                events, self.config.root_ntuple_config.METConfig.met_phi
+            )
         )
 
         return {
@@ -560,7 +696,7 @@ class RootInferencePreprocessor:
             load_config.jet_inputs,
             max_objects=load_config.max_jets,
         )
-        inference_data["lepton_inputs"] = self._load_feature_array(
+        inference_data["lep_inputs"] = self._load_feature_array(
             self.processed_data,
             load_config.lepton_inputs,
             max_objects=load_config.NUM_LEPTONS,
@@ -568,10 +704,12 @@ class RootInferencePreprocessor:
         inference_data["met_inputs"] = self._load_feature_array(
             self.processed_data,
             load_config.met_inputs,
+            target_shape = (-1, 1, len(load_config.met_inputs))
         )
         inference_data["global_event_inputs"] = self._load_feature_array(
             self.processed_data,
             load_config.global_event_inputs,
+            target_shape = (-1, 1, len(load_config.global_event_inputs))
         )
         inference_data["mc_event_number"] = (
             self._load_feature_array(
@@ -616,6 +754,9 @@ class RootInferencePreprocessor:
 
         return result
 
+    def get_raw_loaded_data(self) -> Optional[ak.Array]:
+        """Get the raw loaded data before processing."""
+        return self.loaded_data, self.config.root_ntuple_config
 
 def get_inference_data(
     preprocessor_config: InferenceDataConfig, load_config: LoadConfig

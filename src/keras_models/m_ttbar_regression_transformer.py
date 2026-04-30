@@ -4,7 +4,7 @@ import numpy as np
 
 
 from ..reconstruction import KerasFFRecoBase
-from .. import DataConfig
+from ..configs import DataConfig
 from ..components import (
     SelfAttentionBlock,
     MLP,
@@ -124,9 +124,7 @@ class FullRecoTransformer(KerasFFRecoBase):
             num_layers=2,
         )(lepton_outputs)
 
-        assignment_logits = JetLeptonAssignment(
-            dim=hidden_dim, name="assignment"
-        )(
+        assignment_logits = JetLeptonAssignment(dim=hidden_dim, name="assignment")(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
@@ -402,9 +400,7 @@ class CompactReconstructor(KerasFFRecoBase):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_probs = JetLeptonAssignment(
-            dim=hidden_dim, name="assignment"
-        )(
+        assignment_probs = JetLeptonAssignment(dim=hidden_dim, name="assignment")(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,
@@ -417,9 +413,9 @@ class CompactReconstructor(KerasFFRecoBase):
 
         jet_attention = assignment_probs
         if stop_gradient_assignment_probs:
-            jet_attention = StopGradientLayer(
-                name="stop_gradient_assignment"
-            )(assignment_probs)
+            jet_attention = StopGradientLayer(name="stop_gradient_assignment")(
+                assignment_probs
+            )
         assosciated_jets = keras.layers.Dot(axes=(1, 1))([jet_attention, jet_outputs])
         regression_inputs = keras.layers.Concatenate(axis=-1)(
             [assosciated_jets, per_lepton_repeated_global]

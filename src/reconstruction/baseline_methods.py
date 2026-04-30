@@ -1,5 +1,5 @@
 from ..base_classes.reconstruction_base import EventReconstructorBase
-from ..preprocessing.training_data_loader import DataConfig
+from ..configs import DataConfig
 import numpy as np
 from ..utils.four_vector_arithmetics import (
     lorentz_vector_from_pt_eta_phi_e,

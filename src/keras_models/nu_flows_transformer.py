@@ -14,7 +14,7 @@ from ..components import (
     EmbeddingMLP,
 )
 
-from .. import DataConfig
+from ..configs import DataConfig
 
 
 class NuFlowsPriorAssigner(KerasNuPriorAssigner):
@@ -115,9 +115,7 @@ class NuFlowsPriorAssigner(KerasNuPriorAssigner):
             name="lepton_assignment_mlp",
             num_layers=2,
         )(lepton_outputs)
-        assignment_logits = JetLeptonAssignment(
-            dim=hidden_dim, name="assignment"
-        )(
+        assignment_logits = JetLeptonAssignment(dim=hidden_dim, name="assignment")(
             jets=jet_assignment_output,
             leptons=lepton_assignment_output,
             jet_mask=jet_mask,

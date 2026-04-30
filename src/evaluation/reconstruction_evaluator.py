@@ -13,7 +13,6 @@ import matplotlib as mpl
 mpl.rcParams["figure.constrained_layout.use"] = True
 
 import os
-import timeit
 import keras as keras
 from ..reconstruction import (
     GroundTruthReconstructor,

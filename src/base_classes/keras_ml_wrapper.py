@@ -7,16 +7,15 @@ import tensorflow as tf
 import tf2onnx
 import onnx
 import os
-from src.components import (
+from ..components import (
+    get_custom_layers,
     onnx_support,
     GenerateMask,
     ComputeHighLevelFeatures_from_PtEtaPhiE,
     InputMetLayer,
     ProcessPtEtaPhiELayer,
-    PhysicsInformedLoss,
 )
-import src.components as components
-import src.utils as utils
+from ..utils import get_custom_objects, compute_sample_weights, evaluate
 from copy import deepcopy
 
 
@@ -286,7 +285,9 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
 
         custom_objects = {
             name: obj
-            for name, obj in zip(components.__dict__.items(), utils.__dict__.items())
+            for name, obj in zip(
+                get_custom_layers().items(), get_custom_objects().items()
+            )
             if isinstance(obj, type) and issubclass(obj, keras.layers.Layer)
         }
         custom_objects.update({"keras.models.Model": keras.models.Model})
@@ -484,8 +485,8 @@ class KerasMLWrapper(BaseUtilityModel, ABC):
         return wrapped_model
 
     def compute_sample_weights(self, X):
-        return utils.compute_sample_weights(X, data_config=self.config)
+        return compute_sample_weights(X, data_config=self.config)
 
     def evaluate(self, X, y_true):
         y_pred = self.predict(X)
-        return utils.evaluate(y_true, y_pred)
+        return evaluate(y_true, y_pred)

@@ -626,7 +626,9 @@ class PreprocessorConfig:
 
     padding_value: float = -999.0  # Padding value for missing data
 
-    scale_by: Dict[str, float] = field(default_factory=lambda: {"jet_pt": 1e-3, "el_pt": 1e-3, "mu_pt": 1e-3})
+    scale_by: Dict[str, float] = field(
+        default_factory=lambda: {"jet_pt": 1e-3, "el_pt": 1e-3, "mu_pt": 1e-3}
+    )
 
     data_cuts: Dict[str, Tuple[float, float]] = (
         None  # Optional cuts on features (min, max)
@@ -637,17 +639,20 @@ class PreprocessorConfig:
 class InferenceConfig:
     reconstructors: List[RecontructorConfig] = field(default_factory=list)
 
+
 def load_yaml_config(file_path) -> dict:
     """Load a YAML configuration file."""
     with open(file_path, "r") as file:
         config = yaml.safe_load(file)
     return config
 
+
 def load_load_config(file_path) -> LoadConfig:
     """Load a LoadConfig from a YAML file."""
     yaml_dict = load_yaml_config(file_path)
     load_config_dict = yaml_dict.get("LoadConfig", {})
     return LoadConfig(**load_config_dict)
+
 
 def load_inference_config(path: str) -> InferenceConfig:
     raw = load_yaml_config(path)
