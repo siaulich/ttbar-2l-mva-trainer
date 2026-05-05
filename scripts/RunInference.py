@@ -201,6 +201,7 @@ if __name__ == "__main__":
         }
     # Save results
 
+    os.makedirs(args.output_dir, exist_ok=True)
     output_file = os.path.join(args.output_dir, os.path.basename(args.input_file))
     tree_name = preprocessor.config.tree_name  # adjust if needed
 

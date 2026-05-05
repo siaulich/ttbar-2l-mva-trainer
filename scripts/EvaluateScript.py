@@ -127,6 +127,7 @@ if __name__ == "__main__":
     evaluator = evaluation.ReconstructionPlotter(prediction_manager)
     os.makedirs(output_dir, exist_ok=True)
 
+
     deviation_directory = os.path.join(output_dir, "deviations")
     os.makedirs(deviation_directory, exist_ok=True)
     confusion_matrix_directory = os.path.join(output_dir, "confusion_matrices")
@@ -141,17 +142,6 @@ if __name__ == "__main__":
     os.makedirs(binned_performance_directory, exist_ok=True)
     evaluator.plot_accuracy_evaluation(save_dir=accuracy_directory)
     print(f"Saved all accuracy evaluation plots")
-    if not args.accuracy:
-        evaluator.plot_all_distributions(save_dir=distributions_directory)
-        print(f"Saved all distribution plots")
-        evaluator.plot_all_deviations(save_dir=deviation_directory)
-        print(f"Saved all deviation evaluation plots")
-        evaluator.plot_neutrino_deviation_evaluation(
-            save_dir=neutrino_deviation_directory
-        )
-        print(f"Saved all neutrino deviation evaluation plots")
-        evaluator.plot_all_confusion_matrices(save_dir=confusion_matrix_directory)
-        print(f"Saved all confusion matrix plots")
 
     for idx, binning_cfg in enumerate(evaluation_config.binning_variables):
         binned_variable_output_dir = os.path.join(
@@ -166,6 +156,19 @@ if __name__ == "__main__":
         print(
             f"Saved binned evaluation plots for {binning_cfg.feature_name} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
         )
+
+
+    if not args.accuracy:
+        evaluator.plot_all_distributions(save_dir=distributions_directory)
+        print(f"Saved all distribution plots")
+        evaluator.plot_all_deviations(save_dir=deviation_directory)
+        print(f"Saved all deviation evaluation plots")
+        evaluator.plot_neutrino_deviation_evaluation(
+            save_dir=neutrino_deviation_directory
+        )
+        print(f"Saved all neutrino deviation evaluation plots")
+        evaluator.plot_all_confusion_matrices(save_dir=confusion_matrix_directory)
+        print(f"Saved all confusion matrix plots")
 
     if evaluation_config.binned_2d_binning_variables:
         binned_2d_performance_directory = os.path.join(

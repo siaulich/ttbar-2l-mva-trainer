@@ -22,8 +22,9 @@ universe = vanilla
 
 # Resource requirements
 RequestGPUs    = 1
-RequestMemory  = 16000
-+RequestRuntime = 36000
+RequestMemory  = 32000
+Requirements = (GPUs_GlobalMemoryMb >= 24000)
++RequestRuntime = 60000
 
 # Output files
 output = logs/job_\$(Cluster).out

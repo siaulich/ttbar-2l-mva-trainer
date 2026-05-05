@@ -12,6 +12,7 @@ LoadConfig:
     - lep_phi
     - lep_e
     - lep_charge
+    - lep_pid
   met_inputs:
     - met_met
     - met_phi
