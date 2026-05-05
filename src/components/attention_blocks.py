@@ -79,6 +79,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         key_mask=None,
         value_mask=None,
         training=None,
+        **kwargs,
     ):
         if value is None and not self.self_attention:
             raise ValueError("Value must be provided unless self-attention is used.")
@@ -92,6 +93,7 @@ class MultiHeadAttentionBlock(layers.Layer):
                 key_mask=key_mask,
                 attention_mask=attention_mask,
                 training=training,
+                **kwargs,
             )
         else:
             return self._call_post_ln(
@@ -103,6 +105,7 @@ class MultiHeadAttentionBlock(layers.Layer):
                 key_mask=key_mask,
                 attention_mask=attention_mask,
                 training=training,
+                **kwargs,
             )
 
     def _call_pre_ln(
@@ -115,6 +118,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         key_mask,
         attention_mask,
         training,
+        **kwargs,
     ):
         if key is None:
             key = value
@@ -143,6 +147,7 @@ class MultiHeadAttentionBlock(layers.Layer):
             value_mask=value_mask,
             attention_mask=attention_mask,
             training=training,
+            **kwargs,
         )
         attn_out = self.dropout_attn(attn_out, training=training)
         x = query + attn_out  # residual
@@ -168,6 +173,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         key_mask,
         attention_mask,
         training,
+        **kwargs,
     ):
         if key is None:
             key = value
@@ -183,6 +189,7 @@ class MultiHeadAttentionBlock(layers.Layer):
                 value_mask=query_mask,
                 attention_mask=attention_mask,
                 training=training,
+                **kwargs,
             )
         else:
             attn_out = self.attn(
@@ -192,7 +199,9 @@ class MultiHeadAttentionBlock(layers.Layer):
                 query_mask=query_mask,
                 key_mask=key_mask,
                 value_mask=value_mask,
+                attention_mask=attention_mask,
                 training=training,
+                **kwargs,
             )
 
         attn_out = self.dropout_attn(attn_out, training=training)
@@ -290,7 +299,7 @@ class SelfAttentionBlock(layers.Layer):
             pre_ln=pre_ln,
         )
 
-    def call(self, inputs, mask=None, training=None):
+    def call(self, inputs, mask=None, training=None, **kwargs):
         x = self.attention(
             query=inputs,
             value=inputs,
@@ -299,6 +308,7 @@ class SelfAttentionBlock(layers.Layer):
             value_mask=mask,
             query_mask=mask,
             training=training,
+            **kwargs,
         )
         return x
 
@@ -334,188 +344,6 @@ class SelfAttentionBlock(layers.Layer):
 
     def count_params(self):
         return self.attention.count_params()
-
-
-@keras.utils.register_keras_serializable()
-class SelfAttentionStack(layers.Layer):
-    def __init__(
-        self,
-        num_heads,
-        key_dim,
-        stack_size=3,
-        dropout_rate=0.0,
-        ff_dim=None,
-        regularizer=None,
-        pre_ln=True,
-        **kwargs,
-    ):
-        super(SelfAttentionStack, self).__init__(**kwargs)
-        self.regularizer = regularizers.get(regularizer) if regularizer else None
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-        self.stack_size = stack_size
-        self.dropout_rate = dropout_rate
-        self.ff_dim = ff_dim
-        self.pre_ln = pre_ln
-        self.attention_blocks = [
-            SelfAttentionBlock(
-                num_heads=num_heads,
-                key_dim=key_dim,
-                dropout_rate=dropout_rate,
-                ff_dim=ff_dim,
-                name=f"attention_block_{i+1}",
-                pre_ln=pre_ln,
-                regularizer=regularizer,
-            )
-            for i in range(stack_size)
-        ]
-
-    def call(self, inputs, mask=None, training=None):
-        x = inputs
-        for block in self.attention_blocks:
-            x = block(x, mask=mask, training=training)
-        return x
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def get_config(self):
-        config = super().get_config()
-        config.update(
-            {
-                "num_heads": self.num_heads,
-                "key_dim": self.key_dim,
-                "stack_size": self.stack_size,
-                "dropout_rate": self.dropout_rate,
-                "ff_dim": self.ff_dim,
-                "pre_ln": self.pre_ln,
-                "regularizer": regularizers.serialize(self.regularizer),
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        regularizer_config = config.pop("regularizer", None)
-        if regularizer_config:
-            config["regularizer"] = regularizers.deserialize(regularizer_config)
-        return cls(**config)
-
-    def build(self, input_shape):
-        x_shape = input_shape
-        for block in self.attention_blocks:
-            block.build(x_shape)
-        super().build(input_shape)
-
-    def count_params(self):
-        return sum(block.count_params() for block in self.attention_blocks)
-
-
-@keras.utils.register_keras_serializable()
-class MultiHeadAttentionStack(layers.Layer):
-    def __init__(
-        self,
-        num_heads,
-        key_dim,
-        stack_size=3,
-        dropout_rate=0.0,
-        ff_dim=None,
-        regularizer=None,
-        pre_ln=True,
-        self_attention=False,
-        **kwargs,
-    ):
-        super(MultiHeadAttentionStack, self).__init__(**kwargs)
-        self.regularizer = regularizers.get(regularizer) if regularizer else None
-        self.num_heads = num_heads
-        self.key_dim = key_dim
-        self.ff_dim = ff_dim
-        self.dropout_rate = dropout_rate
-        self.stack_size = stack_size
-        self.self_attention = self_attention
-        self.pre_ln = pre_ln
-
-        self.attention_blocks = [
-            MultiHeadAttentionBlock(
-                num_heads=num_heads,
-                key_dim=key_dim,
-                dropout_rate=dropout_rate,
-                ff_dim=ff_dim,
-                name=f"multi_head_attention_block_{i+1}",
-                regularizer=regularizer,
-                pre_ln=pre_ln,
-                self_attention=self_attention,
-            )
-            for i in range(stack_size)
-        ]
-
-    def call(
-        self,
-        query,
-        value,
-        key=None,
-        query_mask=None,
-        key_mask=None,
-        value_mask=None,
-        training=None,
-    ):
-        if key is None:
-            key = value
-        x = query
-        if self.self_attention:
-            value = query
-            key = query
-            key_mask = query_mask
-            value_mask = query_mask
-        for block in self.attention_blocks:
-            x = block(
-                query=x,
-                value=value,
-                key=key,
-                query_mask=query_mask,
-                key_mask=key_mask,
-                value_mask=value_mask,
-                training=training,
-            )
-        return x
-
-    def compute_output_shape(self, query_shape, key_shape=None, value_shape=None):
-        if value_shape is None:
-            value_shape = query_shape
-        if key_shape is None:
-            key_shape = query_shape
-        return (query_shape[0], query_shape[1], self.key_dim)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update(
-            {
-                "num_heads": self.num_heads,
-                "key_dim": self.key_dim,
-                "dropout_rate": self.dropout_rate,
-                "ff_dim": self.ff_dim,
-                "stack_size": self.stack_size,
-                "self_attention": self.self_attention,
-                "pre_ln": self.pre_ln,
-                "regularizer": regularizers.serialize(self.regularizer),
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        regularizer_config = config.pop("regularizer", None)
-        if regularizer_config:
-            config["regularizer"] = regularizers.deserialize(regularizer_config)
-        return cls(**config)
-
-    def build(self, query_shape, value_shape):
-        super(MultiHeadAttentionStack, self).build(query_shape)
-        for block in self.attention_blocks:
-            block.build(query_shape, value_shape)
-
-    def count_params(self):
-        return sum(block.count_params() for block in self.attention_blocks)
 
 
 @keras.utils.register_keras_serializable()
@@ -728,7 +556,7 @@ class PoolingAttentionBlock(layers.Layer):
         self.input_ff_2.build((*input_shape[:-1], self.ff_dim))
         self.MHA.build(seed_shape, processed_input_shape)
 
-    def call(self, inputs, mask=None, attention_mask=None, training=None):
+    def call(self, inputs, mask=None, attention_mask=None, training=None, **kwargs):
         """
         Implements PMA_k(Z) = MAB(S, rFF(Z)) from Set Transformer paper
 
@@ -757,6 +585,7 @@ class PoolingAttentionBlock(layers.Layer):
             key_mask=mask,
             attention_mask=attention_mask,
             training=training,
+            **kwargs,
         )
 
         return output
@@ -792,129 +621,4 @@ class PoolingAttentionBlock(layers.Layer):
             + self.input_ff_1.count_params()
             + self.input_ff_2.count_params()
             + self.MHA.count_params()
-        )
-
-
-@keras.utils.register_keras_serializable()
-class InducedSetAttentionBlock(layers.Layer):
-    def __init__(
-        self,
-        key_dim,
-        num_seeds,
-        num_heads=4,
-        dropout_rate=0.0,
-        ff_dim=None,
-        regularizer=None,
-        pre_ln=True,
-        **kwargs,
-    ):
-        super(InducedSetAttentionBlock, self).__init__(**kwargs)
-        self.key_dim = key_dim
-        self.num_seeds = num_seeds
-        self.num_heads = num_heads
-        self.dropout_rate = dropout_rate
-        self.ff_dim = ff_dim
-        self.regularizer = regularizers.get(regularizer) if regularizer else None
-        self.pre_ln = pre_ln
-
-        self.seed_vectors = self.add_weight(
-            shape=(num_seeds, key_dim),
-            initializer="glorot_uniform",
-            trainable=True,
-            name="seed_vectors",
-            regularizer=self.regularizer,
-        )
-        self.IMAB = MultiHeadAttentionBlock(
-            num_heads=num_heads,
-            key_dim=key_dim,
-            dropout_rate=dropout_rate,
-            ff_dim=ff_dim,
-            regularizer=self.regularizer,
-            pre_ln=pre_ln,
-            name="induced_set_attention_mha",
-        )
-        self.MAB = MultiHeadAttentionBlock(
-            num_heads=num_heads,
-            key_dim=key_dim,
-            dropout_rate=dropout_rate,
-            ff_dim=ff_dim,
-            regularizer=self.regularizer,
-            pre_ln=pre_ln,
-            name="induced_set_attention_mab",
-        )
-
-    def build(self, input_shape):
-        super(InducedSetAttentionBlock, self).build(input_shape)
-        seed_vectors_shape = (None, self.num_seeds, self.key_dim)
-
-        if len(input_shape) != 3:
-            raise ValueError(
-                f"Expected input shape (batch_size, num_points, key_dim). Got {input_shape}."
-            )
-
-        value_shape = (None, input_shape[1], self.key_dim)
-
-        self.IMAB.build(seed_vectors_shape, value_shape)
-        self.MAB.build(value_shape, seed_vectors_shape)
-
-        if isinstance(input_shape, list):
-            input_shape = input_shape[0]
-        self.input_spec = layers.InputSpec(shape=input_shape)
-
-    def call(self, inputs, mask=None, training=None):
-        batch_size = tf.shape(inputs)[0]
-
-        seed_vectors_expanded = tf.broadcast_to(
-            self.seed_vectors[tf.newaxis, ...],
-            [batch_size, self.num_seeds, self.key_dim],
-        )
-
-        induced_output = self.IMAB(
-            query=seed_vectors_expanded,
-            value=inputs,
-            key=inputs,
-            key_mask=mask,
-            training=training,
-        )
-
-        output = self.MAB(
-            query=inputs,
-            value=induced_output,
-            key=induced_output,
-            query_mask=mask,
-            training=training,
-        )
-
-        return output
-
-    def compute_output_shape(self, input_shape):
-        return input_shape
-
-    def get_config(self):
-        config = super().get_config()
-        config.update(
-            {
-                "key_dim": self.key_dim,
-                "num_seeds": self.num_seeds,
-                "num_heads": self.num_heads,
-                "dropout_rate": self.dropout_rate,
-                "ff_dim": self.ff_dim,
-                "pre_ln": self.pre_ln,
-                "regularizer": regularizers.serialize(self.regularizer),
-            }
-        )
-        return config
-
-    @classmethod
-    def from_config(cls, config):
-        regularizer_config = config.pop("regularizer", None)
-        if regularizer_config:
-            config["regularizer"] = regularizers.deserialize(regularizer_config)
-        return cls(**config)
-
-    def count_params(self):
-        return (
-            self.seed_vectors.shape[0] * self.seed_vectors.shape[1]
-            + self.IMAB.count_params()
-            + self.MAB.count_params()
         )
