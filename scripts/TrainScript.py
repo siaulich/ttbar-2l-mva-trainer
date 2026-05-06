@@ -67,6 +67,11 @@ def parse_args():
         default=None,
         help="Maximum number of events to load from the dataset (optional)",
     )
+    parser.add_argument(
+        "--checkpoints",
+        action="store_true",
+        help="Whether to save model checkpoints during training",
+    )
 
     return parser.parse_args()
 
@@ -138,6 +143,13 @@ if __name__ == "__main__":
     for callback_name, callback_params in train_config.callbacks.items():
         callback_class = getattr(keras.callbacks, callback_name)
         callbacks.append(callback_class(**callback_params))
+    if args.checkpoints:
+        checkpoint_callback = keras.callbacks.ModelCheckpoint(
+            filepath=os.path.join(args.output_dir, "checkpoint_epoch_{epoch:02d}.keras"),
+            save_weights_only=False,
+        )
+        callbacks.append(checkpoint_callback)
+
     train_options["callbacks"] = callbacks
 
     X_train, y_train, sample_weights = model.prepare_training_data(X, y)

@@ -26,4 +26,3 @@ class GroundTruthReconstructor(EventReconstructorBase):
 
     def reconstruct_neutrinos(self, data_dict):
         return super().reconstruct_neutrinos(data_dict)
-

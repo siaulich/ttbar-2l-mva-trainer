@@ -15,16 +15,23 @@ import matplotlib as mpl
 from typing import Tuple, Dict
 
 mpl.rcParams["figure.constrained_layout.use"] = True
-from src.preprocessing import InferenceDataConfig, get_inference_data, RootInferencePreprocessor
+from src.preprocessing import (
+    InferenceDataConfig,
+    get_inference_data,
+    RootInferencePreprocessor,
+)
 from src.configs import (
     load_preprocessing_config,
     load_load_config,
     load_inference_config,
     LoadConfig,
     PreprocessorConfig,
-    ROOTNtupleConfig
+    ROOTNtupleConfig,
 )
-from src.utils import lorentz_vector_from_PtEtaPhiE_array, lorentz_vector_from_neutrino_momenta_array
+from src.utils import (
+    lorentz_vector_from_PtEtaPhiE_array,
+    lorentz_vector_from_neutrino_momenta_array,
+)
 from src.base_classes import KerasMLWrapper
 from src.reconstruction import get_reconstructor
 
@@ -88,15 +95,18 @@ def compute_infered_tops(
     selected_jet_indices = np.argmax(assignement_pred, axis=-2)
     top_jets = np.take_along_axis(
         inference_data["jet_inputs"][..., :4],
-            selected_jet_indices[:, :, np.newaxis],
-            axis=1,
-        )
+        selected_jet_indices[:, :, np.newaxis],
+        axis=1,
+    )
     top_jets_4vect = lorentz_vector_from_PtEtaPhiE_array(top_jets)
-    lepton_4vect = lorentz_vector_from_PtEtaPhiE_array(inference_data["lep_inputs"][..., :4])
+    lepton_4vect = lorentz_vector_from_PtEtaPhiE_array(
+        inference_data["lep_inputs"][..., :4]
+    )
     neutrino_4vect = lorentz_vector_from_neutrino_momenta_array(neutrino_momenta)
     top_4vect[mask] = (top_jets_4vect + lepton_4vect + neutrino_4vect)[:, 0, :]
     tbar_4vect[mask] = (top_jets_4vect + lepton_4vect + neutrino_4vect)[:, 1, :]
     return top_4vect, tbar_4vect
+
 
 def compute_jet_idx(
     assignment_pred: np.ndarray,
@@ -109,6 +119,7 @@ def compute_jet_idx(
     bjet_idx = np.full((mask.shape[0], 6), -1, dtype=int)
     bjet_idx[mask] = masked_bjet_idx
     return bjet_idx
+
 
 def compute_neutrino_momenta(
     neutrino_regression: np.ndarray,
@@ -131,7 +142,7 @@ if __name__ == "__main__":
     preprocessor = RootInferencePreprocessor(preprocessor_config)
     preprocessor.process(args.input_file)
     inference_data, mask = preprocessor.get_inference_data(load_config)
-    
+
     num_events = inference_data["mc_event_number"].shape[0]
     masked_inference_data = {key: value[mask] for key, value in inference_data.items()}
     reconstructors = {}
@@ -179,10 +190,16 @@ if __name__ == "__main__":
             padding_value=-999,
             max_jets=data_config.max_jets,
         )
-        top_pt = np.sqrt(top_4vect[:, 0]**2 + top_4vect[:, 1]**2)
-        tbar_pt = np.sqrt(tbar_4vect[:, 0]**2 + tbar_4vect[:, 1]**2)
-        top_eta = 0.5 * np.log((top_4vect[:, 3] + top_4vect[:, 2]) / (top_4vect[:, 3] - top_4vect[:, 2] + 1e-8))
-        tbar_eta = 0.5 * np.log((tbar_4vect[:, 3] + tbar_4vect[:, 2]) / (tbar_4vect[:, 3] - tbar_4vect[:, 2] + 1e-8))
+        top_pt = np.sqrt(top_4vect[:, 0] ** 2 + top_4vect[:, 1] ** 2)
+        tbar_pt = np.sqrt(tbar_4vect[:, 0] ** 2 + tbar_4vect[:, 1] ** 2)
+        top_eta = 0.5 * np.log(
+            (top_4vect[:, 3] + top_4vect[:, 2])
+            / (top_4vect[:, 3] - top_4vect[:, 2] + 1e-8)
+        )
+        tbar_eta = 0.5 * np.log(
+            (tbar_4vect[:, 3] + tbar_4vect[:, 2])
+            / (tbar_4vect[:, 3] - tbar_4vect[:, 2] + 1e-8)
+        )
         top_phi = np.arctan2(top_4vect[:, 1], top_4vect[:, 0])
         tbar_phi = np.arctan2(tbar_4vect[:, 1], tbar_4vect[:, 0])
         top_E = top_4vect[:, 3]
@@ -197,7 +214,8 @@ if __name__ == "__main__":
             "top_e": top_E,
             "tbar_e": tbar_E,
             "event_reco_jet_idx": compute_jet_idx(assignment_pred, mask),
-            "nu_3vect": compute_neutrino_momenta(neutrino_regression, mask) * 1e-3, # Convert from MeV to GeV
+            "nu_3vect": compute_neutrino_momenta(neutrino_regression, mask)
+            * 1e-3,  # Convert from MeV to GeV
         }
     # Save results
 

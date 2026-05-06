@@ -117,7 +117,8 @@ if __name__ == "__main__":
             os.path.join(ml_metrics_output_dir, "inference_time_comparison.pdf")
         )
         print(f"Saved inference time comparison plot")
-
+        ml_evaluator.plot_feature_importance(num_repeats=1, save_dir=ml_metrics_output_dir)
+        print(f"Saved feature importance plot")
         del ml_evaluator
     del ml_reconstructors
 
@@ -126,7 +127,6 @@ if __name__ == "__main__":
 
     evaluator = evaluation.ReconstructionPlotter(prediction_manager)
     os.makedirs(output_dir, exist_ok=True)
-
 
     deviation_directory = os.path.join(output_dir, "deviations")
     os.makedirs(deviation_directory, exist_ok=True)
@@ -156,7 +156,6 @@ if __name__ == "__main__":
         print(
             f"Saved binned evaluation plots for {binning_cfg.feature_name} [{idx + 1}/{len(evaluation_config.binning_variables)}]"
         )
-
 
     if not args.accuracy:
         evaluator.plot_all_distributions(save_dir=distributions_directory)

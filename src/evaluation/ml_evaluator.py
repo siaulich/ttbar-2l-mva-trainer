@@ -171,7 +171,7 @@ class FeatureImportanceCalculator:
                     regression_performance = -(
                         NeutrinoDeviationCalculator.compute_relative_deviation(
                             permutated_regression_pred,
-                            self.y_test["nu_flows_neutrino_regression"],
+                            self.y_test["regression"],
                         )
                         - regression_baseline_performance
                     )
@@ -515,7 +515,7 @@ class MLEvaluator:
                 ampl.draw_atlas_label(
                     x=0.02,
                     y=0.95,
-                    ax=ax1,
+                    ax=ax,
                     status="Simulation Work in Progress",
                 )
                 ampl.set_xlabel(ax=ax, label="Importance Score")

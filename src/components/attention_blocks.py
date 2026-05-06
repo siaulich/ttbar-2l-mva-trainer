@@ -79,6 +79,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         key_mask=None,
         value_mask=None,
         training=None,
+        return_attention_scores=False,
         **kwargs,
     ):
         if value is None and not self.self_attention:
@@ -93,6 +94,7 @@ class MultiHeadAttentionBlock(layers.Layer):
                 key_mask=key_mask,
                 attention_mask=attention_mask,
                 training=training,
+                return_attention_scores=return_attention_scores,
                 **kwargs,
             )
         else:
@@ -105,6 +107,7 @@ class MultiHeadAttentionBlock(layers.Layer):
                 key_mask=key_mask,
                 attention_mask=attention_mask,
                 training=training,
+                return_attention_scores=return_attention_scores,
                 **kwargs,
             )
 
@@ -118,6 +121,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         key_mask,
         attention_mask,
         training,
+        return_attention_scores,
         **kwargs,
     ):
         if key is None:
@@ -138,17 +142,32 @@ class MultiHeadAttentionBlock(layers.Layer):
                 k_norm = key
                 v_norm = value
 
-        attn_out = self.attn(
-            q_norm,
-            k_norm,
-            v_norm,
-            query_mask=query_mask,
-            key_mask=key_mask,
-            value_mask=value_mask,
-            attention_mask=attention_mask,
-            training=training,
-            **kwargs,
-        )
+        if return_attention_scores:
+            attn_out, attn_score = self.attn(
+                q_norm,
+                k_norm,
+                v_norm,
+                query_mask=query_mask,
+                key_mask=key_mask,
+                value_mask=value_mask,
+                attention_mask=attention_mask,
+                training=training,
+                return_attention_scores=return_attention_scores,
+                **kwargs,
+            )
+        else:
+            attn_out = self.attn(
+                q_norm,
+                k_norm,
+                v_norm,
+                query_mask=query_mask,
+                key_mask=key_mask,
+                value_mask=value_mask,
+                attention_mask=attention_mask,
+                training=training,
+                return_attention_scores=return_attention_scores,
+                **kwargs,
+            )
         attn_out = self.dropout_attn(attn_out, training=training)
         x = query + attn_out  # residual
 
@@ -161,7 +180,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         ffn_out = self.ffn_dense_2(ffn_out)
         ffn_out = self.ffn_dropout(ffn_out, training=training)
 
-        return x + ffn_out
+        return x + ffn_out if not return_attention_scores else (x + ffn_out, attn_score)
 
     def _call_post_ln(
         self,
@@ -173,6 +192,7 @@ class MultiHeadAttentionBlock(layers.Layer):
         key_mask,
         attention_mask,
         training,
+        return_attention_scores,
         **kwargs,
     ):
         if key is None:
@@ -180,15 +200,20 @@ class MultiHeadAttentionBlock(layers.Layer):
             key_mask = value_mask
         # Attention
         if self.self_attention:
-            attn_out = self.attn(
+            key_mask = value_mask = query_mask
+            key = value = query
+
+        if return_attention_scores:
+            attn_out, attn_score = self.attn(
                 query,
-                query,
-                query,
+                key,
+                value,
                 query_mask=query_mask,
-                key_mask=query_mask,
-                value_mask=query_mask,
+                key_mask=key_mask,
+                value_mask=value_mask,
                 attention_mask=attention_mask,
                 training=training,
+                return_attention_scores=return_attention_scores,
                 **kwargs,
             )
         else:
@@ -201,6 +226,7 @@ class MultiHeadAttentionBlock(layers.Layer):
                 value_mask=value_mask,
                 attention_mask=attention_mask,
                 training=training,
+                return_attention_scores=return_attention_scores,
                 **kwargs,
             )
 
@@ -213,9 +239,17 @@ class MultiHeadAttentionBlock(layers.Layer):
         ffn_out = self.ffn_dropout(ffn_out, training=training)
 
         if self.ln_ffn is not None:
-            return self.ln_ffn(x + ffn_out)
+            return (
+                self.ln_ffn(x + ffn_out)
+                if not return_attention_scores
+                else (self.ln_ffn(x + ffn_out), attn_score)
+            )
         else:
-            return x + ffn_out
+            return (
+                x + ffn_out
+                if not return_attention_scores
+                else (x + ffn_out, attn_score)
+            )
 
     def build(self, query_shape, value_shape, key_shape=None):
         """Fixed build method for Keras compatibility"""
@@ -235,13 +269,6 @@ class MultiHeadAttentionBlock(layers.Layer):
         self.ffn_dense_2.build((None, None, self.ff_dim))
 
         super().build(query_shape)
-
-    def compute_output_shape(self, query_shape, key_shape=None, value_shape=None):
-        if value_shape is None:
-            value_shape = query_shape
-        if key_shape is None:
-            key_shape = query_shape
-        return (query_shape[0], query_shape[1], self.key_dim)
 
     def get_config(self):
         config = super().get_config()
@@ -299,8 +326,10 @@ class SelfAttentionBlock(layers.Layer):
             pre_ln=pre_ln,
         )
 
-    def call(self, inputs, mask=None, training=None, **kwargs):
-        x = self.attention(
+    def call(
+        self, inputs, mask=None, training=None, return_attention_scores=False, **kwargs
+    ):
+        output = self.attention(
             query=inputs,
             value=inputs,
             key=inputs,
@@ -308,9 +337,14 @@ class SelfAttentionBlock(layers.Layer):
             value_mask=mask,
             query_mask=mask,
             training=training,
+            return_attention_scores=return_attention_scores,
             **kwargs,
         )
-        return x
+        if return_attention_scores:
+            output, attn_scores = output
+            return output, attn_scores
+        else:
+            return output
 
     def get_config(self):
         config = super().get_config()

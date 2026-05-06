@@ -1,3 +1,3 @@
 from .base_utility_class import BaseUtilityModel
-from .keras_ml_wrapper import KerasMLWrapper, KerasModelWrapper
+from .keras_ml_wrapper import KerasMLWrapper
 from .reconstruction_base import EventReconstructorBase

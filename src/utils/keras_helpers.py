@@ -1,5 +1,6 @@
 import numpy as np
 from ..configs import DataConfig
+import keras
 
 
 def compute_sample_weights(X_train: dict, data_config: DataConfig) -> np.ndarray:
@@ -53,3 +54,39 @@ def compute_sample_weights(X_train: dict, data_config: DataConfig) -> np.ndarray
     # Normalize weights to have mean of 1
     event_weights /= np.mean(event_weights)
     return event_weights
+
+
+def prepare_model_inputs(model: keras.Model, inputs: dict) -> dict:
+    """
+    Prepare model inputs by selecting the relevant features based on the model's input layers.
+
+    Args:
+        model (keras.Model): The Keras model for which to prepare inputs.
+        X_train (dict): Dictionary containing training features.
+
+    Returns:
+        model_inputs (dict): Dictionary containing only the features required by the model.
+    """
+    model_inputs = {}
+    for input_name in model.input:
+        if not isinstance(input_name, str):
+            input_name = input_name.name.split(":")[0]
+        if input_name in inputs:
+            model_inputs[input_name] = inputs[input_name]
+        else:
+            raise ValueError(f"Input '{input_name}' not found in X_train.")
+    return model_inputs
+
+
+def get_jet_mask(jet_inputs: np.ndarray, padding_value: float = -999) -> np.ndarray:
+    """
+    Get a boolean mask indicating which jets are valid (not padded).
+
+    Args:
+        jet_inputs (np.ndarray): Array of shape (num_samples, max_jets, num_features) containing jet features.
+        padding_value (float): The value used for padding invalid jets.
+
+    Returns:
+        jet_mask (np.ndarray): Boolean array of shape (num_samples, max_jets) where True indicates a valid jet.
+    """
+    return np.any(jet_inputs != padding_value, axis=-1)

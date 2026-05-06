@@ -704,12 +704,12 @@ class RootInferencePreprocessor:
         inference_data["met_inputs"] = self._load_feature_array(
             self.processed_data,
             load_config.met_inputs,
-            target_shape = (-1, 1, len(load_config.met_inputs))
+            target_shape=(-1, 1, len(load_config.met_inputs)),
         )
         inference_data["global_event_inputs"] = self._load_feature_array(
             self.processed_data,
             load_config.global_event_inputs,
-            target_shape = (-1, 1, len(load_config.global_event_inputs))
+            target_shape=(-1, 1, len(load_config.global_event_inputs)),
         )
         inference_data["mc_event_number"] = (
             self._load_feature_array(
@@ -757,6 +757,7 @@ class RootInferencePreprocessor:
     def get_raw_loaded_data(self) -> Optional[ak.Array]:
         """Get the raw loaded data before processing."""
         return self.loaded_data, self.config.root_ntuple_config
+
 
 def get_inference_data(
     preprocessor_config: InferenceDataConfig, load_config: LoadConfig
