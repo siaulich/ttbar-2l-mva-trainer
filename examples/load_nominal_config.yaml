@@ -1,5 +1,5 @@
 LoadConfig: 
-  data_path: dilep_data/nominal.npz
+  data_path: dilep_data/nominal.npz # Set to the path of the preprocessed .npz file
   jet_inputs:
     - jet_pt
     - jet_eta

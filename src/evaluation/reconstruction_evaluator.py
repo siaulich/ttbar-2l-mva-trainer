@@ -1130,50 +1130,6 @@ class ReconstructionPlotter:
             config,
         )
 
-    def plot_reco_vs_truth_distribution(
-        self,
-        ax,
-        reconstructor_index: int,
-        variable_name: str,
-        variable_label: str,
-        bins: int = 50,
-        xlims: Optional[Tuple[float, float]] = None,
-    ):
-        """
-        Plot distribution of reconstructed variable vs. truth.
-
-        Args:
-            reconstructor_index: Index of the reconstructor
-            variable_func: Function that takes (top1_p4, top2_p4, lepton_inputs, jet_inputs, neutrino_pred)
-                          and returns reconstructed variable(s)
-            truth_extractor: Function to extract truth values from X_test
-            variable_label: Label for the variable being plotted
-            bins: Number of bins
-            xlims: Optional x-axis limits
-            figsize: Figure size
-
-        Returns:
-            Tuple of (figure, axis)
-        """
-        # Compute reconstructed and truth values
-        reconstructed = self.variable_handler.compute_reconstructed_variable(
-            reconstructor_index, variable_name
-        )
-        config = PlotConfig(xlims=xlims)
-        truth = self.variable_handler.compute_true_variable(variable_name)
-
-        event_weights = FeatureExtractor.get_event_weights(self.X_test)
-
-        return DistributionPlotter.plot_feature_distributions(
-            [reconstructed, truth],
-            variable_label,
-            event_weights=event_weights,
-            bins=bins,
-            labels=["reco", "truth"],
-            ax=ax,
-            config=config,
-        )
-
     def plot_deviations_distributions_all_reconstructors(
         self,
         variable_name: str,
@@ -1250,7 +1206,6 @@ class ReconstructionPlotter:
         xlims: Optional[Tuple[float, float]] = None,
         bins: int = 50,
         figsize: Optional[Tuple[int, int]] = (6, 5),
-        save_individual_plots: bool = False,
         **kwargs,
     ):
         """
@@ -1272,49 +1227,64 @@ class ReconstructionPlotter:
         num_cols = np.ceil(np.sqrt(num_plots)).astype(int)
         num_rows = np.ceil(num_plots / num_cols).astype(int)
 
-        if not save_individual_plots:
-            fig, axes = plt.subplots(
-                num_rows,
-                num_cols,
-                figsize=(figsize[0] * num_cols, figsize[1] * num_rows),
-                constrained_layout=True,
-            )
-            if isinstance(axes, np.ndarray):
-                axes = axes.flatten()
-            else:
-                axes = [axes]
+        fig, axes = plt.subplots(
+            num_rows,
+            num_cols,
+            figsize=(figsize[0] * num_cols, figsize[1] * num_rows),
+            constrained_layout=True,
+        )
+        combined_fig, combined_ax = plt.subplots(figsize=figsize)
+        if isinstance(axes, np.ndarray):
+            axes = axes.flatten()
         else:
-            fig, axes = [], []
-            for i in range(num_plots):
-                fig_i, ax_i = plt.subplots(
-                    figsize=figsize,
-                    constrained_layout=True,
-                )
-                fig.append(fig_i)
-                axes.append(ax_i)
+            axes = [axes]
 
+
+        truth = self.variable_handler.compute_true_variable(variable_name)
+        event_weights = FeatureExtractor.get_event_weights(self.X_test)
+        reconstructed_list = []
         for reco_index, reconstructor in enumerate(
             self.prediction_manager.reconstructors
         ):
             #            if isinstance(reconstructor, GroundTruthReconstructor):
             #                continue
             ax = axes[reco_index]
-            self.plot_reco_vs_truth_distribution(
-                ax,
-                reco_index,
-                variable_name,
-                variable_label,
-                bins=bins,
-                xlims=xlims,
-                **kwargs,
+            # Compute reconstructed and truth values
+            reconstructed = self.variable_handler.compute_reconstructed_variable(
+                reco_index, variable_name
             )
+            reconstructed_list.append(reconstructed)
+            config = PlotConfig(xlims=xlims)
+
             ax.set_title(reconstructor.get_full_reco_name())
+            DistributionPlotter.plot_feature_distributions(
+                [reconstructed, truth],
+                variable_label,
+                event_weights=event_weights,
+                bins=bins,
+                labels=["reco", "truth"],
+                ax=ax,
+                config=config,
+            )
+        config = PlotConfig(xlims=xlims)
 
-        if not save_individual_plots:
-            for i in range(len(self.prediction_manager.reconstructors), len(axes)):
-                fig.delaxes(axes[i])  # Remove unused subplots
+        # Plot combined distribution
+        DistributionPlotter.plot_feature_distributions(
+            reconstructed_list + [truth],
+            variable_label,
+            event_weights=event_weights,
+            bins=bins,
+            labels=[r.get_full_reco_name() for r in self.prediction_manager.reconstructors]
+            + ["truth"],
+            ax=combined_ax,
+            config=config,
+            **kwargs,
+        )
 
-        return fig, axes
+        for i in range(len(self.prediction_manager.reconstructors), len(axes)):
+            fig.delaxes(axes[i])  # Remove unused subplots
+
+        return fig, axes, combined_fig, combined_ax
 
     # ==================== Plot Specific Variable distributions ====================
 
@@ -2191,7 +2161,7 @@ class ReconstructionPlotter:
             variable_label = config["label"]
             kwargs["xlims"] = config.get("xlims", None)
             kwargs["bins"] = config.get("bins", 20)
-            fig, axes = self.plot_distributions_all_reconstructors(
+            fig, axes, combined_fig, combined_axes = self.plot_distributions_all_reconstructors(
                 variable_name=variable_key,
                 variable_label=variable_label,
                 **kwargs,
@@ -2200,4 +2170,7 @@ class ReconstructionPlotter:
                 file_name = f"{variable_key}_distributions.pdf"
                 file_path = os.path.join(save_dir, file_name)
                 fig.savefig(file_path)
+                file_name_combined = f"{variable_key}_combined_distribution.pdf"
+                file_path_combined = os.path.join(save_dir, file_name_combined)
+                combined_fig.savefig(file_path_combined)
             plt.close(fig)

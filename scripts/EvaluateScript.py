@@ -118,7 +118,7 @@ if __name__ == "__main__":
         )
         print(f"Saved inference time comparison plot")
         ml_evaluator.plot_feature_importance(num_repeats=1, save_dir=ml_metrics_output_dir)
-        print(f"Saved feature importance plot")
+
         del ml_evaluator
     del ml_reconstructors
 

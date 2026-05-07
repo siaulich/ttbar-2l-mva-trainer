@@ -73,6 +73,7 @@ class FeatureImportanceCalculator:
                 NeutrinoDeviationCalculator.compute_relative_deviation(
                     regression_baseline_complete_forward_passion,
                     self.y_test["regression"],
+                    per_event=False,
                 )
             )
             print(
@@ -168,7 +169,7 @@ class FeatureImportanceCalculator:
                 )
                 assignment_scores.append(assignment_performance)
                 if regression_baseline_performance is not None:
-                    regression_performance = -(
+                    regression_performance = (
                         NeutrinoDeviationCalculator.compute_relative_deviation(
                             permutated_regression_pred,
                             self.y_test["regression"],
@@ -518,7 +519,7 @@ class MLEvaluator:
                     ax=ax,
                     status="Simulation Work in Progress",
                 )
-                ampl.set_xlabel(ax=ax, label="Importance Score")
+                ampl.set_xlabel(ax=ax, label="$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $")
 
                 # ax.set_title(f"Feature Importance - {model_name}")
                 ax.invert_yaxis()
@@ -554,8 +555,8 @@ class MLEvaluator:
                     ax=ax1,
                     status="Simulation Work in Progress",
                 )
-                ampl.set_xlabel(ax=ax1, label="Importance Score")
-                ax1.set_title(f"Assignment Feature Importance - {model_name}")
+                ampl.set_xlabel(ax=ax1, label=r"$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $")
+                ax1.set_title(f"Assignment")
                 ax1.invert_yaxis()
                 ax1.grid(True, alpha=0.3, axis="x")
 
@@ -574,11 +575,11 @@ class MLEvaluator:
                 ampl.draw_atlas_label(
                     x=0.02,
                     y=0.95,
-                    ax=ax1,
+                    ax=ax2,
                     status="Simulation Work in Progress",
                 )
-                ampl.set_xlabel(ax=ax2, label="Importance Score")
-                ax2.set_title(f"Regression Feature Importance - {model_name}")
+                ampl.set_xlabel(ax=ax2, label=r"$\text{MSE}_{\text{permutated}} - \text{MSE}_{\text{baseline}}$")
+                ax2.set_title(f"Regression")
                 ax2.invert_yaxis()
                 ax2.grid(True, alpha=0.3, axis="x")
 
@@ -588,7 +589,7 @@ class MLEvaluator:
                     print(f"Saved feature importance plot to {save_path}")
 
                 results.append((fig, (ax1, ax2)))
-
+                fig.suptitle(f"Feature Importance - {model_name}")
         return results
 
     def evaluate_inference_time(
