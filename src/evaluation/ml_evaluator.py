@@ -56,12 +56,12 @@ class FeatureImportanceCalculator:
             )
 
         (
-            assignment_baseline_complete_forward_passion,
-            regression_baseline_complete_forward_passion,
+            assignment_baseline,
+            regression_baseline,
         ) = self.reconstructor.complete_forward_pass(self.X_test)
 
         assignment_baseline_performance = AccuracyCalculator.compute_accuracy(
-            assignment_baseline_complete_forward_passion,
+            assignment_baseline,
             self.y_test["assignment"],
             per_event=False,
         )
@@ -71,7 +71,7 @@ class FeatureImportanceCalculator:
         if evaluate_regression:
             regression_baseline_performance = (
                 NeutrinoDeviationCalculator.compute_relative_deviation(
-                    regression_baseline_complete_forward_passion,
+                    regression_baseline,
                     self.y_test["regression"],
                     per_event=False,
                 )
@@ -852,7 +852,7 @@ class MLEvaluator:
             acc_mean, acc_lower, acc_upper = BootstrapCalculator.compute_bootstrap_ci(
                 data=AccuracyCalculator.compute_accuracy(
                     true_labels=self.y_test[idx]["assignment"],
-                    complete_forward_passions=assignment_pred,
+                    predictions=assignment_pred,
                     per_event=True,
                 ),
                 n_bootstrap=n_bootstrap,
@@ -862,7 +862,7 @@ class MLEvaluator:
                 BootstrapCalculator.compute_bootstrap_ci(
                     data=SelectionAccuracyCalculator.compute_selection_accuracy(
                         true_labels=self.y_test[idx]["assignment"],
-                        complete_forward_passions=assignment_pred,
+                        predictions=assignment_pred,
                         per_event=True,
                     ),
                     n_bootstrap=n_bootstrap,

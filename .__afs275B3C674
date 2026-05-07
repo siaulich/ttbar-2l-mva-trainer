@@ -1,0 +1,8 @@
+#!/bin/bash
+source /data/dust/group/atlas/ttreco/venv/bin/activate
+
+python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_assigner.yaml --output_dir plots/evaluate_assigner --ml_metrics
+python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_accuracy.yaml --output_dir plots/compact_assigner --ml_metrics
+python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_reconstructor.yaml --output_dir plots/compact_reconstructor --ml_metrics
+python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_regions.yaml --output_dir plots/evaluate_regions --ml_metrics
+python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_gaussian_loss.yaml --output_dir plots/gaussian_loss --ml_metrics
