@@ -118,16 +118,6 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         legend_loc="lower right",
     ),
     SummaryPlotConfig(
-        x_metric="num_trainable_parameters",
-        y_metric="training_epochs",
-        filename="training_epochs_vs_num_parameters.pdf",
-    ),
-    SummaryPlotConfig(
-        x_metric="num_trainable_parameters",
-        y_metric="inference_time_per_event",
-        filename="inference_time_vs_num_parameters.pdf",
-    ),
-    SummaryPlotConfig(
         x_metric="training_epochs",
         y_metric="assignment_accuracy",
         filename="assignment_accuracy_vs_training_epochs.pdf",
@@ -136,6 +126,33 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         x_metric="inference_time_per_event",
         y_metric="assignment_accuracy",
         filename="assignment_accuracy_vs_inference_time.pdf",
+    ),
+        SummaryPlotConfig(
+        x_metric="num_trainable_parameters",
+        y_metric="regression_mse",
+        filename="regression_mse_vs_num_parameters.pdf",
+        legend_loc="lower right",
+    ),
+    SummaryPlotConfig(
+        x_metric="training_epochs",
+        y_metric="regression_mse",
+        filename="regression_mse_vs_training_epochs.pdf",
+    ),
+    SummaryPlotConfig(
+        x_metric="inference_time_per_event",
+        y_metric="regression_mse",
+        filename="regression_mse_vs_inference_time.pdf",
+    ),
+
+    SummaryPlotConfig(
+        x_metric="num_trainable_parameters",
+        y_metric="training_epochs",
+        filename="training_epochs_vs_num_parameters.pdf",
+    ),
+    SummaryPlotConfig(
+        x_metric="num_trainable_parameters",
+        y_metric="inference_time_per_event",
+        filename="inference_time_vs_num_parameters.pdf",
     ),
 ]
 
