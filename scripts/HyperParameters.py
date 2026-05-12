@@ -91,7 +91,7 @@ METRICS_CONFIG: dict[str, MetricConfig] = {
         ),
         MetricConfig(
             key="inference_time_per_event",
-            label=f"Inference Time per Event [ms] \n({device})",
+            label=r"Inference Time per Event [ms] " + f"\n({device})",
             scale=1e3,
         ),
         MetricConfig(
@@ -132,6 +132,11 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         y_metric="assignment_accuracy",
         filename="assignment_accuracy_vs_training_epochs.pdf",
     ),
+    SummaryPlotConfig(
+        x_metric="inference_time_per_event",
+        y_metric="assignment_accuracy",
+        filename="assignment_accuracy_vs_inference_time.pdf",
+    ),
 ]
 
 
@@ -161,7 +166,7 @@ def evaluate_single_file(
         ],
         "inference_time_per_event": ml_evaluator.evaluate_inference_time_idx(0)[
             "time_per_sample"
-        ],
+        ] ,
         "training_epochs": ml_evaluator.evaluate_num_training_epochs_idx(0)[
             "num_training_epochs"
         ],

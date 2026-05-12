@@ -15,6 +15,14 @@ class TransposeLayer(keras.layers.Layer):
         config = super().get_config()
         config.update({"perm": self.perm})
         return config
+    
+@keras.utils.register_keras_serializable()
+class PassthroughLayer(keras.layers.Layer):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def call(self, inputs):
+        return inputs
 
 
 @keras.utils.register_keras_serializable()

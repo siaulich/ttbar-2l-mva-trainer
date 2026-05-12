@@ -278,8 +278,17 @@ class ChiSquareAssigner(BaselineAssigner):
         )  # Avoid negative values due to numerical issues
         return np.sqrt(mass_squared)
 
-    def get_four_vector(self, pt, eta, phi, e):
+    def get_four_vector_from_PtEtaPhiE(self, pt, eta, phi, e):
         px, py, pz, energy = lorentz_vector_from_pt_eta_phi_e(pt, eta, phi, e)
+        return np.array([px, py, pz, energy]).transpose(
+            1, 2, 0
+        )  # Shape: (num_events, num_particles,4)
+    
+    def get_four_vector_from_PtEtaPhi(self, pt, eta, phi):
+        px = pt * np.cos(phi)
+        py = pt * np.sin(phi)
+        pz = pt * np.sinh(eta)
+        energy = np.sqrt(px**2 + py**2 + pz**2)  # Assuming massless particles
         return np.array([px, py, pz, energy]).transpose(
             1, 2, 0
         )  # Shape: (num_events, num_particles,4)
@@ -297,19 +306,27 @@ class ChiSquareAssigner(BaselineAssigner):
             :, :, :4
         ]  # Assuming first 4 features are pt, eta, phi, e
 
-        lepton_four_vectors = self.get_four_vector(
+        lepton_four_vectors = self.get_four_vector_from_PtEtaPhiE(
             leptons[:, :, self.feature_index_dict["lep_inputs"]["lep_pt"]],
             leptons[:, :, self.feature_index_dict["lep_inputs"]["lep_eta"]],
             leptons[:, :, self.feature_index_dict["lep_inputs"]["lep_phi"]],
             leptons[:, :, self.feature_index_dict["lep_inputs"]["lep_e"]],
         )
 
-        jet_four_vectors = self.get_four_vector(
-            jets[:, :, self.feature_index_dict["jet_inputs"]["jet_pt"]],
-            jets[:, :, self.feature_index_dict["jet_inputs"]["jet_eta"]],
-            jets[:, :, self.feature_index_dict["jet_inputs"]["jet_phi"]],
-            jets[:, :, self.feature_index_dict["jet_inputs"]["jet_e"]],
-        )
+        if "jet_e" in self.feature_index_dict["jet_inputs"]:
+            jet_four_vectors = self.get_four_vector_from_PtEtaPhiE(
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_pt"]],
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_eta"]],
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_phi"]],
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_e"]],
+            )
+        else:
+            jet_four_vectors = self.get_four_vector_from_PtEtaPhi(
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_pt"]],
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_eta"]],
+                jets[:, :, self.feature_index_dict["jet_inputs"]["jet_phi"]],
+            )
+
 
         nu_four_vector, anu_four_vector = self.construct_neutrino_four_vectors(
             data_dict

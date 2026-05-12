@@ -6,3 +6,4 @@ python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --ev
 python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_reconstructor.yaml --output_dir plots/compact_reconstructor --ml_metrics
 python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_regions.yaml --output_dir plots/evaluate_regions --ml_metrics
 python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_gaussian_loss.yaml --output_dir plots/gaussian_loss --ml_metrics
+python scripts/EvaluateScript.py --load_config config/load_test_config.yaml --evaluation_config config/evaluate_TCT_model.yaml --output_dir plots/TCT_model --ml_metrics

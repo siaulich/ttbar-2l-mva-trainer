@@ -1460,7 +1460,7 @@ def preprocess_root_directory(
     data_collected = []
     input_dir = config.input_dir
     output_file = os.path.join(config.output_dir, config.name + ".npz")
-    max_events = config.num_events
+    num_events = config.num_events
 
     num_total_events = 0
     preprocessor = RootTrainingTrainingDataLoader(config.preprocessor_config)
@@ -1487,9 +1487,9 @@ def preprocess_root_directory(
             print(
                 f"Processed {num_events} events. Total events so far: {num_total_events}\n\n"
             )
-        if max_events is not None and num_total_events >= max_events:
+        if num_events is not None and num_total_events >= num_events:
             print(
-                f"Reached maximum number of events: {num_total_events} of {max_events}. Stopping processing."
+                f"Reached maximum number of events: {num_total_events} of {num_events}. Stopping processing."
             )
             break
     print(f"Finished processing files. Total events processed: {num_total_events}")

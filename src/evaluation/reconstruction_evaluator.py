@@ -51,6 +51,7 @@ from ..utils import (
     compute_pt_from_lorentz_vector_array,
     project_vectors_onto_axis,
     lorentz_vector_from_PtEtaPhiE_array,
+    lorentz_vector_from_PtEtaPhi_array,
     lorentz_vector_from_neutrino_momenta_array,
     scale_axis_tick_labels,
     center_axis_ticks,
@@ -210,6 +211,7 @@ class ReconstructionVariableHandler:
         self.prediction_manager = prediction_manager
         self.X_test = X_test
         self.configs = variable_config
+        self.feature_index_dict = prediction_manager.reconstructors[0].config.feature_indices
 
     def compute_reconstructed_variable(
         self,
@@ -221,7 +223,7 @@ class ReconstructionVariableHandler:
 
         Args:
             reconstructor_index: Index of the reconstructor
-            variable_func: Function that takes (top1_p4, top2_p4, lepton_inputs, jet_inputs, neutrino_pred)
+            variable_func: Function that takes (top1_p4, top2_p4, lep_inputs, jet_inputs, neutrino_pred)
                           and returns the reconstructed variable(s)
             truth_extractor: Optional function to extract truth values from X_test
 
@@ -264,10 +266,6 @@ class ReconstructionVariableHandler:
         )
         return reco_jets
 
-    def get_jet_4vectors(self, jet_inputs, assignment_pred):
-        true_jets = self.select_jets(jet_inputs, assignment_pred)
-        return lorentz_vector_from_PtEtaPhiE_array(true_jets[..., :4])
-
     def get_reconstructed_4vectors(self, reconstructor_index):
         assignment_pred = self.prediction_manager.get_assignment_predictions(
             reconstructor_index
@@ -275,14 +273,34 @@ class ReconstructionVariableHandler:
         neutrino_pred = self.prediction_manager.get_neutrino_predictions(
             reconstructor_index
         )
-        lepton_inputs = self.X_test["lep_inputs"]
-        jet_inputs = self.X_test["jet_inputs"][:, :, :4]
+        lep_inputs = self.X_test["lep_inputs"][..., [
+            self.feature_index_dict["lep_inputs"]["lep_pt"],
+            self.feature_index_dict["lep_inputs"]["lep_eta"],
+            self.feature_index_dict["lep_inputs"]["lep_phi"],
+            self.feature_index_dict["lep_inputs"]["lep_e"],
+        ]]
 
-        lepton_4vec = lorentz_vector_from_PtEtaPhiE_array(lepton_inputs)
+        if "jet_e" in self.feature_index_dict:
+            jet_inputs = self.X_test["jet_inputs"][..., [
+                self.feature_index_dict["jet_inputs"]["jet_pt"],
+                self.feature_index_dict["jet_inputs"]["jet_eta"],
+                self.feature_index_dict["jet_inputs"]["jet_phi"],
+                self.feature_index_dict["jet_inputs"]["jet_e"],
+            ]]
+            jet_4vecs = lorentz_vector_from_PtEtaPhiE_array(jet_inputs)
+        else:
+            jet_inputs = self.X_test["jet_inputs"][..., [
+                self.feature_index_dict["jet_inputs"]["jet_pt"],
+                self.feature_index_dict["jet_inputs"]["jet_eta"],
+                self.feature_index_dict["jet_inputs"]["jet_phi"],
+            ]]
+            jet_4vecs = lorentz_vector_from_PtEtaPhi_array(jet_inputs)
+
+        selected_jet_4vecs = self.select_jets(jet_4vecs, assignment_pred)
+        lepton_4vec = lorentz_vector_from_PtEtaPhiE_array(lep_inputs)
         neutrino_4vec = lorentz_vector_from_neutrino_momenta_array(neutrino_pred)
-        jet_4vecs = self.get_jet_4vectors(jet_inputs, assignment_pred)
 
-        return lepton_4vec, jet_4vecs, neutrino_4vec
+        return lepton_4vec, selected_jet_4vecs, neutrino_4vec
 
     def compute_true_variable(
         self,
@@ -1036,7 +1054,7 @@ class ReconstructionPlotter:
         Args:
             feature_data_type: Type of feature data ('jet', 'lepton', 'met', etc.)
             feature_name: Name of the feature to bin by
-            variable_func: Function that takes (top1_p4, top2_p4, lepton_inputs, jet_inputs, neutrino_pred)
+            variable_func: Function that takes (top1_p4, top2_p4, lep_inputs, jet_inputs, neutrino_pred)
                           and returns reconstructed variable(s)
             truth_extractor: Function to extract truth values from (X_test, feature_indices)
             ylabel: Y-axis label for the plot
@@ -1804,9 +1822,9 @@ class ReconstructionPlotter:
                     np.array([x_deviation, y_deviation, z_deviation])
                 )
             elif coords == "spherical_lepton_fixed":
-                lepton_inputs = self.X_test["lep_inputs"]
+                lep_inputs = self.X_test["lep_inputs"]
                 lepton_3vect = lorentz_vector_from_PtEtaPhiE_array(
-                    lepton_inputs[..., :4]
+                    lep_inputs[..., :4]
                 )[..., :3]
 
                 true_neutrino_z = project_vectors_onto_axis(

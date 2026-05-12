@@ -123,6 +123,26 @@ def lorentz_vector_from_PtEtaPhiE_array(array, padding_value=-999):
     px, py, pz, e = lorentz_vector_from_pt_eta_phi_e(pt, eta, phi, e, padding_value)
     return np.stack((px, py, pz, e), axis=-1)
 
+def lorentz_vector_from_PtEtaPhi_array(array, padding_value=-999):
+    """
+    Computes the four-momentum vector components from an array of pt, eta, and phi, assuming massless particles.
+
+    Args:
+        array (np.ndarray): An array with shape (..., 3) containing pt, eta, and phi.
+    Returns:
+        array (np.ndarray): An array with shape (..., 4) containing the four-momentum components (px, py, pz, e).
+    """
+    pt = array[..., 0]
+    eta = array[..., 1]
+    phi = array[..., 2]
+    e = np.where(
+        (pt == padding_value) | (eta == padding_value) | (phi == padding_value),
+        padding_value,
+        pt * np.cosh(eta),
+    )
+    px, py, pz, e = lorentz_vector_from_pt_eta_phi_e(pt, eta, phi, e, padding_value)
+    return np.stack((px, py, pz, e), axis=-1)
+
 
 def lorentz_vector_from_neutrino_momenta_array(array, padding_value=-999):
     """

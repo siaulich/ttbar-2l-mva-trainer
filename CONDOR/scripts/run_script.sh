@@ -27,9 +27,9 @@ Requirements = (GPUs_GlobalMemoryMb >= 24000)
 +RequestRuntime = 60000
 
 # Output files
-output = logs/job_\$(Cluster).out
-error = logs/job_\$(Cluster).err
-log = logs/job_\$(Cluster).log
+output = logs/job_$(Cluster).out
+error = logs/job_$(Cluster).err
+log = logs/job_$(Cluster).log
 
 arguments = $COMMAND
 

@@ -154,7 +154,7 @@ class DataPlotter:
         feature_data = self.data_processor.get_all_feature_data(feature_type)
         return feature_data[self.event_cuts]
 
-    def plot_relational_jet_lepton_inputs(
+    def plot_relational_jet_lepton_features(
         self, feature_function, name="relational_feature", **kwargs
     ):
         """
@@ -166,7 +166,7 @@ class DataPlotter:
         jet_inputs = self.get_all_feature_data("jet_inputs")
         lepton_inputs = self.get_all_feature_data("lep_inputs")
         labels = self.get_all_feature_data("assignment")
-        neutrinos = self.get_all_feature_data("nu_flows_neutrino_regression").reshape(
+        neutrinos = self.get_all_feature_data("regression").reshape(
             -1, 2, 3
         )
 
