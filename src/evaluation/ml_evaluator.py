@@ -21,6 +21,44 @@ import time
 import os
 
 
+def rename_features(feature_name: str) -> str:
+    """Helper function to rename features for plotting."""
+    if feature_name == "jet_pt":
+        return "Jet $p_{T}$"
+    elif feature_name == "jet_eta":
+        return "Jet $\eta$"
+    elif feature_name == "jet_phi":
+        return "Jet $\phi$"
+    elif feature_name == "jet_e":
+        return "Jet $E$"
+    elif feature_name == "jet_btag":
+        return "Jet b-tag"
+    elif feature_name == "lep_pt":
+        return "Lepton $p_{T}$"
+    elif feature_name == "lep_eta":
+        return "Lepton $\eta$"
+    elif feature_name == "lep_phi":
+        return "Lepton $\phi$"
+    elif feature_name == "lep_e":
+        return "Lepton $E$"
+    elif feature_name == "met_pt":
+        return "MET $p_{T}$"
+    elif feature_name == "met_phi":
+        return "MET $\phi$"
+    elif feature_name == "N_jets":
+        return "Number of Jets"
+    elif feature_name == "N_bjets":
+        return "Number of b-jets"
+    elif feature_name == "dR_l1l2":
+        return "$\Delta R(l_{1}, l_{2})$"
+    elif feature_name == "reco_mllbb":
+        return "Reconstructed $m_{llbb}$"
+    elif feature_name == "reco_mll":
+        return "Reconstructed $m_{ll}$"
+    else:
+        return feature_name
+
+
 class FeatureImportanceCalculator:
     """Calculate feature importance using permutation importance."""
 
@@ -446,7 +484,7 @@ class MLEvaluator:
         self,
         num_repeats: int = 10,
         save_dir: Optional[str] = None,
-        rename_features: Optional[callable] = None,
+        rename_features: Optional[callable] = rename_features,
     ):
         """
         Plot feature importance scores for all models.
@@ -511,7 +549,7 @@ class MLEvaluator:
                     features = [rename_features(feature) for feature in features]
                 scores = [item[1] for item in sorted_items]
 
-                fig, ax = plt.subplots(figsize=(6, 6))
+                fig, ax = plt.subplots(figsize=(10, 8))
                 ax.barh(features, scores, color="skyblue")
                 ampl.draw_atlas_label(
                     x=0.02,
@@ -519,7 +557,7 @@ class MLEvaluator:
                     ax=ax,
                     status="Simulation Work in Progress",
                 )
-                ampl.set_xlabel(ax=ax, label="$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $")
+                ampl.set_xlabel(ax=ax, label=r"$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $")
 
                 # ax.set_title(f"Feature Importance - {model_name}")
                 ax.invert_yaxis()
@@ -546,7 +584,7 @@ class MLEvaluator:
                     features = [rename_features(feature) for feature in features]
                 scores = [item[1] for item in sorted_items]
 
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18,8 ))
 
                 ax1.barh(features, scores, color="skyblue")
                 ampl.draw_atlas_label(
