@@ -283,7 +283,7 @@ class ChiSquareAssigner(BaselineAssigner):
         return np.array([px, py, pz, energy]).transpose(
             1, 2, 0
         )  # Shape: (num_events, num_particles,4)
-    
+
     def get_four_vector_from_PtEtaPhi(self, pt, eta, phi):
         px = pt * np.cos(phi)
         py = pt * np.sin(phi)
@@ -326,7 +326,6 @@ class ChiSquareAssigner(BaselineAssigner):
                 jets[:, :, self.feature_index_dict["jet_inputs"]["jet_eta"]],
                 jets[:, :, self.feature_index_dict["jet_inputs"]["jet_phi"]],
             )
-
 
         nu_four_vector, anu_four_vector = self.construct_neutrino_four_vectors(
             data_dict

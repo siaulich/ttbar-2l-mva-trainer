@@ -145,7 +145,9 @@ if __name__ == "__main__":
         callbacks.append(callback_class(**callback_params))
     if args.checkpoints:
         checkpoint_callback = keras.callbacks.ModelCheckpoint(
-            filepath=os.path.join(args.output_dir, "checkpoint_epoch_{epoch:02d}.keras"),
+            filepath=os.path.join(
+                args.output_dir, "checkpoint_epoch_{epoch:02d}.keras"
+            ),
             save_weights_only=False,
         )
         callbacks.append(checkpoint_callback)

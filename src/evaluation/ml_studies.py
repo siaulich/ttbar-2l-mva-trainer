@@ -101,7 +101,5 @@ def extract_attention_scores(
             _, attn_scores = output
             attention_scores[layer_name] = attn_scores.numpy()
         else:
-            print(
-                f"WARNING: Layer '{layer_name}' does not return attention scores."
-            )
+            print(f"WARNING: Layer '{layer_name}' does not return attention scores.")
     return attention_scores

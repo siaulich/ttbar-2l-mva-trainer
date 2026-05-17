@@ -117,7 +117,9 @@ if __name__ == "__main__":
             os.path.join(ml_metrics_output_dir, "inference_time_comparison.pdf")
         )
         print(f"Saved inference time comparison plot")
-        ml_evaluator.plot_feature_importance(num_repeats=1, save_dir=ml_metrics_output_dir)
+        ml_evaluator.plot_feature_importance(
+            num_repeats=1, save_dir=ml_metrics_output_dir
+        )
 
         del ml_evaluator
     del ml_reconstructors

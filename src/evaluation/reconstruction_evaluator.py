@@ -31,7 +31,6 @@ from .evaluator_utils import (
     NeutrinoDeviationCalculator,
 )
 from .plotting_utils import (
-    convert_reco_name,
     BarPlotter,
     ConfusionMatrixPlotter,
     ResolutionPlotter,
@@ -211,7 +210,9 @@ class ReconstructionVariableHandler:
         self.prediction_manager = prediction_manager
         self.X_test = X_test
         self.configs = variable_config
-        self.feature_index_dict = prediction_manager.reconstructors[0].config.feature_indices
+        self.feature_index_dict = prediction_manager.reconstructors[
+            0
+        ].config.feature_indices
 
     def compute_reconstructed_variable(
         self,
@@ -273,27 +274,36 @@ class ReconstructionVariableHandler:
         neutrino_pred = self.prediction_manager.get_neutrino_predictions(
             reconstructor_index
         )
-        lep_inputs = self.X_test["lep_inputs"][..., [
-            self.feature_index_dict["lep_inputs"]["lep_pt"],
-            self.feature_index_dict["lep_inputs"]["lep_eta"],
-            self.feature_index_dict["lep_inputs"]["lep_phi"],
-            self.feature_index_dict["lep_inputs"]["lep_e"],
-        ]]
+        lep_inputs = self.X_test["lep_inputs"][
+            ...,
+            [
+                self.feature_index_dict["lep_inputs"]["lep_pt"],
+                self.feature_index_dict["lep_inputs"]["lep_eta"],
+                self.feature_index_dict["lep_inputs"]["lep_phi"],
+                self.feature_index_dict["lep_inputs"]["lep_e"],
+            ],
+        ]
 
         if "jet_e" in self.feature_index_dict:
-            jet_inputs = self.X_test["jet_inputs"][..., [
-                self.feature_index_dict["jet_inputs"]["jet_pt"],
-                self.feature_index_dict["jet_inputs"]["jet_eta"],
-                self.feature_index_dict["jet_inputs"]["jet_phi"],
-                self.feature_index_dict["jet_inputs"]["jet_e"],
-            ]]
+            jet_inputs = self.X_test["jet_inputs"][
+                ...,
+                [
+                    self.feature_index_dict["jet_inputs"]["jet_pt"],
+                    self.feature_index_dict["jet_inputs"]["jet_eta"],
+                    self.feature_index_dict["jet_inputs"]["jet_phi"],
+                    self.feature_index_dict["jet_inputs"]["jet_e"],
+                ],
+            ]
             jet_4vecs = lorentz_vector_from_PtEtaPhiE_array(jet_inputs)
         else:
-            jet_inputs = self.X_test["jet_inputs"][..., [
-                self.feature_index_dict["jet_inputs"]["jet_pt"],
-                self.feature_index_dict["jet_inputs"]["jet_eta"],
-                self.feature_index_dict["jet_inputs"]["jet_phi"],
-            ]]
+            jet_inputs = self.X_test["jet_inputs"][
+                ...,
+                [
+                    self.feature_index_dict["jet_inputs"]["jet_pt"],
+                    self.feature_index_dict["jet_inputs"]["jet_eta"],
+                    self.feature_index_dict["jet_inputs"]["jet_phi"],
+                ],
+            ]
             jet_4vecs = lorentz_vector_from_PtEtaPhi_array(jet_inputs)
 
         selected_jet_4vecs = self.select_jets(jet_4vecs, assignment_pred)
@@ -1257,7 +1267,6 @@ class ReconstructionPlotter:
         else:
             axes = [axes]
 
-
         truth = self.variable_handler.compute_true_variable(variable_name)
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
         reconstructed_list = []
@@ -1292,7 +1301,9 @@ class ReconstructionPlotter:
             variable_label,
             event_weights=event_weights,
             bins=bins,
-            labels=[r.get_full_reco_name() for r in self.prediction_manager.reconstructors]
+            labels=[
+                r.get_full_reco_name() for r in self.prediction_manager.reconstructors
+            ]
             + ["truth"],
             ax=combined_ax,
             config=config,
@@ -1823,9 +1834,9 @@ class ReconstructionPlotter:
                 )
             elif coords == "spherical_lepton_fixed":
                 lep_inputs = self.X_test["lep_inputs"]
-                lepton_3vect = lorentz_vector_from_PtEtaPhiE_array(
-                    lep_inputs[..., :4]
-                )[..., :3]
+                lepton_3vect = lorentz_vector_from_PtEtaPhiE_array(lep_inputs[..., :4])[
+                    ..., :3
+                ]
 
                 true_neutrino_z = project_vectors_onto_axis(
                     true_neutrino[..., :3], lepton_3vect
@@ -2036,6 +2047,7 @@ class ReconstructionPlotter:
         rescale_factor: Optional[float] = None,
         center_bins: bool = False,
         accuracy_only=False,
+        reco_variables: Optional[List[str]] = None,
         **kwargs,
     ):
         """
@@ -2097,25 +2109,49 @@ class ReconstructionPlotter:
         if accuracy_only:
             return
 
-        # for variable_key in self.variable_configs.keys():
+        if reco_variables is not None:
+            for variable_key in reco_variables:
+                if variable_key not in self.variable_configs:
+                    print(
+                        f"Warning: Variable key '{variable_key}' not found in configurations. Skipping."
+                    )
+                    continue
 
-        #     fig, ax = self.plot_binned_variable(
-        #         variable_key=variable_key,
-        #         metric_type="deviation",
-        #         feature_data_type=feature_type,
-        #         feature_name=feature_name,
-        #         fancy_feature_label=fancy_feature_label,
-        #         **kwargs,
-        #     )
-        #     if rescale_factor is not None:
-        #         scale_axis_tick_labels(ax, rescale_factor)
-        #     if center_bins:
-        #         center_axis_ticks(ax)
-        #     if save_dir is not None:
-        #         file_name = f"binned_deviation_{variable_key}_{feature_name}.pdf"
-        #         file_path = os.path.join(save_dir, file_name)
-        #         fig.savefig(file_path)
-        #     plt.close(fig)
+                fig, ax = self.plot_binned_variable(
+                    variable_key=variable_key,
+                    metric_type="deviation",
+                    feature_data_type=feature_type,
+                    feature_name=feature_name,
+                    fancy_feature_label=fancy_feature_label,
+                    **kwargs,
+                )
+                if rescale_factor is not None:
+                    scale_axis_tick_labels(ax, rescale_factor)
+                if center_bins:
+                    center_axis_ticks(ax)
+                if save_dir is not None:
+                    file_name = f"binned_deviation_{variable_key}_{feature_name}.pdf"
+                    file_path = os.path.join(save_dir, file_name)
+                    fig.savefig(file_path)
+                plt.close(fig)
+
+                fig, ax = self.plot_binned_variable(
+                    variable_key=variable_key,
+                    metric_type="resolution",
+                    feature_data_type=feature_type,
+                    feature_name=feature_name,
+                    fancy_feature_label=fancy_feature_label,
+                    **kwargs,
+                )
+                if rescale_factor is not None:
+                    scale_axis_tick_labels(ax, rescale_factor)
+                if center_bins:
+                    center_axis_ticks(ax)
+                if save_dir is not None:
+                    file_name = f"binned_resolution_{variable_key}_{feature_name}.pdf"
+                    file_path = os.path.join(save_dir, file_name)
+                    fig.savefig(file_path)
+                plt.close(fig)
 
     def plot_2d_binned_performance_evaluation(
         self,
@@ -2179,10 +2215,12 @@ class ReconstructionPlotter:
             variable_label = config["label"]
             kwargs["xlims"] = config.get("xlims", None)
             kwargs["bins"] = config.get("bins", 20)
-            fig, axes, combined_fig, combined_axes = self.plot_distributions_all_reconstructors(
-                variable_name=variable_key,
-                variable_label=variable_label,
-                **kwargs,
+            fig, axes, combined_fig, combined_axes = (
+                self.plot_distributions_all_reconstructors(
+                    variable_name=variable_key,
+                    variable_label=variable_label,
+                    **kwargs,
+                )
             )
             if save_dir is not None:
                 file_name = f"{variable_key}_distributions.pdf"

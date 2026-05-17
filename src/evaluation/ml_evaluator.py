@@ -436,12 +436,7 @@ class MLEvaluator:
                         linestyle="--",
                     )
             ax.set_title(f"{metric_name.replace('_', ' ').title()}")
-            ampl.draw_atlas_label(
-                x=0.02,
-                y=0.95,
-                ax=ax,
-                status="Simulation Work in Progress",
-            )
+
             ampl.set_xlabel(ax=ax, label="Training Epoch")
             ampl.set_ylabel(ax=ax, label=metric_name.replace("_", " ").title())
             ax.set_xlim(-int(max_epochs / 10), max_epochs + int(max_epochs / 10))
@@ -549,15 +544,12 @@ class MLEvaluator:
                     features = [rename_features(feature) for feature in features]
                 scores = [item[1] for item in sorted_items]
 
-                fig, ax = plt.subplots(figsize=(10, 8))
+                fig, ax = plt.subplots(figsize=(6, 8))
                 ax.barh(features, scores, color="skyblue")
-                ampl.draw_atlas_label(
-                    x=0.02,
-                    y=0.95,
+                ampl.set_xlabel(
                     ax=ax,
-                    status="Simulation Work in Progress",
+                    label=r"$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $",
                 )
-                ampl.set_xlabel(ax=ax, label=r"$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $")
 
                 # ax.set_title(f"Feature Importance - {model_name}")
                 ax.invert_yaxis()
@@ -584,16 +576,13 @@ class MLEvaluator:
                     features = [rename_features(feature) for feature in features]
                 scores = [item[1] for item in sorted_items]
 
-                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18,8 ))
+                fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 8))
 
                 ax1.barh(features, scores, color="skyblue")
-                ampl.draw_atlas_label(
-                    x=0.02,
-                    y=0.95,
+                ampl.set_xlabel(
                     ax=ax1,
-                    status="Simulation Work in Progress",
+                    label=r"$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $",
                 )
-                ampl.set_xlabel(ax=ax1, label=r"$\text{acc}_{\text{baseline}} - \text{acc}_{\text{permutated}} $")
                 ax1.set_title(f"Assignment")
                 ax1.invert_yaxis()
                 ax1.grid(True, alpha=0.3, axis="x")
@@ -610,13 +599,10 @@ class MLEvaluator:
                 scores = [item[1] for item in sorted_items]
 
                 ax2.barh(features, scores, color="salmon")
-                ampl.draw_atlas_label(
-                    x=0.02,
-                    y=0.95,
+                ampl.set_xlabel(
                     ax=ax2,
-                    status="Simulation Work in Progress",
+                    label=r"$\text{MSE}_{\text{permutated}} - \text{MSE}_{\text{baseline}}$",
                 )
-                ampl.set_xlabel(ax=ax2, label=r"$\text{MSE}_{\text{permutated}} - \text{MSE}_{\text{baseline}}$")
                 ax2.set_title(f"Regression")
                 ax2.invert_yaxis()
                 ax2.grid(True, alpha=0.3, axis="x")

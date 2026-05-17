@@ -127,7 +127,7 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         y_metric="assignment_accuracy",
         filename="assignment_accuracy_vs_inference_time.pdf",
     ),
-        SummaryPlotConfig(
+    SummaryPlotConfig(
         x_metric="num_trainable_parameters",
         y_metric="regression_mse",
         filename="regression_mse_vs_num_parameters.pdf",
@@ -143,7 +143,6 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         y_metric="regression_mse",
         filename="regression_mse_vs_inference_time.pdf",
     ),
-
     SummaryPlotConfig(
         x_metric="num_trainable_parameters",
         y_metric="training_epochs",
@@ -183,7 +182,7 @@ def evaluate_single_file(
         ],
         "inference_time_per_event": ml_evaluator.evaluate_inference_time_idx(0)[
             "time_per_sample"
-        ] ,
+        ],
         "training_epochs": ml_evaluator.evaluate_num_training_epochs_idx(0)[
             "num_training_epochs"
         ],
@@ -403,7 +402,7 @@ for plot_cfg in SUMMARY_PLOTS:
     #    ax.set_ylim(bottom=0)  # Ensure y-axis starts at 0 for better visibility of differences
     ampl.set_xlabel(label=x_cfg.label, ax=ax)
     ampl.set_ylabel(label=y_cfg.label, ax=ax)
-    ampl.draw_atlas_label(x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress")
+
     ax.legend(loc=plot_cfg.legend_loc)
     fig.savefig(os.path.join(args.output_dir, plot_cfg.filename))
     plt.close(fig)
@@ -500,9 +499,6 @@ for hyperparameter_config in evaluation_config.models:
 
             ampl.set_xlabel(label=plot_config.x_label, ax=ax)
             ampl.set_ylabel(label=plot_config.y_label, ax=ax)
-            ampl.draw_atlas_label(
-                x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress"
-            )
             cbar = fig.colorbar(im, ax=ax)
             cbar.set_label(cbar_label)
             fig.savefig(

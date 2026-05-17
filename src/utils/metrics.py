@@ -119,6 +119,7 @@ class RegressionDeviation(keras.metrics.Metric):
         return config
 
 
+@keras.utils.register_keras_serializable()
 class BinnedRegressionAccuracy(keras.metrics.Metric):
     def __init__(self, name="binned_regression_accuracy", **kwargs):
         super().__init__(name=name, **kwargs)

@@ -40,9 +40,6 @@ class DataPlotter:
             density=True,
         )
         ax.set_title(f"Distribution of {feature_name} ({feature_type})")
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, status="Simulation Work in Progress", ax=ax
-        )
         ampl.set_xlabel(feature_name, ax=ax)
         ampl.set_ylabel("Arbitrary Units", ax=ax)
 
@@ -166,9 +163,7 @@ class DataPlotter:
         jet_inputs = self.get_all_feature_data("jet_inputs")
         lepton_inputs = self.get_all_feature_data("lep_inputs")
         labels = self.get_all_feature_data("assignment")
-        neutrinos = self.get_all_feature_data("regression").reshape(
-            -1, 2, 3
-        )
+        neutrinos = self.get_all_feature_data("regression").reshape(-1, 2, 3)
 
         lepton_extended = np.repeat(
             lepton_inputs[:, np.newaxis, :, :], self.max_jets, axis=1
@@ -218,9 +213,7 @@ class DataPlotter:
             color="tab:red",
             density=True,
         )
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, status="Simulation Work in Progress", ax=ax, desc=region_tag
-        )
+
         ampl.set_xlabel(name, ax=ax)
         ampl.set_ylabel("Arbitrary Units", ax=ax)
         ax.legend()
@@ -294,9 +287,6 @@ class DataPlotter:
             )
             ax.legend(loc="upper right")
         fig.colorbar(cax, ax=ax, label="Arbitrary Units")
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, status="Simulation Work in Progress", ax=ax
-        )
         ampl.set_xlabel(feature_name_x, ax=ax)
         ampl.set_ylabel(feature_name_y, ax=ax)
         return fig, ax

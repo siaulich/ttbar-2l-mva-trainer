@@ -12,7 +12,6 @@ class AssignmentLoss(keras.losses.Loss):
     def call(self, y_true, y_pred, sample_weight=None):
         # y_true: (batch, n_jets, 2)
         # y_pred: (batch, n_jets, 2)
-        # IMPORTANT: supply mask in y_true[..., 2] or as sample_weight argument
 
         # Clip probabilities
         y_pred = tf.clip_by_value(y_pred, self.epsilon, 1.0)
@@ -87,6 +86,7 @@ class RegressionMSE(keras.losses.Loss):
         return per_sample
 
 
+@keras.utils.register_keras_serializable()
 class RegressionMAE(keras.losses.Loss):
     def __init__(self, name="regression_mae", **kwargs):
         super().__init__(name=name, **kwargs)
@@ -100,6 +100,7 @@ class RegressionMAE(keras.losses.Loss):
         return mae
 
 
+@keras.utils.register_keras_serializable()
 class BinnedRegressionLoss(keras.losses.Loss):
     def __init__(self, name="binned_regression_loss", **kwargs):
         super().__init__(name=name, **kwargs)
@@ -125,6 +126,7 @@ class BinnedRegressionLoss(keras.losses.Loss):
         return ce
 
 
+@keras.utils.register_keras_serializable()
 class GaussianLoss(keras.losses.Loss):
     def __init__(self, name="gaussian_loss", **kwargs):
         super().__init__(name=name, **kwargs)
@@ -239,9 +241,9 @@ class MagnitudeDirectionLoss(keras.losses.Loss):
         dot_product = tf.reduce_sum(y_true * y_pred, axis=-1)  # (batch, 2)
         mag_product = mag_true * mag_pred  # (batch, 2)
         cos_theta = dot_product / (mag_product + self.epsilon)  # (batch, 2)
-        theta = tf.acos(cos_theta)  # (batch, 2)
-        dir_loss = tf.square(theta)  # (batch, 2)
+        dir_loss = 1.0 - cos_theta  # smooth, bounded loss for direction
         dir_loss = tf.reduce_mean(dir_loss, axis=-1)  # (batch,)
+
         # ---- Total loss ----
         total_loss = self.w_mag * mag_loss + self.w_dir * dir_loss
 
@@ -249,7 +251,7 @@ class MagnitudeDirectionLoss(keras.losses.Loss):
         if sample_weight is not None:
             sample_weight = tf.reshape(tf.cast(sample_weight, total_loss.dtype), [-1])
             total_loss = total_loss * sample_weight
-        return total_loss
+        return tf.reduce_mean(total_loss)  # return mean over batch
 
     def get_config(self):
         config = super().get_config()
@@ -261,10 +263,6 @@ class MagnitudeDirectionLoss(keras.losses.Loss):
             }
         )
         return config
-
-
-import tensorflow as tf
-import keras
 
 
 @keras.utils.register_keras_serializable()
@@ -315,6 +313,7 @@ class RestframeLoss(keras.losses.Loss):
         return loss
 
 
+@keras.utils.register_keras_serializable()
 class ConfidenceScoreLoss(keras.losses.Loss):
     def __init__(self, epsilon=1e-7, name="confidence_score_loss", **kwargs):
         super().__init__(name=name, **kwargs)

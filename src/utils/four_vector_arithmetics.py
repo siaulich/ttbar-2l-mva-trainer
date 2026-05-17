@@ -123,6 +123,7 @@ def lorentz_vector_from_PtEtaPhiE_array(array, padding_value=-999):
     px, py, pz, e = lorentz_vector_from_pt_eta_phi_e(pt, eta, phi, e, padding_value)
     return np.stack((px, py, pz, e), axis=-1)
 
+
 def lorentz_vector_from_PtEtaPhi_array(array, padding_value=-999):
     """
     Computes the four-momentum vector components from an array of pt, eta, and phi, assuming massless particles.

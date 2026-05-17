@@ -50,6 +50,7 @@ class BinningVariableConfig:
     xlims: Optional[Tuple[float, float]] = None
     rescale_factor: Optional[float] = None
     center_bins: bool = False
+    reco_variables: Optional[List[str]] = None
 
 
 @dataclass

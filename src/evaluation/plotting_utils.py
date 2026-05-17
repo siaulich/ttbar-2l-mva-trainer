@@ -64,9 +64,6 @@ class BarPlotter:
         ax.set_title(f"{metric_label} Comparison ({config.confidence*100:.0f}% CI)")
         ax.set_ylim(0, None)
         ax.grid(axis="y", alpha=config.alpha)
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress"
-        )
 
         return fig, ax
 
@@ -140,10 +137,6 @@ class BinnedFeaturePlotter:
         ax.grid(alpha=config.alpha)
         # ampl.draw_legend(ax=ax)
         ax.legend(loc=config.legend_loc)
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress"
-        )
-
         # Add event count histogram
         BinnedFeaturePlotter._add_count_histogram(ax, bin_centers, bin_counts, bins)
         return fig, ax
@@ -196,10 +189,6 @@ class BinnedFeaturePlotter:
             ampl.set_xlabel(feature_label_x, ax=ax)
             ampl.set_ylabel(feature_label_y, ax=ax)
             ax.set_title(name)
-            ampl.draw_atlas_label(
-                x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress"
-            )
-
         # Add combined colorbar
         fig.colorbar(im, ax=axes, label=value_label, shrink=0.6)
 
@@ -270,9 +259,6 @@ class ConfusionMatrixPlotter:
             ampl.draw_tag(tag=name, ax=axes[i])
             ampl.set_xlabel("Predicted Label", ax=axes[i])
             ampl.set_ylabel("True Label", ax=axes[i])
-            ampl.draw_atlas_label(
-                x=0.02, y=0.95, ax=axes[i], status="Simulation Work in Progress"
-            )
 
         # Remove unused subplots
         for j in range(i + 1, len(axes)):
@@ -376,13 +362,6 @@ class ConfusionMatrixPlotter:
 
             ampl.set_xlabel(f"True {variable_label}", ax=ax)
             ampl.set_ylabel(f"Reco {variable_label}", ax=ax)
-            ampl.draw_atlas_label(
-                x=0.02,
-                y=0.95,
-                ax=ax,
-                status="Simulation Work in Progress",
-                desc=f"Corr. {np.corrcoef(truth.flatten(), reconstructed.flatten())[0, 1]:.2f}",
-            )
             ax.set_title(reco_name)
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
@@ -438,10 +417,6 @@ class ResolutionPlotter:
         # Configure axes
         ampl.set_xlabel(feature_label, ax=ax)
         ampl.set_ylabel(resolution_label, ax=ax)
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress"
-        )
-
         ax.set_xlim(bins[0], bins[-1])
         ax.grid(alpha=config.alpha)
         ax.legend(loc=config.legend_loc)
@@ -537,28 +512,9 @@ class DistributionPlotter:
             )
         ampl.set_xlabel(feature_label, ax=ax)
         ampl.set_ylabel("Density", ax=ax)
-        ampl.draw_atlas_label(
-            x=0.02, y=0.95, ax=ax, status="Simulation Work in Progress"
-        )
         if np.isfinite(bin_edges).all() and not np.isnan(bin_edges).any():
             ax.set_xlim(bin_edges[0], bin_edges[-1])
         ax.grid(alpha=0.3)
         if labels is not None:
             ax.legend(loc=config.legend_loc)
         return ax
-
-
-def convert_reco_name(string: str) -> str:
-    """Convert printable latex-like reconstructor name to a file-name."""
-    return (
-        string.replace(" ", "_")
-        .replace("$", "")
-        .replace("{", "")
-        .replace("}", "")
-        .replace("$", "")
-        .replace("\\", "")
-        .replace("/", "_")
-        .replace("(", "")
-        .replace(")", "")
-        .lower()
-    )

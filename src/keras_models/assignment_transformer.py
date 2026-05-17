@@ -461,11 +461,11 @@ class IterationTransformer(KerasFFRecoBase):
         )(jet_mask)
 
         self_attention_block_1 = SelfAttentionBlock(
-                num_heads=num_heads,
-                key_dim=hidden_dim,
-                dropout_rate=dropout_rate,
-                name=f"self_attention_block",
-            )
+            num_heads=num_heads,
+            key_dim=hidden_dim,
+            dropout_rate=dropout_rate,
+            name=f"self_attention_block",
+        )
 
         # Transformer layers
         x = sequence
@@ -499,4 +499,3 @@ class IterationTransformer(KerasFFRecoBase):
         self._build_model_base(
             assignment_logits,
         )
-
