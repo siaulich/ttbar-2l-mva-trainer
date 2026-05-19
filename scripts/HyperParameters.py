@@ -7,17 +7,13 @@ import argparse
 import os
 import numpy as np
 import pandas as pd
-from copy import deepcopy
 import tqdm
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import atlas_mpl_style as ampl
 import tensorflow as tf
-
-ampl.use_atlas_style()
-ampl.set_color_cycle("ATLAS")
-plt.rcParams["font.size"] = 18
-mpl.rcParams["figure.constrained_layout.use"] = True
+from copy import deepcopy
+from dataclasses import dataclass
 
 from src.preprocessing.training_data_loader import TrainingDataLoader
 from src import evaluation, keras_models
@@ -26,6 +22,11 @@ from src.configs import (
     load_hyperparameter_evaluation_config,
     get_load_config_from_yaml,
 )
+
+ampl.use_atlas_style()
+ampl.set_color_cycle("ATLAS")
+plt.rcParams["font.size"] = 18
+mpl.rcParams["figure.constrained_layout.use"] = True
 
 
 def parse_args():
@@ -50,10 +51,6 @@ def parse_args():
         "Expects fold directories named <dir_name>_fold<i>/",
     )
     return parser.parse_args()
-
-
-from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -107,7 +104,7 @@ class SummaryPlotConfig:
     x_metric: str  # key in METRICS_CONFIG
     y_metric: str  # key in METRICS_CONFIG
     filename: str
-    legend_loc: str = "lower right"
+    legend_loc: str = "best"
 
 
 SUMMARY_PLOTS: list[SummaryPlotConfig] = [
@@ -115,7 +112,6 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         x_metric="num_trainable_parameters",
         y_metric="assignment_accuracy",
         filename="assignment_accuracy_vs_num_parameters.pdf",
-        legend_loc="lower right",
     ),
     SummaryPlotConfig(
         x_metric="training_epochs",
@@ -131,7 +127,6 @@ SUMMARY_PLOTS: list[SummaryPlotConfig] = [
         x_metric="num_trainable_parameters",
         y_metric="regression_mse",
         filename="regression_mse_vs_num_parameters.pdf",
-        legend_loc="lower right",
     ),
     SummaryPlotConfig(
         x_metric="training_epochs",

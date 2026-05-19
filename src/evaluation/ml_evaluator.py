@@ -12,7 +12,6 @@ from copy import deepcopy
 from .evaluator_utils import (
     BootstrapCalculator,
     AccuracyCalculator,
-    SelectionAccuracyCalculator,
     NeutrinoDeviationCalculator,
 )
 from ..base_classes import KerasMLWrapper
@@ -884,7 +883,7 @@ class MLEvaluator:
             )
             sel_acc_mean, sel_acc_lower, sel_acc_upper = (
                 BootstrapCalculator.compute_bootstrap_ci(
-                    data=SelectionAccuracyCalculator.compute_selection_accuracy(
+                    data=AccuracyCalculator.compute_selection_accuracy(
                         true_labels=self.y_test[idx]["assignment"],
                         predictions=assignment_pred,
                         per_event=True,

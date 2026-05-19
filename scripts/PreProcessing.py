@@ -9,8 +9,8 @@ from src.preprocessing import (
     preprocess_root_directory,
     DataSampleConfig,
 )
-from dacite import from_dict, Config
-from src.configs import ROOTNtupleConfig, load_yaml_config, PreprocessorConfig
+from dacite import from_dict
+from src.configs import load_yaml_config, PreprocessorConfig
 
 
 def parse_args():

@@ -11,9 +11,6 @@ from typing import Tuple, Optional, List
 
 from .evaluator_utils import (
     PlotConfig,
-    BinningUtility,
-    BootstrapCalculator,
-    FeatureExtractor,
 )
 
 

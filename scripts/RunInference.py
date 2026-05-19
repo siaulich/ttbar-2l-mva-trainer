@@ -6,27 +6,21 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import argparse
 import os
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
 import numpy as np
-import awkward as ak
 import uproot
 
-plt.rcParams["font.size"] = 18
-import matplotlib as mpl
-from typing import Tuple, Dict
 
-mpl.rcParams["figure.constrained_layout.use"] = True
+from typing import Dict
+
 from src.preprocessing import (
-    InferenceDataConfig,
-    get_inference_data,
     RootInferencePreprocessor,
 )
 from src.configs import (
     load_preprocessing_config,
     load_load_config,
     load_inference_config,
-    LoadConfig,
-    PreprocessorConfig,
-    ROOTNtupleConfig,
 )
 from src.utils import (
     lorentz_vector_from_PtEtaPhiE_array,
@@ -34,6 +28,9 @@ from src.utils import (
 )
 from src.base_classes import KerasMLWrapper
 from src.reconstruction import get_reconstructor
+
+plt.rcParams["font.size"] = 18
+mpl.rcParams["figure.constrained_layout.use"] = True
 
 preprocessor_config = load_preprocessing_config("examples/preprocessing.yaml")
 preprocessor_config.save_mc_truth = False

@@ -16,7 +16,7 @@ class PlotConfig:
     alpha: float = 0.3
     xlims: Optional[Tuple[float, float]] = None
     ylims: Optional[Tuple[float, float]] = None
-    legend_loc: str = "center right"
+    legend_loc: str = "best"
 
 
 class BootstrapCalculator:
@@ -454,30 +454,6 @@ class AccuracyCalculator:
         return np.mean(correct_predictions)
 
     @staticmethod
-    def compute_combinatoric_baseline(
-        X_test: dict,
-        padding_value: float,
-        n_leptons: int = 2,
-    ) -> np.ndarray:
-        """Compute random assignment baseline accuracy."""
-        num_jets = np.all(X_test["jet_inputs"] != padding_value, axis=-1).sum(axis=-1)
-        return 1 / (num_jets * (num_jets - 1))
-
-
-class SelectionAccuracyCalculator:
-    """Utilities for computing selection accuracy metrics."""
-
-    @staticmethod
-    def compute_combinatoric_baseline(
-        X_test: dict,
-        padding_value: float,
-        n_leptons: int = 2,
-    ) -> np.ndarray:
-        """Compute random assignment baseline accuracy."""
-        num_jets = np.all(X_test["jet_inputs"] != padding_value, axis=-1).sum(axis=-1)
-        return 2 / (num_jets * (num_jets - 1))
-
-    @staticmethod
     def compute_selection_accuracy(
         true_labels: np.ndarray,
         predictions: np.ndarray,
@@ -506,15 +482,6 @@ class SelectionAccuracyCalculator:
 
 class NeutrinoDeviationCalculator:
     """Utilities for computing neutrino reconstruction deviation metrics."""
-
-    def compute_combinatoric_baseline(
-        X_test: dict,
-        padding_value: float,
-        n_leptons: int = 2,
-    ) -> np.ndarray:
-        """Compute random assignment baseline accuracy."""
-        num_jets = np.all(X_test["jet_inputs"] != padding_value, axis=-1).sum(axis=-1)
-        return 2 / (num_jets * (num_jets - 1))
 
     @staticmethod
     def compute_relative_deviation(

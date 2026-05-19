@@ -5,19 +5,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
 import os
-import numpy as np
 import keras as keras
-import matplotlib.pyplot as plt
 import yaml
-import tensorflow as tf
-from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Tuple
 from copy import deepcopy
 
 from src import keras_models, utils
 from src.preprocessing.training_data_loader import (
     TrainingDataLoader,
-    DataConfig,
     LoadConfig,
 )
 

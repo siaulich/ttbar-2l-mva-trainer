@@ -27,7 +27,6 @@ from .evaluator_utils import (
     Binning2DUtility,
     FeatureExtractor,
     AccuracyCalculator,
-    SelectionAccuracyCalculator,
     NeutrinoDeviationCalculator,
 )
 from .plotting_utils import (
@@ -402,7 +401,7 @@ class ReconstructionPlotter:
         predictions = self.prediction_manager.get_assignment_predictions(
             reconstructor_index
         )
-        return SelectionAccuracyCalculator.compute_selection_accuracy(
+        return AccuracyCalculator.compute_selection_accuracy(
             self.y_test["assignment"],
             predictions,
             per_event=per_event,
@@ -626,7 +625,6 @@ class ReconstructionPlotter:
         n_bootstrap: int = 10,
         confidence: float = 0.95,
         show_errorbar: bool = True,
-        show_combinatoric: bool = True,
     ):
         """Plot binned accuracy vs. a feature with bootstrap error bars."""
         config = PlotConfig(
@@ -718,30 +716,21 @@ class ReconstructionPlotter:
             show_errorbar=False,
             legend_loc="upper right",
         )
-        feature1_data_type = feature1_binning_config.feature_type
-        feature1_name = feature1_binning_config.feature_name
-        fancy_feature1_label = feature1_binning_config.fancy_feature_label
-        bins_feature1 = feature1_binning_config.bins
         xlims_feature1 = feature1_binning_config.xlims
-
-        feature2_data_type = feature2_binning_config.feature_type
-        feature2_name = feature2_binning_config.feature_name
-        fancy_feature2_label = feature2_binning_config.fancy_feature_label
-        bins_feature2 = feature2_binning_config.bins
         xlims_feature2 = feature2_binning_config.xlims
 
         # Extract feature data
         feature1_data = FeatureExtractor.extract_feature(
             self.X_test,
             self.config.feature_indices,
-            feature1_data_type,
-            feature1_name,
+            feature1_binning_config.feature_type,
+            feature1_binning_config.feature_name,
         )
         feature2_data = FeatureExtractor.extract_feature(
             self.X_test,
             self.config.feature_indices,
-            feature2_data_type,
-            feature2_name,
+            feature2_binning_config.feature_type,
+            feature2_binning_config.feature_name,
         )
         if feature1_binning_config.rescale_factor is not None:
             feature1_data *= feature1_binning_config.rescale_factor
@@ -762,8 +751,8 @@ class ReconstructionPlotter:
         bin_edges_feature1, bin_edges_feature2 = Binning2DUtility.create_bins(
             feature1_data,
             feature2_data,
-            bins_feature1,
-            bins_feature2,
+            feature1_binning_config.bins,
+            feature2_binning_config.bins,
             xlims_feature1,
             xlims_feature2,
         )
@@ -794,8 +783,14 @@ class ReconstructionPlotter:
             binned_accuracies.append(binned_acc)
             names.append(reconstructor.get_assignment_name())
 
-        feature1_label = fancy_feature1_label or feature1_name
-        feature2_label = fancy_feature2_label or feature2_name
+        feature1_label = (
+            feature1_binning_config.fancy_feature_label
+            or feature1_binning_config.feature_name
+        )
+        feature2_label = (
+            feature2_binning_config.fancy_feature_label
+            or feature2_binning_config.feature_name
+        )
 
         fig, ax = BinnedFeaturePlotter.plot_2d_binned_feature(
             binned_accuracies,
@@ -819,13 +814,13 @@ class ReconstructionPlotter:
         n_bootstrap: int = 10,
         confidence: float = 0.95,
         show_errorbar: bool = True,
-        show_combinatoric: bool = True,
     ):
         """Plot binned accuracy vs. a feature with bootstrap error bars."""
         config = PlotConfig(
             confidence=confidence,
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
+            ylims=(0, 1.1),
             legend_loc="upper right",
         )
 
@@ -841,17 +836,6 @@ class ReconstructionPlotter:
         bin_centers = BinningUtility.compute_bin_centers(bin_edges)
 
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
-
-        combinatoric_accuracy = None
-        if show_combinatoric:
-            combinatoric_per_event = (
-                SelectionAccuracyCalculator.compute_combinatoric_baseline(
-                    self.X_test, self.config.padding_value
-                )
-            )
-            combinatoric_accuracy = BinningUtility.compute_weighted_binned_statistic(
-                binning_mask, combinatoric_per_event, event_weights
-            )
 
         binned_accuracies = []
         names = []
@@ -927,6 +911,7 @@ class ReconstructionPlotter:
             confidence=confidence,
             n_bootstrap=n_bootstrap,
             show_errorbar=True,
+            ylims=(0, 1.1),
             legend_loc="upper right",
         )
 
