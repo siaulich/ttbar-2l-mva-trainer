@@ -15,6 +15,8 @@ import tensorflow as tf
 from copy import deepcopy
 from dataclasses import dataclass
 
+from typing import Optional, Tuple, List
+
 from src.preprocessing.training_data_loader import TrainingDataLoader
 from src import evaluation, keras_models
 from src.configs import (
@@ -59,6 +61,7 @@ class MetricConfig:
     label: str  # pretty axis / colorbar label
     scale: float = 1.0  # multiply values by this before plotting
     log_scale: bool = False  # use log scale on this axis
+    lims: Optional[tuple[float, float]] = None  # optional axis limits for better visualization
 
 
 device = "GPU" if tf.config.list_physical_devices("GPU") else "CPU"
@@ -75,10 +78,11 @@ METRICS_CONFIG: dict[str, MetricConfig] = {
         MetricConfig(
             key="assignment_accuracy",
             label="Assignment Accuracy",
+            lims=(0.5, 1.0),
         ),
         MetricConfig(
             key="regression_mse",
-            label="Regression MSE",
+            label=r"Relative $L^{2}$ Deviation",
         ),
         MetricConfig(
             key="num_trainable_parameters",
@@ -363,6 +367,10 @@ if __name__ == "__main__":
 
             model_data_frame.to_csv(csv_path)
 
+
+        model_data_frame["nu_flows"] = pd.Series(
+                index=multi_index, dtype=bool
+            ) * hyperparameter_config.options.get("use_nu_flows", False)
         models[hyperparameter_config.name] = model_data_frame
 
     # ------------------------------------------------------------------ #
@@ -382,18 +390,33 @@ for plot_cfg in SUMMARY_PLOTS:
     y_cfg = METRICS_CONFIG[plot_cfg.y_metric]
 
     fig, ax = plt.subplots(figsize=(10, 6))
+    nu_flows = False
     for model_name, df in models.items():
         x = df[x_cfg.key].values * x_cfg.scale
         y = df[y_cfg.key].values * y_cfg.scale
         yerr = get_yerr(df, y_cfg.key)
         if yerr is not None:
             yerr = yerr * y_cfg.scale
-        ax.errorbar(x, y, yerr=yerr, fmt="o", label=model_name, alpha=0.7, capsize=3)
+        if plot_cfg.y_metric == "regression_mse" and models[model_name]["nu_flows"].any():
+            if not nu_flows:
+                nu_flows = True
+                ax.axhline(
+                    y=np.mean(y),
+                    linestyle="--",
+                    color="gray",
+                    label=r"$\nu^2$-Flows",
+                )
+        else:
+            ax.errorbar(x, y, yerr=yerr, fmt="o", label=model_name, alpha=0.7, capsize=3)
 
     if x_cfg.log_scale:
         ax.set_xscale("log")
     if y_cfg.log_scale:
         ax.set_yscale("log")
+    if x_cfg.lims is not None:
+        ax.set_xlim(x_cfg.lims)
+    if y_cfg.lims is not None:
+        ax.set_ylim(y_cfg.lims)
     #    ax.set_ylim(bottom=0)  # Ensure y-axis starts at 0 for better visibility of differences
     ampl.set_xlabel(label=x_cfg.label, ax=ax)
     ampl.set_ylabel(label=y_cfg.label, ax=ax)

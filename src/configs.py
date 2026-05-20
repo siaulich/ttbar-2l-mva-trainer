@@ -112,6 +112,12 @@ def load_hyperparameter_evaluation_config(path: str) -> HyperParameterEvaluation
         config=Config(cast=[tuple]),  # converts list → tuple for range
     )
 
+@dataclass
+class NeutrinoRegressionMethodConfig:
+    method_name: str = "nu_flows"
+    label_name: str = r"$\nu^2$-Flows"
+    branch_name: str = "nu_flows"
+
 
 @dataclass
 class LoadConfig:
@@ -152,8 +158,8 @@ class LoadConfig:
     # Regression target features
     neutrino_momentum_features: Optional[List[str]] = None
     antineutrino_momentum_features: Optional[List[str]] = None
-    nu_flows_neutrino_momentum_features: Optional[List[str]] = None
-    nu_flows_antineutrino_momentum_features: Optional[List[str]] = None
+    neutrino_regression_method: Optional[List[NeutrinoRegressionMethodConfig]] = None
+
     event_weight: Optional[str] = None
     mc_event_number: Optional[str] = None
 
@@ -561,6 +567,7 @@ class NeutrinoRecoConfig:
     """
 
     name: str = "nu_flows"
+    scale_by: float = 1
     branch_name: Optional[str] = "nuflows_nu_out_NOSYS"
     nu_px: Union[str, int] = 0
     nu_py: Union[str, int] = 1
@@ -568,6 +575,14 @@ class NeutrinoRecoConfig:
     nubar_px: Union[str, int] = 3
     nubar_py: Union[str, int] = 4
     nubar_pz: Union[str, int] = 5
+    nu_pt: Optional[str] = None
+    nu_eta: Optional[str] = None
+    nu_phi: Optional[str] = None
+    nu_e: Optional[str] = None
+    nubar_pt: Optional[str] = None
+    nubar_eta: Optional[str] = None
+    nubar_phi: Optional[str] = None
+    nubar_e: Optional[str] = None
 
 
 @dataclass

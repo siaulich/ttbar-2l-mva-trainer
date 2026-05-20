@@ -1,5 +1,5 @@
 ModelConfig:
-  model_type: "CompactAssigner"
+  model_type: 'CompactAssigner'
   model_options:
     dropout_rate: 0.2
   model_params:
@@ -8,21 +8,21 @@ ModelConfig:
     num_heads: 8
   compile_options:
     optimizer:
-      class_name: "AdamW"
+      class_name: 'AdamW'
       config:
         learning_rate: 0.0001
         weight_decay : 0.0001
     loss:
       assignment: 
-        class_name: "AssignmentLoss"
+        class_name: 'AssignmentLoss'
         config:
-          name: "assignment_loss"
+          name: 'assignment_loss'
     metrics:
       assignment:
         - 
-          class_name: "AssignmentAccuracy"
+          class_name: 'AssignmentAccuracy'
           config:
-            name: "assignment_accuracy"
+            name: 'assignment_accuracy'
     loss_weights:
       assignment: 1.0
   num_events: 5000000

@@ -22,8 +22,6 @@ from ..utils import (
     lorentz_vector_array_from_pt_eta_phi_e,
     compute_mass_from_lorentz_vector_array,
 )
-from ..evaluation.physics_calculations import c_han, c_hel
-
 from ..configs import PreprocessorConfig, LoadConfig
 
 

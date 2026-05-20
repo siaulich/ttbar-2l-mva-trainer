@@ -1,6 +1,7 @@
 PreprocessorConfig:
   tree_name: reco
   save_mc_truth: true
+  
   root_ntuple_config:
 
     JetConfig:
@@ -61,8 +62,9 @@ PreprocessorConfig:
       tbar_lepton_phi: Ttbar_MC_Wdecay1_afterFSR_from_tbar_phi
       tbar_lepton_mass: Ttbar_MC_Wdecay1_afterFSR_from_tbar_m
       tbar_lepton_charge: Ttbar_MC_Wdecay1_afterFSR_from_tbar_charge
-    NeutrinoRecoConfig:
+    NeutrinoReco:
       - name: nu_flows
+        scale_by: 1000
         branch_name: nuflows_nu_out_NOSYS
         nu_px: 0
         nu_py: 1
@@ -70,5 +72,18 @@ PreprocessorConfig:
         nubar_px: 3
         nubar_py: 4
         nubar_pz: 5
+      - name: nu_weighter
+        scale_by: 1000
+        nu_pt: nu_pt_NOSYS
+        nu_eta: nu_eta_NOSYS
+        nu_phi: nu_phi_NOSYS
+        nu_e: nu_e_NOSYS
+        nubar_pt: nubar_pt_NOSYS
+        nubar_eta: nubar_eta_NOSYS
+        nubar_phi: nubar_phi_NOSYS
+        nubar_e: nubar_e_NOSYS
     event_weight: weight_mc_NOSYS
     mc_event_number: eventNumber
+    MatchingConfig:
+      electron_parton_match_index_positions: [1, 4]
+      muon_parton_match_index_positions: [1, 4]

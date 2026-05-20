@@ -741,9 +741,14 @@ class RootTrainingTrainingDataLoader:
         )
         if self.config.root_ntuple_config.JetConfig.btag is not None:
             if isinstance(self.config.root_ntuple_config.JetConfig.btag, str):
-                jet_btag = self.extract_event_data(
+                btag_array = self.extract_event_data(
                     events, self.config.root_ntuple_config.JetConfig.btag
                 )
+                btag_array_padded = ak.fill_none(
+                    ak.pad_none(btag_array, max_jets, clip=True),
+                    self.config.padding_value,
+                )
+                jet_btag_np = ak.to_numpy(btag_array_padded)
             elif isinstance(self.config.root_ntuple_config.JetConfig.btag, list):
                 btag_arrays_np = []
                 for btag_branch in self.config.root_ntuple_config.JetConfig.btag:
@@ -752,11 +757,13 @@ class RootTrainingTrainingDataLoader:
                         ak.pad_none(btag_array, max_jets, clip=True),
                         self.config.padding_value,
                     )
+                    mask_invalid = btag_array_padded = self.config.padding_value
                     btag_arrays_np.append(ak.to_numpy(btag_array_padded))
                 jet_btag_np = np.stack(btag_arrays_np, axis=-1)
                 jet_btag_np = np.sum(
                     jet_btag_np, axis=-1
                 )  # Simple sum of multiple b-tag scores
+                jet_btag_np[mask_invalid] = self.config.padding_value
             else:
                 raise ValueError("Invalid btag configuration")
 
@@ -1304,8 +1311,34 @@ class RootTrainingTrainingDataLoader:
         if self.config.root_ntuple_config.NeutrinoReco is None:
             return output
         for reco_config in self.config.root_ntuple_config.NeutrinoReco:
+            print(f"Processing neutrino reconstruction: {reco_config.name}")
+            if reco_config.nu_pt is not None and reco_config.nu_eta is not None and reco_config.nu_phi is not None:
+                nu_pt = ak.to_numpy(
+                    self.extract_event_data(events, reco_config.nu_pt)
+                )
+                nu_eta = ak.to_numpy(
+                    self.extract_event_data(events, reco_config.nu_eta)
+                )
+                nu_phi = ak.to_numpy(
+                    self.extract_event_data(events, reco_config.nu_phi)
+                )
+                nubar_pt = ak.to_numpy(
+                    self.extract_event_data(events, reco_config.nubar_pt)
+                )
+                nubar_eta = ak.to_numpy(
+                    self.extract_event_data(events, reco_config.nubar_eta)
+                )
+                nubar_phi = ak.to_numpy(
+                    self.extract_event_data(events, reco_config.nubar_phi)
+                )
+                nu_px = nu_pt * np.cos(nu_phi)
+                nu_py = nu_pt * np.sin(nu_phi)
+                nu_pz = nu_pt * np.sinh(nu_eta)
 
-            if isinstance(reco_config.nu_px, str):
+                nubar_px = nubar_pt * np.cos(nubar_phi)
+                nubar_py = nubar_pt * np.sin(nubar_phi)
+                nubar_pz = nubar_pt * np.sinh(nubar_eta)
+            elif isinstance(reco_config.nu_px, str):
                 nu_px = ak.to_numpy(self.extract_event_data(events, reco_config.nu_px))
                 nu_py = ak.to_numpy(self.extract_event_data(events, reco_config.nu_py))
                 nu_pz = ak.to_numpy(self.extract_event_data(events, reco_config.nu_pz))
@@ -1356,12 +1389,12 @@ class RootTrainingTrainingDataLoader:
                 raise ValueError(
                     f"Invalid neutrino reconstruction configuration: {reco_config}"
                 )
-            output[f"{reco_config.name}_nu_px"] = nu_px * 1e3
-            output[f"{reco_config.name}_nu_py"] = nu_py * 1e3
-            output[f"{reco_config.name}_nu_pz"] = nu_pz * 1e3
-            output[f"{reco_config.name}_nubar_px"] = nubar_px * 1e3
-            output[f"{reco_config.name}_nubar_py"] = nubar_py * 1e3
-            output[f"{reco_config.name}_nubar_pz"] = nubar_pz * 1e3
+            output[f"{reco_config.name}_nu_px"] = nu_px * reco_config.scale_by
+            output[f"{reco_config.name}_nu_py"] = nu_py * reco_config.scale_by
+            output[f"{reco_config.name}_nu_pz"] = nu_pz * reco_config.scale_by
+            output[f"{reco_config.name}_nubar_px"] = nubar_px * reco_config.scale_by
+            output[f"{reco_config.name}_nubar_py"] = nubar_py * reco_config.scale_by
+            output[f"{reco_config.name}_nubar_pz"] = nubar_pz * reco_config.scale_by
         return output
 
     def save_to_npz(self, output_path: str):
@@ -1482,10 +1515,10 @@ def preprocess_root_directory(
         if input_path.endswith(".root"):
 
             data_collected.append(preprocessor.process_train_data(input_path))
-            num_events = preprocessor.get_num_events()
-            num_total_events += num_events
+            num_events_per_file = preprocessor.get_num_events()
+            num_total_events += num_events_per_file
             print(
-                f"Processed {num_events} events. Total events so far: {num_total_events}\n\n"
+                f"Processed {num_events_per_file} events. Total events so far: {num_total_events}\n\n"
             )
         if num_events is not None and num_total_events >= num_events:
             print(

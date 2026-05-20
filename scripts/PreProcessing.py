@@ -62,6 +62,7 @@ if __name__ == "__main__":
         data_class=PreprocessorConfig,
         data=preprocessor_config["PreprocessorConfig"],
     )
+    print(f"Loaded configuration: {preprocessor_config}")
     os.makedirs(args.output_dir, exist_ok=True)
 
     # Initialize the preprocessor

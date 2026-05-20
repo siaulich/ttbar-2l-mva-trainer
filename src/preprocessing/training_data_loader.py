@@ -336,23 +336,6 @@ class TrainingDataLoader:
                 loaded, combined_keys, target_shape=target_shape
             )
 
-        # NuFlows neutrino truth
-        if (
-            self.load_config.nu_flows_neutrino_momentum_features
-            and self.load_config.nu_flows_antineutrino_momentum_features
-        ):
-            combined_keys = (
-                self.load_config.nu_flows_neutrino_momentum_features
-                + self.load_config.nu_flows_antineutrino_momentum_features
-            )
-            data_length = len(loaded[combined_keys[0]])
-            target_shape = (data_length, self.load_config.NUM_LEPTONS, -1)
-            self.feature_data["nu_flows_neutrino_regression"] = (
-                self._load_feature_array(
-                    loaded, combined_keys, target_shape=target_shape
-                )
-            )
-
         # Top truth
         if self.load_config.top_truth_features and self.load_config.tbar_truth_features:
             combined_keys = (
@@ -378,6 +361,12 @@ class TrainingDataLoader:
             target_shape = (data_length, self.load_config.NUM_LEPTONS, -1)
             self.feature_data["lepton_truth"] = self._load_feature_array(
                 loaded, combined_keys, target_shape=target_shape
+            )
+
+    def _load_neutrino_regression(self, loaded: Dict) -> None:
+        for method_config in self.load_config.neutrino_regression_method:
+            regression_data = self._load_feature_array(
+                loaded, [method_config.branch_name + comp_label for comp_label in ["nu_px,nu_py,nu_pz","nubar_px","nubar_pz","nubar_pz",]], target_shape=(len(loaded[method_config.branch_name]), self.load_config.NUM_LEPTONS, -1)
             )
 
     def _build_and_apply_labels(self, loaded: Dict) -> None:
