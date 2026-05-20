@@ -1531,8 +1531,13 @@ class ReconstructionPlotter:
                 + f"{acc_upper - acc_mean:.{int(sig_digits)}f}"
                 + "}$"
             )
+            sig_digits = np.ceil(-np.log10(sel_upper - sel_lower)) + 1
+            if np.isinf(sig_digits) or np.isnan(sig_digits):
+                sig_digits = 2  # Default to 2 significant digits if CI is zero or invalid
+            sig_digits = 1 if sig_digits < 1 else int(sig_digits)
+            sig_digits = max(sig_digits, 2)  # Ensure at least 2 significant digits for display
             sel_str = (
-                f"${sel_mean:.3g}"
+                f"${sel_mean:.{int(sig_digits)}f}"
                 + "_{-"
                 + f"{sel_mean - sel_lower:.{int(sig_digits)}f}"
                 + "}"
