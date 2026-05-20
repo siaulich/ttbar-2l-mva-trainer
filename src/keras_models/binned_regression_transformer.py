@@ -14,13 +14,13 @@ from ..components import (
 
 class FeatureConcatBinnedReconstructor(KerasBinnedRegressor):
     def __init__(
-        self, config, name="Transformer", use_nu_flows=False, perform_regression=True
+        self, config, name="Transformer", neutrino_reco=None, perform_regression=True
     ):
         super().__init__(
             config,
             name=name,
-            perform_regression=False if use_nu_flows else perform_regression,
-            use_nu_flows=use_nu_flows,
+            perform_regression=False if neutrino_reco else perform_regression,
+            neutrino_reco=neutrino_reco,
         )
 
     def build_model(

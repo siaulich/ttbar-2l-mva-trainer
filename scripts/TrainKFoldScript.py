@@ -15,7 +15,7 @@ from src.preprocessing.training_data_loader import (
     LoadConfig,
 )
 
-from src.configs import ModelConfig, TrainConfig, load_yaml_config
+from src.configs import ModelConfig, TrainConfig, load_yaml_config, load_load_config
 
 
 def parse_args():
@@ -80,7 +80,7 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
-    load_config = LoadConfig(**load_yaml_config(args.load_config)["LoadConfig"])
+    load_config = load_load_config(args.load_config)
     train_config = TrainConfig(**load_yaml_config(args.train_config)["TrainConfig"])
     model_config = ModelConfig(**load_yaml_config(args.model_config)["ModelConfig"])
 

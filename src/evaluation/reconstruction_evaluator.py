@@ -1378,7 +1378,7 @@ class ReconstructionPlotter:
         for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
             if (
                 isinstance(reconstructor, GroundTruthReconstructor)
-                and not reconstructor.use_nu_flows
+                and reconstructor.neutrino_reco == "neutrino_regression"
                 and not reconstructor.perform_regression
             ):
                 continue
@@ -1516,22 +1516,28 @@ class ReconstructionPlotter:
             acc_mean, acc_lower, acc_upper = res["accuracy"]
             sel_mean, sel_lower, sel_upper = res["selection_accuracy"]
 
+            sig_digits = np.ceil(-np.log10(acc_upper - acc_lower)) + 1
+            if np.isinf(sig_digits) or np.isnan(sig_digits):
+                sig_digits = 2  # Default to 2 significant digits if CI is zero or invalid
+            sig_digits = 1 if sig_digits < 1 else int(sig_digits)
+            sig_digits = max(sig_digits, 2)  # Ensure at least 2 significant digits for display
+
             acc_str = (
-                f"${acc_mean:.3g}"
+                f"${acc_mean:.{int(sig_digits)}f}"
                 + "_{-"
-                + f"{acc_mean - acc_lower:.3g}"
+                + f"{acc_mean - acc_lower:.{int(sig_digits)}f}"
                 + "}"
                 + "^{+"
-                + f"{acc_upper - acc_mean:.3g}"
+                + f"{acc_upper - acc_mean:.{int(sig_digits)}f}"
                 + "}$"
             )
             sel_str = (
                 f"${sel_mean:.3g}"
                 + "_{-"
-                + f"{sel_mean - sel_lower:.3g}"
+                + f"{sel_mean - sel_lower:.{int(sig_digits)}f}"
                 + "}"
                 + "^{+"
-                + f"{sel_upper - sel_mean:.3g}"
+                + f"{sel_upper - sel_mean:.{int(sig_digits)}f}"
                 + "}$"
             )
 
@@ -1566,11 +1572,17 @@ class ReconstructionPlotter:
         """
         components_mse = []
         names = []
-        use_nu_flows = False
+        neutrino_reco_types = set()
         for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
-            if reconstructor.use_nu_flows and not use_nu_flows:
-                use_nu_flows = True
-            elif reconstructor.use_nu_flows and use_nu_flows:
+            if (
+                reconstructor.neutrino_reco
+                and reconstructor.neutrino_reco not in neutrino_reco_types
+            ):
+                neutrino_reco_types.add(reconstructor.neutrino_reco)
+            elif (
+                reconstructor.neutrino_reco
+                and reconstructor.neutrino_reco in neutrino_reco_types
+            ):
                 continue
             elif (
                 isinstance(reconstructor, GroundTruthReconstructor)
@@ -1767,12 +1779,18 @@ class ReconstructionPlotter:
         event_weights = FeatureExtractor.get_event_weights(self.X_test)
         neutrino_deviations = []
         names = []
-        nu_flows = False
+        neutrino_reco_types = set()
         for i, reconstructor in enumerate(self.prediction_manager.reconstructors):
-            if reconstructor.use_nu_flows and not nu_flows:
-                nu_flows = True
-                names.append(r"$\nu^2$-Flows")
-            elif reconstructor.use_nu_flows and nu_flows:
+            if (
+                reconstructor.neutrino_reco
+                and reconstructor.neutrino_reco not in neutrino_reco_types
+            ):
+                neutrino_reco_types.add(reconstructor.neutrino_reco)
+                names.append(reconstructor.get_neutrino_name())
+            elif (
+                reconstructor.neutrino_reco
+                and reconstructor.neutrino_reco in neutrino_reco_types
+            ):
                 continue
             elif (
                 isinstance(reconstructor, GroundTruthReconstructor)

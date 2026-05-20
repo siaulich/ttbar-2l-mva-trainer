@@ -1,14 +1,14 @@
 reconstructors:
   - type: 'DeltaRAssigner'
     options:
-      use_nu_flows: True
+      neutrino_reco: 'nu_flows'
   - type: 'ChiSquareAssigner'
     options:
-      use_nu_flows: True
+      neutrino_reco: 'nu_flows'
   - type: 'KerasFFRecoBase'
     options:
       name: 'CompactAssigner'
-      use_nu_flows: True
+      neutrino_reco: 'nu_flows'
       perform_regression: False
       load_model_path: 'models/compact_assigner/odd_model.keras'
 

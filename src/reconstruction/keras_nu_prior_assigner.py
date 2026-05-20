@@ -23,9 +23,14 @@ class KerasNuPriorAssigner(EventReconstructorBase, KerasMLWrapper):
         config: DataConfig,
         name="KerasNuPriorAssigner",
         perform_regression=False,
-        use_nu_flows=True,
+        neutrino_reco="nu_flows",
         load_model_path=None,
     ):
+        if not perform_regression and neutrino_reco is None:
+            raise ValueError(
+                "perform_regression is True but no neutrino_reco method specified. Please specify a neutrino_reco method to use for regression or set perform_regression to False."
+            )
+
         EventReconstructorBase.__init__(
             self,
             config=config,
@@ -33,11 +38,13 @@ class KerasNuPriorAssigner(EventReconstructorBase, KerasMLWrapper):
             full_reco_name=(
                 name
                 if perform_regression
-                else name + (r" + $\nu^2$-Flows" if use_nu_flows else r" + True $\nu$")
+                else name
+                + " + "+ config.neutrino_regression_method_labels.get(
+                    neutrino_reco, neutrino_reco
+                )
             ),
             neutrino_name=name,
-            perform_regression=perform_regression,
-            use_nu_flows=use_nu_flows,
+            neutrino_reco=neutrino_reco,
         )
         KerasMLWrapper.__init__(
             self, config=config, perform_regression=perform_regression

@@ -1,4 +1,4 @@
-from .configs import DataConfig, LoadConfig, load_yaml_config, get_load_config_from_yaml
+from .configs import DataConfig, LoadConfig, load_yaml_config, load_load_config
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"

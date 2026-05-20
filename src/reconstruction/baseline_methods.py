@@ -13,16 +13,27 @@ class BaselineAssigner(EventReconstructorBase):
         config: DataConfig,
         name="baseline_assigner",
         mode="min",
-        use_nu_flows=False,
+        neutrino_reco="nu_flows",
         manchester_style=False,
     ):
+        if neutrino_reco is None:
+            raise ValueError(
+                "perform_regression is True but no neutrino_reco method specified. Please specify a neutrino_reco method to use for regression or set perform_regression to False."
+            )
+
+        if neutrino_reco not in config.neutrino_regression_method_features:
+            raise ValueError(
+                f"Neutrino regression method '{neutrino_reco}' not found in config.neutrino_regression_method_features. Available methods: {list(config.neutrino_regression_method_features.keys())}"
+            )
+
         super().__init__(
             config,
             assignment_name=name,
             full_reco_name=name
-            + (r"+ $\nu^2$-Flows" if use_nu_flows else r" + True $\nu$"),
-            perform_regression=False,
-            use_nu_flows=use_nu_flows,
+            + config.neutrino_regression_method_labels.get(
+                neutrino_reco, neutrino_reco
+            ),
+            neutrino_reco=neutrino_reco,
         )
         """Initializes the BaselineAssigner class.
         Args:
@@ -173,7 +184,7 @@ class DeltaRAssigner(BaselineAssigner):
         super().__init__(
             config,
             name=(name if name is not None else r"$\Delta R(\ell,j)$-Method"),
-            **kwargs
+            **kwargs,
         )
         """Initializes the DeltaRAssigner class.
         Args:
@@ -232,9 +243,9 @@ class ChiSquareAssigner(BaselineAssigner):
     def __init__(
         self,
         config: DataConfig,
-        use_nu_flows_for_assignment=True,
+        neutrino_reco_for_assignment="nu_flows",
         top_mass=173.15e3,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(config, name=((r"$\chi^2$-Method")), **kwargs)
         """Initializes the ChiSquareAssigner class.
@@ -245,13 +256,17 @@ class ChiSquareAssigner(BaselineAssigner):
         self.feature_index_dict = config.feature_indices
         self.max_jets = config.max_jets
         self.top_mass = top_mass
-        self.use_nu_flows_for_assignment = use_nu_flows_for_assignment
+        self.neutrino_reco_for_assignment = neutrino_reco_for_assignment
 
     def get_neutrino_momenta(self, data_dict):
-        if self.use_nu_flows_for_assignment:
-            return data_dict["nu_flows_neutrino_regression"]
-        else:
+        if self.neutrino_reco_for_assignment is None:
             return data_dict["regression"]
+        elif self.neutrino_reco_for_assignment in data_dict:
+            return data_dict[self.neutrino_reco_for_assignment]
+        else:
+            raise ValueError(
+                f"Expected regression targets for method '{self.neutrino_reco_for_assignment}' not found in data_dict. Available keys: {list(data_dict.keys())}"
+            )
 
     def construct_neutrino_four_vectors(self, data_dict):
         neutrino_3_vector = self.get_neutrino_momenta(data_dict)

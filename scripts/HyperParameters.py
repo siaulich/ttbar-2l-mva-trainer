@@ -22,7 +22,7 @@ from src import evaluation, keras_models
 from src.configs import (
     DataConfig,
     load_hyperparameter_evaluation_config,
-    get_load_config_from_yaml,
+    load_load_config,
 )
 
 ampl.use_atlas_style()
@@ -61,7 +61,9 @@ class MetricConfig:
     label: str  # pretty axis / colorbar label
     scale: float = 1.0  # multiply values by this before plotting
     log_scale: bool = False  # use log scale on this axis
-    lims: Optional[tuple[float, float]] = None  # optional axis limits for better visualization
+    lims: Optional[tuple[float, float]] = (
+        None  # optional axis limits for better visualization
+    )
 
 
 device = "GPU" if tf.config.list_physical_devices("GPU") else "CPU"
@@ -266,7 +268,7 @@ def save_per_fold_results(
 if __name__ == "__main__":
     args = parse_args()
 
-    load_config = get_load_config_from_yaml(args.load_config)
+    load_config = load_load_config(args.load_config)
     evaluation_config = load_hyperparameter_evaluation_config(args.evaluation_config)
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -367,10 +369,9 @@ if __name__ == "__main__":
 
             model_data_frame.to_csv(csv_path)
 
-
-        model_data_frame["nu_flows"] = pd.Series(
-                index=multi_index, dtype=bool
-            ) * hyperparameter_config.options.get("use_nu_flows", False)
+        model_data_frame["neutrino_reco"] = pd.Series(
+            index=multi_index, dtype=bool
+        ) * hyperparameter_config.options.get("neutrino_reco", None)
         models[hyperparameter_config.name] = model_data_frame
 
     # ------------------------------------------------------------------ #
@@ -390,24 +391,33 @@ for plot_cfg in SUMMARY_PLOTS:
     y_cfg = METRICS_CONFIG[plot_cfg.y_metric]
 
     fig, ax = plt.subplots(figsize=(10, 6))
-    nu_flows = False
+    neutrino_reco_types = set()
     for model_name, df in models.items():
         x = df[x_cfg.key].values * x_cfg.scale
         y = df[y_cfg.key].values * y_cfg.scale
         yerr = get_yerr(df, y_cfg.key)
         if yerr is not None:
             yerr = yerr * y_cfg.scale
-        if plot_cfg.y_metric == "regression_mse" and models[model_name]["nu_flows"].any():
-            if not nu_flows:
-                nu_flows = True
-                ax.axhline(
-                    y=np.mean(y),
-                    linestyle="--",
-                    color="gray",
-                    label=r"$\nu^2$-Flows",
-                )
+        if (
+            plot_cfg.y_metric == "regression_mse"
+            and models[model_name]["neutrino_reco"].iloc[0] is not None
+        ):
+            neutrino_reco_types.add(models[model_name]["neutrino_reco"].iloc[0])
+            # use the next color from the axis color cycle for the horizontal line
+            ax.axhline(
+                y=np.mean(y),
+                color=next(ax._get_lines.prop_cycler)["color"],
+                linestyle="--",
+                label=data_config.neutrino_regression_method_labels.get(
+                    models[model_name]["neutrino_reco"].iloc[0],
+                    models[model_name]["neutrino_reco"].iloc[0],
+                ),
+            )
+
         else:
-            ax.errorbar(x, y, yerr=yerr, fmt="o", label=model_name, alpha=0.7, capsize=3)
+            ax.errorbar(
+                x, y, yerr=yerr, fmt="o", label=model_name, alpha=0.7, capsize=3
+            )
 
     if x_cfg.log_scale:
         ax.set_xscale("log")

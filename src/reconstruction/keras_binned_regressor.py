@@ -16,10 +16,20 @@ class KerasBinnedRegressor(EventReconstructorBase, KerasMLWrapper):
         self,
         config: DataConfig,
         name,
-        perform_regression=False,
-        use_nu_flows=True,
+        perform_regression=True,
+        neutrino_reco=None,
         load_model_path=None,
     ):
+        if not perform_regression and neutrino_reco is None:
+            raise ValueError(
+                "perform_regression is False but no neutrino_reco method specified."
+            )
+        if perform_regression and not neutrino_reco is None:
+            neutrino_reco = None  # If performing regression, we don't need a separate neutrino_reco method
+            print(
+                "Warning: perform_regression is True, so neutrino_reco is set to None since regression will handle neutrino reconstruction."
+            )
+
         EventReconstructorBase.__init__(
             self,
             config=config,
@@ -27,11 +37,13 @@ class KerasBinnedRegressor(EventReconstructorBase, KerasMLWrapper):
             full_reco_name=(
                 name
                 if perform_regression
-                else name + (r" + $\nu^2$-Flows" if use_nu_flows else r" + True $\nu$")
+                else name
+                + " + "+ config.neutrino_regression_method_labels.get(
+                    neutrino_reco, neutrino_reco
+                )
             ),
             neutrino_name=name,
-            perform_regression=perform_regression,
-            use_nu_flows=use_nu_flows,
+            neutrino_reco=neutrino_reco,
         )
         KerasMLWrapper.__init__(
             self, config=config, perform_regression=perform_regression

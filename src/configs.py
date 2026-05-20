@@ -112,6 +112,7 @@ def load_hyperparameter_evaluation_config(path: str) -> HyperParameterEvaluation
         config=Config(cast=[tuple]),  # converts list → tuple for range
     )
 
+
 @dataclass
 class NeutrinoRegressionMethodConfig:
     method_name: str = "nu_flows"
@@ -184,10 +185,28 @@ class LoadConfig:
             has_neutrino_truth=self.neutrino_momentum_features is not None,
             neutrino_momentum_features=self.neutrino_momentum_features,
             antineutrino_momentum_features=self.antineutrino_momentum_features,
-            has_nu_flows_neutrino_regression=self.nu_flows_neutrino_momentum_features
-            is not None,
-            nu_flows_neutrino_momentum_features=self.nu_flows_neutrino_momentum_features,
-            nu_flows_antineutrino_momentum_features=self.nu_flows_antineutrino_momentum_features,
+            neutrino_regression_method_features={
+                method_config.method_name: [
+                    method_config.method_name + component
+                    for component in [
+                        "_nu_px",
+                        "_nu_py",
+                        "_nu_pz",
+                        "_nubar_px",
+                        "_nubar_py",
+                        "_nubar_pz",
+                    ]
+                ]
+                for method_config in self.neutrino_regression_method
+            },
+            neutrino_regression_method_labels=(
+                {
+                    method_config.method_name: method_config.label_name
+                    for method_config in self.neutrino_regression_method
+                }
+                if self.neutrino_regression_method
+                else None
+            ),
             top_truth_features=self.top_truth_features,
             tbar_truth_features=self.tbar_truth_features,
             top_lepton_truth_features=self.top_lepton_truth_features,
@@ -199,40 +218,6 @@ class LoadConfig:
             has_event_weight=self.event_weight is not None,
             has_event_number=self.mc_event_number is not None,
         )
-
-
-def load_yaml_config(yaml_path: str) -> dict:
-    """
-    Load a YAML configuration file.
-
-    Args:
-        yaml_path: Path to the YAML configuration file
-    Returns:
-        Dictionary containing the loaded configuration
-    """
-    import yaml
-
-    with open(yaml_path, "r") as f:
-        yaml_dict = yaml.safe_load(f)
-    return yaml_dict
-
-
-def get_load_config_from_yaml(yaml_path: str) -> LoadConfig:
-    """
-    Load a LoadConfig from a YAML file.
-
-    Args:
-        yaml_path: Path to the YAML configuration file
-    Returns:
-        LoadConfig instance
-    """
-    import yaml
-
-    with open(yaml_path, "r") as f:
-        yaml_dict = yaml.safe_load(f)
-    config_dict = yaml_dict.get("LoadConfig", {})
-
-    return LoadConfig(**config_dict)
 
 
 @dataclass
@@ -284,10 +269,9 @@ class DataConfig:
     neutrino_momentum_features: Optional[List[str]] = None
     antineutrino_momentum_features: Optional[List[str]] = None
 
-    # Nu-flows regression targets
-    has_nu_flows_neutrino_regression: bool = False
-    nu_flows_neutrino_momentum_features: Optional[List[str]] = None
-    nu_flows_antineutrino_momentum_features: Optional[List[str]] = None
+    #
+    neutrino_regression_method_features: Optional[Dict[str, List[str]]] = None
+    neutrino_regression_method_labels: Optional[Dict[str, str]] = None
 
     # MC truth
     top_truth_features: Optional[List[str]] = None
@@ -340,10 +324,12 @@ class DataConfig:
         # Truth features (conditional)
         if self.has_neutrino_truth:
             self._add_feature_indices("regression", self.neutrino_momentum_features)
-        if self.has_nu_flows_neutrino_regression:
-            self._add_feature_indices(
-                "nu_flows_neutrino_regression", self.nu_flows_neutrino_momentum_features
-            )
+        if self.neutrino_regression_method_features is not None:
+            for (
+                method_name,
+                features,
+            ) in self.neutrino_regression_method_features.items():
+                self._add_feature_indices(method_name, features)
         if self.has_global_event_inputs:
             self._add_feature_indices("global_event_inputs", self.global_event_inputs)
         if self.has_top_truth:
@@ -388,12 +374,6 @@ class DataConfig:
                 (None, self.NUM_LEPTONS),
             ),
             (
-                "nu_flows_neutrino_regression",
-                self.has_nu_flows_neutrino_regression,
-                self.nu_flows_neutrino_momentum_features,
-                (None, self.NUM_LEPTONS),
-            ),
-            (
                 "top_truth",
                 self.has_top_truth,
                 self.top_truth_features,
@@ -405,7 +385,10 @@ class DataConfig:
                 self.top_lepton_truth_features,
                 (None, self.NUM_LEPTONS),
             ),
-        ]
+        ] + [
+            (method_name, True, features, (None, self.NUM_LEPTONS, len(features)))
+            for method_name,features in self.neutrino_regression_method_features.items()
+        ] if self.neutrino_regression_method_features else []
 
         # Build shapes based on configuration
         for key, condition, features, base_shape in shape_configs:
@@ -665,9 +648,12 @@ def load_yaml_config(file_path) -> dict:
 
 def load_load_config(file_path) -> LoadConfig:
     """Load a LoadConfig from a YAML file."""
-    yaml_dict = load_yaml_config(file_path)
-    load_config_dict = yaml_dict.get("LoadConfig", {})
-    return LoadConfig(**load_config_dict)
+    raw = load_yaml_config(file_path)["LoadConfig"]
+    return from_dict(
+        data_class=LoadConfig,
+        data=raw,
+        config=Config(cast=[tuple]),  # converts list → tuple for range
+    )
 
 
 def load_inference_config(path: str) -> InferenceConfig:

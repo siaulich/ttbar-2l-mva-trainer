@@ -14,7 +14,7 @@ mpl.rcParams["figure.constrained_layout.use"] = True
 from src.preprocessing.training_data_loader import TrainingDataLoader
 from src import evaluation, reconstruction, base_classes
 from src.configs import (
-    get_load_config_from_yaml,
+    load_load_config,
     load_evaluation_config,
 )
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     args = parse_args()
 
     # Load configurations
-    load_config = get_load_config_from_yaml(args.load_config)
+    load_config = load_load_config(args.load_config)
     evaluation_config = load_evaluation_config(args.evaluation_config)
 
     # Load data

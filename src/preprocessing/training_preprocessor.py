@@ -94,30 +94,10 @@ class RootTrainingTrainingDataLoader:
         # Process events
         self.processed_data = self._process_events(events)
 
-        # self.clean_event_data()
+        self.clean_event_data()
 
         return self.processed_data
 
-    def process(self, input_path: str):
-        """Main processing method."""
-        if self.config.verbose:
-            print(f"Processing ROOT file: {input_path}")
-
-        # Load data
-        with uproot.open(input_path) as file:
-            tree = file[self.config.tree_name]
-            events = tree.arrays(library="ak")
-
-        self.n_events_processed = len(events)
-
-        if self.config.verbose:
-            print(f"Total events in file: {self.n_events_processed}")
-
-        if self.config.verbose:
-            print(f"Events passing pre-selection: {self.n_events_passed}")
-
-        # Process events
-        self.processed_data = self._process_events(events)
 
     def clean_event_data(self):
         valid_mask = np.ones(self.n_events_passed, dtype=bool)
@@ -434,8 +414,7 @@ class RootTrainingTrainingDataLoader:
 
         # Extract neutrino reconstruction results if configured
         neutrino_reco = self._extract_neutrino_reco(events)
-        if neutrino_reco is not None:
-            processed.update(neutrino_reco)
+        processed.update(neutrino_reco)
 
         if self.config.root_ntuple_config.mc_event_number is not None:
             event_number = ak.to_numpy(
@@ -1312,10 +1291,12 @@ class RootTrainingTrainingDataLoader:
             return output
         for reco_config in self.config.root_ntuple_config.NeutrinoReco:
             print(f"Processing neutrino reconstruction: {reco_config.name}")
-            if reco_config.nu_pt is not None and reco_config.nu_eta is not None and reco_config.nu_phi is not None:
-                nu_pt = ak.to_numpy(
-                    self.extract_event_data(events, reco_config.nu_pt)
-                )
+            if (
+                reco_config.nu_pt is not None
+                and reco_config.nu_eta is not None
+                and reco_config.nu_phi is not None
+            ):
+                nu_pt = ak.to_numpy(self.extract_event_data(events, reco_config.nu_pt))
                 nu_eta = ak.to_numpy(
                     self.extract_event_data(events, reco_config.nu_eta)
                 )

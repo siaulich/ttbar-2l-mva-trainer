@@ -11,9 +11,12 @@ class EventReconstructorBase(BaseUtilityModel, ABC):
         assignment_name,
         full_reco_name,
         neutrino_name=None,
-        perform_regression=True,
-        use_nu_flows=True,
+        neutrino_reco=None,
     ):
+        if neutrino_reco is not None and neutrino_name is None:
+            neutrino_name = config.neutrino_regression_method_labels.get(
+                neutrino_reco, neutrino_reco
+            )
         BaseUtilityModel.__init__(
             self,
             config=config,
@@ -23,23 +26,15 @@ class EventReconstructorBase(BaseUtilityModel, ABC):
         )
         self.max_jets = config.max_jets
         self.NUM_LEPTONS = config.NUM_LEPTONS
-        if perform_regression and not config.has_neutrino_truth:
-            print(
-                "WARNING: perform_regression is set to True, but config.has_neutrino_truth is False. Setting perform_regression to False."
+        if (
+            neutrino_reco is not None
+            and neutrino_reco not in config.neutrino_regression_method_features
+        ):
+            raise ValueError(
+                f"Neutrino regression method '{neutrino_reco}' not found in config.neutrino_regression_method_features. Available methods: {list(config.neutrino_regression_method_features.keys())}"
             )
-            perform_regression = False
-        if use_nu_flows and not config.has_nu_flows_neutrino_regression:
-            print(
-                "WARNING: use_nu_flows is set to True, but config.use_nu_flows is False. Setting use_nu_flows to False."
-            )
-            use_nu_flows = False
-        if perform_regression and use_nu_flows:
-            print(
-                "WARNING: perform_regression is set to True, but use_nu_flows, is also True. Setting use_nu_flows False to make us of neutrino regression implementation."
-            )
-
-        self.perform_regression = perform_regression
-        self.use_nu_flows = use_nu_flows
+        self.perform_regression = neutrino_reco is None
+        self.neutrino_reco = neutrino_reco
 
     def predict_indices(self, data_dict):
         pass
@@ -49,18 +44,13 @@ class EventReconstructorBase(BaseUtilityModel, ABC):
             raise NotImplementedError(
                 "This method should be implemented in subclasses that perform regression."
             )
-        if self.use_nu_flows:
-            if "nu_flows_neutrino_regression" in data_dict:
-                return data_dict["nu_flows_neutrino_regression"]
-            print(
-                "WARNING: use_nu_flows is True but 'nu_flows_neutrino_regression' not found in data_dict. Falling back to 'neutrino_truth'."
-            )
-        if "regression" in data_dict:
-            return data_dict["regression"]
-        print(f"data_dict keys: {list(data_dict.keys())}")
-        raise ValueError(
-            "No regression targets found in data_dict for neutrino reconstruction."
-        )
+        if self.neutrino_reco is not None:
+            if self.neutrino_reco in data_dict:
+                return data_dict[self.neutrino_reco]
+            else:
+                raise ValueError(
+                    f"Expected regression targets for method '{self.neutrino_reco}' not found in data_dict. Available keys: {list(data_dict.keys())}"
+                )
 
     def evaluate_accuracy(self, data_dict, true_labels, per_event=False):
         """

@@ -6,18 +6,29 @@ class GroundTruthReconstructor(EventReconstructorBase):
     def __init__(
         self,
         config: DataConfig,
-        use_nu_flows=False,
+        neutrino_reco=None,
         assignment_name="True Assignment",
     ):
         super().__init__(
             config=config,
             assignment_name=assignment_name,
             full_reco_name=assignment_name
-            + (r" + " if assignment_name != "" else r"")
-            + (r"$\nu^2$-Flows" if use_nu_flows else r"True $\nu$"),
-            neutrino_name=r"$\nu^2$-Flows" if use_nu_flows else r"True $\nu$",
+            + (
+                config.neutrino_regression_method_labels.get(
+                    neutrino_reco, neutrino_reco
+                )
+                if neutrino_reco
+                else ""
+            ),
+            neutrino_name=(
+                config.neutrino_regression_method_labels.get(
+                    neutrino_reco, neutrino_reco
+                )
+                if neutrino_reco
+                else None
+            ),
             perform_regression=False,
-            use_nu_flows=use_nu_flows,
+            neutrino_reco=neutrino_reco,
         )
         self.config = config
 

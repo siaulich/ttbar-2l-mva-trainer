@@ -241,11 +241,14 @@ class TrainingDataLoader:
         # Load truth features
         self._load_truth_features(loaded_data)
 
+        # Load neutrino regression targets if configured
+        self._load_neutrino_regression(loaded_data)
+
         # Build labels and apply reconstruction mask
         self._build_and_apply_labels(loaded_data)
 
-        # Remove NaN events from NuFlows if present
-        self._filter_nuflows_nans()
+        # Filter out events with NaNs in NuFlows targets if present
+        self._filter_nans()
 
         self.data_length = len(self.feature_data["assignment"])
 
@@ -366,8 +369,25 @@ class TrainingDataLoader:
     def _load_neutrino_regression(self, loaded: Dict) -> None:
         for method_config in self.load_config.neutrino_regression_method:
             regression_data = self._load_feature_array(
-                loaded, [method_config.branch_name + comp_label for comp_label in ["nu_px,nu_py,nu_pz","nubar_px","nubar_pz","nubar_pz",]], target_shape=(len(loaded[method_config.branch_name]), self.load_config.NUM_LEPTONS, -1)
+                loaded,
+                [
+                    method_config.branch_name + comp_label
+                    for comp_label in [
+                        "_nu_px",
+                        "_nu_py",
+                        "_nu_pz",
+                        "_nubar_px",
+                        "_nubar_py",
+                        "_nubar_pz",
+                    ]
+                ],
+                target_shape=(
+                    -1,
+                    self.load_config.NUM_LEPTONS,
+                    3
+                ),
             )
+            self.feature_data[method_config.branch_name] = regression_data
 
     def _build_and_apply_labels(self, loaded: Dict) -> None:
         """Build labels and apply reconstruction mask."""
@@ -384,13 +404,14 @@ class TrainingDataLoader:
         self._apply_mask_to_features(reco_mask)
         self.feature_data["assignment"] = assignment
 
-    def _filter_nuflows_nans(self) -> None:
+    def _filter_nans(self) -> None:
         """Remove events with NaNs in NuFlows targets if present."""
-        if "nu_flows_neutrino_regression" in self.feature_data:
-            nu_flows_nan_mask = ~np.isnan(
-                self.feature_data["nu_flows_neutrino_regression"]
-            ).any(axis=(1, 2))
-            self._apply_mask_to_features(nu_flows_nan_mask)
+        nan_mask = np.ones(len(self.feature_data["assignment"]), dtype=bool)
+        for key in self.feature_data:
+            nan_mask &= ~np.isnan(self.feature_data[key]).any(axis=tuple(range(1, self.feature_data[key].ndim))) if self.feature_data[key] is not None else True
+        print(f"Filtering out {np.sum(~nan_mask)} events with NaNs in features")
+        self._apply_mask_to_features(nan_mask)
+
 
     def get_data_config(self) -> DataConfig:
         """
@@ -735,7 +756,7 @@ def load_yaml_config(file_path):
     return config
 
 
-def get_load_config_from_yaml(file_path: str) -> LoadConfig:
+def load_load_config(file_path: str) -> LoadConfig:
     """
     Load LoadConfig from a YAML file.
 
