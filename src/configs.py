@@ -629,8 +629,8 @@ class PreprocessorConfig:
         default_factory=lambda: {"jet_pt": 1e-3, "el_pt": 1e-3, "mu_pt": 1e-3}
     )
 
-    data_cuts: Dict[str, Tuple[float, float]] = (
-        None  # Optional cuts on features (min, max)
+    data_cuts: Dict[str, List] = field(
+        default_factory=dict
     )
 
 
@@ -679,5 +679,5 @@ def load_preprocessing_config(path: str) -> PreprocessorConfig:
     return from_dict(
         data_class=PreprocessorConfig,
         data=raw["PreprocessorConfig"],
-        config=Config(cast=[tuple]),  # converts list → tuple for range
+        config=Config(cast=[Tuple]),  # converts list → tuple for range
     )
