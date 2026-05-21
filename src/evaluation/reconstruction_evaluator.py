@@ -632,7 +632,7 @@ class ReconstructionPlotter:
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
             ylims=(0, 1.1),
-            legend_loc="upper right",
+            legend_loc="best",
         )
 
         # Extract feature data
@@ -714,7 +714,7 @@ class ReconstructionPlotter:
             confidence=0.95,
             n_bootstrap=10,
             show_errorbar=False,
-            legend_loc="upper right",
+            legend_loc="best",
         )
         xlims_feature1 = feature1_binning_config.xlims
         xlims_feature2 = feature2_binning_config.xlims
@@ -821,7 +821,7 @@ class ReconstructionPlotter:
             n_bootstrap=n_bootstrap,
             show_errorbar=show_errorbar,
             ylims=(0, 1.1),
-            legend_loc="upper right",
+            legend_loc="best",
         )
 
         feature_data = FeatureExtractor.extract_feature(
@@ -912,7 +912,7 @@ class ReconstructionPlotter:
             n_bootstrap=n_bootstrap,
             show_errorbar=True,
             ylims=(0, 1.1),
-            legend_loc="upper right",
+            legend_loc="best",
         )
 
         # Extract feature data

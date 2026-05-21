@@ -27,6 +27,7 @@ from src.configs import (
 
 ampl.use_atlas_style()
 ampl.set_color_cycle("ATLAS")
+color_cycler = mpl.rcParams["axes.prop_cycle"]
 plt.rcParams["font.size"] = 18
 mpl.rcParams["figure.constrained_layout.use"] = True
 
@@ -80,7 +81,6 @@ METRICS_CONFIG: dict[str, MetricConfig] = {
         MetricConfig(
             key="assignment_accuracy",
             label="Assignment Accuracy",
-            lims=(0.5, 1.0),
         ),
         MetricConfig(
             key="regression_mse",
@@ -369,9 +369,9 @@ if __name__ == "__main__":
 
             model_data_frame.to_csv(csv_path)
 
-        model_data_frame["neutrino_reco"] = pd.Series(
-            index=multi_index, dtype=bool
-        ) * hyperparameter_config.options.get("neutrino_reco", None)
+        model_data_frame["neutrino_reco"] = pd.Series(hyperparameter_config.options.get("neutrino_reco", "regression"),
+            index=multi_index, dtype=str
+        )
         models[hyperparameter_config.name] = model_data_frame
 
     # ------------------------------------------------------------------ #
@@ -392,7 +392,7 @@ for plot_cfg in SUMMARY_PLOTS:
 
     fig, ax = plt.subplots(figsize=(10, 6))
     neutrino_reco_types = set()
-    for model_name, df in models.items():
+    for model_idx, (model_name, df) in enumerate(models.items()):
         x = df[x_cfg.key].values * x_cfg.scale
         y = df[y_cfg.key].values * y_cfg.scale
         yerr = get_yerr(df, y_cfg.key)
@@ -400,14 +400,14 @@ for plot_cfg in SUMMARY_PLOTS:
             yerr = yerr * y_cfg.scale
         if (
             plot_cfg.y_metric == "regression_mse"
-            and models[model_name]["neutrino_reco"].iloc[0] is not None
+            and models[model_name]["neutrino_reco"].iloc[0] != "regression"
         ):
             neutrino_reco_types.add(models[model_name]["neutrino_reco"].iloc[0])
             # use the next color from the axis color cycle for the horizontal line
             ax.axhline(
                 y=np.mean(y),
-                color=next(ax._get_lines.prop_cycler)["color"],
                 linestyle="--",
+                color="gray",
                 label=data_config.neutrino_regression_method_labels.get(
                     models[model_name]["neutrino_reco"].iloc[0],
                     models[model_name]["neutrino_reco"].iloc[0],
@@ -418,7 +418,7 @@ for plot_cfg in SUMMARY_PLOTS:
             ax.errorbar(
                 x, y, yerr=yerr, fmt="o", label=model_name, alpha=0.7, capsize=3
             )
-
+    ax.grid(True, alpha=0.3)
     if x_cfg.log_scale:
         ax.set_xscale("log")
     if y_cfg.log_scale:
@@ -524,7 +524,6 @@ for hyperparameter_config in evaluation_config.models:
                         color=text_color,
                         fontsize=10,
                     )
-
             ampl.set_xlabel(label=plot_config.x_label, ax=ax)
             ampl.set_ylabel(label=plot_config.y_label, ax=ax)
             cbar = fig.colorbar(im, ax=ax)

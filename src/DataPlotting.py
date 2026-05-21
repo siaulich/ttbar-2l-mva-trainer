@@ -285,7 +285,7 @@ class DataPlotter:
                 linestyle="-",
                 label=f"Average {feature_name_y}",
             )
-            ax.legend(loc="upper right")
+            ax.legend(loc="best")
         fig.colorbar(cax, ax=ax, label="Arbitrary Units")
         ampl.set_xlabel(feature_name_x, ax=ax)
         ampl.set_ylabel(feature_name_y, ax=ax)

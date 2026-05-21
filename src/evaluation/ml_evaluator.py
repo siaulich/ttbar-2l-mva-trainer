@@ -825,12 +825,6 @@ class MLEvaluator:
             color="lightcoral",
         )
 
-        ampl.draw_atlas_label(
-            x=0.02,
-            y=0.95,
-            ax=ax,
-            status="Simulation Work in Progress",
-        )
         ampl.set_ylabel(ax=ax, label="Number of Parameters (Millions)")
         ax.set_title("Model Parameters Comparison")
         ax.set_xticks(x)
