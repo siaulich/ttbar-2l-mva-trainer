@@ -206,8 +206,8 @@ reconstruction_variable_configs = {
         },
     },
     "nu_pt": {
-        "compute_func": lambda l, j, n: compute_pt_from_lorentz_vector_array(n[:,0, 2] / 1e3),
-        "extract_func": lambda X: compute_pt_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 0, 2]) / 1e3),
+        "compute_func": lambda l, j, n: compute_pt_from_lorentz_vector_array(n[:,0, :] / 1e3),
+        "extract_func": lambda X: compute_pt_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 0, :]) / 1e3),
         "label": r"$p_{T}({\nu})$ [GeV]",
         "use_relative_deviation": False,
         "xlims": (-300, 300),
@@ -219,8 +219,8 @@ reconstruction_variable_configs = {
         },
     },
     "nubar_pt": {
-        "compute_func": lambda l, j, n: compute_pt_from_lorentz_vector_array(n[:, 1, 2] / 1e3),
-        "extract_func": lambda X: compute_pt_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 1, 2]) / 1e3),
+        "compute_func": lambda l, j, n: compute_pt_from_lorentz_vector_array(n[:, 1, :] / 1e3),
+        "extract_func": lambda X: compute_pt_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 1, :]) / 1e3),
         "label": r"$p_{T}(\bar{\nu})$ [GeV]",
         "use_relative_deviation": False,
         "xlims": (-300, 300),
@@ -232,8 +232,8 @@ reconstruction_variable_configs = {
         },
     },
     "nu_eta": {
-        "compute_func": lambda l, j, n: compute_eta_from_lorentz_vector_array(n[:, 0, 2] / 1e3),
-        "extract_func": lambda X: compute_eta_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 0, 2]) / 1e3),
+        "compute_func": lambda l, j, n: compute_eta_from_lorentz_vector_array(n[:, 0, :] / 1e3),
+        "extract_func": lambda X: compute_eta_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 0, :]) / 1e3),
         "label": r"$\eta({\nu})$ [GeV]",
         "use_relative_deviation": False,
         "xlims": (-300, 300),
@@ -245,8 +245,8 @@ reconstruction_variable_configs = {
         },
     },
     "nubar_eta": {
-        "compute_func": lambda l, j, n: compute_eta_from_lorentz_vector_array(n[:, 1, 2] / 1e3),
-        "extract_func": lambda X: compute_eta_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 1, 2]) / 1e3),
+        "compute_func": lambda l, j, n: compute_eta_from_lorentz_vector_array(n[:, 1, :] / 1e3),
+        "extract_func": lambda X: compute_eta_from_lorentz_vector_array(lorentz_vector_from_neutrino_momenta_array(X["regression"][:, 1, :]) / 1e3),
         "label": r"$p_{T}(\bar{\nu})$ [GeV]",
         "use_relative_deviation": False,
         "xlims": (-300, 300),
