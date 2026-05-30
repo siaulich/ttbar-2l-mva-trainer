@@ -21,6 +21,7 @@ from tqdm import tqdm
 from ..utils import (
     lorentz_vector_array_from_pt_eta_phi_e,
     compute_mass_from_lorentz_vector_array,
+    angle_vectors
 )
 from ..evaluation.physics_calculations import c_han, c_hel
 
@@ -1054,6 +1055,9 @@ class RootTrainingTrainingDataLoader:
         nu_tbar_px = nu_tbar_pt * np.cos(nu_tbar_phi)
         nu_tbar_py = nu_tbar_pt * np.sin(nu_tbar_phi)
         nu_tbar_pz = nu_tbar_pt * np.sinh(nu_tbar_eta)
+
+
+
         output = {
             "truth_top_neutino_mass": nu_top_mass,
             "truth_top_neutino_pt": nu_top_pt,
@@ -1236,6 +1240,18 @@ class RootTrainingTrainingDataLoader:
             truth_c_hel = np.clip(truth_c_hel, -1, 1)
             truth_c_han = np.clip(truth_c_han, -1, 1)
 
+            truth_top_lepton_nu_angle = angle_vectors(
+                np.stack([top_lep_px, top_lep_py, top_lep_pz], axis=1),
+                np.stack([nu_top_px, nu_top_py, nu_top_pz], axis=1),
+            )
+            truth_tbar_lepton_nu_angle = angle_vectors(
+                np.stack([tbar_lep_px, tbar_lep_py, tbar_lep_pz], axis=1),
+                np.stack([nu_tbar_px, nu_tbar_py, nu_tbar_pz], axis=1),
+            )
+
+            truth_lepton_nu_angle_mean = 0.5 * (truth_top_lepton_nu_angle + truth_tbar_lepton_nu_angle)
+
+
             output.update(
                 {
                     # ttbar system
@@ -1272,6 +1288,10 @@ class RootTrainingTrainingDataLoader:
                     # Truth c_han, c_hel
                     "truth_c_hel": truth_c_hel,
                     "truth_c_han": truth_c_han,
+                    # Lepton-neutrino angles
+                    "truth_top_lepton_nu_angle": truth_top_lepton_nu_angle,
+                    "truth_tbar_lepton_nu_angle": truth_tbar_lepton_nu_angle,
+                    "truth_lepton_nu_angle_mean": truth_lepton_nu_angle_mean,
                 }
             )
         return output
